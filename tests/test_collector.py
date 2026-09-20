@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges
+from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges, event_name, target_snapshot
 
 
 class AdaptiveRangeTests(unittest.TestCase):
@@ -50,11 +50,31 @@ class CollectorIntegrityTests(unittest.TestCase):
         self.assertEqual(report["reorgs"][0]["block_number"], 100)
         self.assertEqual(report["reorgs"][0]["canonical_block_hash"], "0xcanonical")
 
+    def test_market_snapshot_excludes_unrelated_markets(self) -> None:
+        snapshot = target_snapshot(
+            {
+                "markets": [
+                    {"marketToken": "0xtarget", "name": "ETH/USD"},
+                    {"marketToken": "0xother", "name": "BTC/USD"},
+                ],
+                "unrelated": {"value": "keep out"},
+            },
+            "0xtarget",
+        )
+
+        self.assertEqual(snapshot, {"markets": [{"marketToken": "0xtarget", "name": "ETH/USD"}]})
+
+    def test_event_name_decodes_gmx_event_emitter_payload(self) -> None:
+        name = b"OrderCreated"
+        data = b"\0" * 32 + (96).to_bytes(32, "big") + b"\0" * 32 + len(name).to_bytes(32, "big") + name.ljust(32, b"\0")
+
+        self.assertEqual(event_name({"data": "0x" + data.hex()}), "OrderCreated")
+
 
 def _spec() -> dict[str, object]:
     return {
         "schema": "GmxMarketSpec",
-        "deployment": {"market_name": "test"},
+        "deployment": {"market_name": "test", "market_token_address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
         "anchor_block": {"rpc_url": "https://example.invalid"},
         "contracts": {
             "event_emitter": "0x0000000000000000000000000000000000000001",
@@ -63,6 +83,11 @@ def _spec() -> dict[str, object]:
             "order_handler": "0x0000000000000000000000000000000000000004",
             "liquidation_handler": "0x0000000000000000000000000000000000000005",
         },
+        "tokens": {
+            "index": {"address": "0xindex"},
+            "long": {"address": "0xlong"},
+            "short": {"address": "0xshort"},
+        },
         "source_urls": {},
     }
 
@@ -70,6 +95,7 @@ def _spec() -> dict[str, object]:
 class _FakeRpc:
     def __init__(self, log_block_hash: str) -> None:
         self.log_block_hash = log_block_hash
+        self.last_artifact = None
 
     def call(self, method: str, params: list[object]) -> object:
         if method == "eth_blockNumber":
@@ -86,6 +112,7 @@ class _FakeRpc:
                         "logIndex": "0x0",
                         "blockHash": self.log_block_hash,
                         "transactionHash": "0xtx",
+                        "data": "0x" + ("0" * 64) + ("0" * 24) + ("a" * 40),
                     }
                 ]
             return []

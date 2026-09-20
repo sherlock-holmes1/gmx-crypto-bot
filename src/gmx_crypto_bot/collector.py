@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import sys
-import time
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
@@ -13,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
+from gmx_crypto_bot.artifacts import RawArtifactStore
 from gmx_crypto_bot.recording import JsonlRecorder
 
 DEFAULT_CONFIRMATIONS = 64
@@ -44,14 +44,72 @@ def parse_hex_number(value: str) -> int:
     return int(value, 16)
 
 
+def contains_address(log: dict[str, Any], address: str) -> bool:
+    """Check ABI-padded topics and data without relying on an event-specific decoder."""
+    normalized = address.removeprefix("0x").lower()
+    padded = "0x" + "0" * 24 + normalized
+    topics = [value.lower() for value in log.get("topics", [])]
+    data = log.get("data", "").lower()
+    return any(padded in value for value in topics) or padded[2:] in data
+
+
+def event_name(log: dict[str, Any]) -> str | None:
+    """Decode the first dynamic string in GMX EventEmitter EventLog payloads."""
+    try:
+        encoded = bytes.fromhex(log["data"].removeprefix("0x"))
+        if len(encoded) < 96:
+            return None
+        offset = int.from_bytes(encoded[32:64], "big")
+        if offset + 32 > len(encoded):
+            return None
+        size = int.from_bytes(encoded[offset : offset + 32], "big")
+        value = encoded[offset + 32 : offset + 32 + size]
+        decoded = value.decode("ascii")
+        return decoded if decoded.isidentifier() else None
+    except (KeyError, UnicodeDecodeError, ValueError):
+        return None
+
+
+def target_snapshot(payload: Any, market_address: str) -> Any:
+    """Extract target-market objects from a public API response without mutating raw evidence."""
+    if isinstance(payload, list):
+        matches = [item for item in payload if contains_value(item, market_address)]
+        return matches
+    if isinstance(payload, dict):
+        if any(
+            isinstance(value, str) and value.lower() == market_address.lower()
+            for key, value in payload.items()
+            if key.lower() in {"market", "marketaddress", "market_address", "markettoken", "market_token"}
+        ):
+            return payload
+        matches = {
+            key: target_snapshot(value, market_address)
+            for key, value in payload.items()
+            if isinstance(value, (dict, list))
+        }
+        return {key: value for key, value in matches.items() if value not in ({}, [])}
+    return None
+
+
+def contains_value(value: Any, address: str) -> bool:
+    if isinstance(value, str):
+        return value.lower() == address.lower()
+    if isinstance(value, list):
+        return any(contains_value(item, address) for item in value)
+    if isinstance(value, dict):
+        return any(contains_value(item, address) for item in value.values())
+    return False
+
+
 class PublicJsonRpc:
     """Small JSON-RPC client that has no wallet, account, or signing surface."""
 
-    def __init__(self, endpoint: str, timeout_seconds: int, recorder: JsonlRecorder) -> None:
+    def __init__(self, endpoint: str, timeout_seconds: int, artifacts: RawArtifactStore) -> None:
         self.endpoint = endpoint
         self.timeout_seconds = timeout_seconds
-        self.recorder = recorder
+        self.artifacts = artifacts
         self._request_id = 0
+        self.last_artifact: str | None = None
 
     def call(self, method: str, params: list[Any]) -> Any:
         self._request_id += 1
@@ -65,17 +123,13 @@ class PublicJsonRpc:
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                raw_body = response.read().decode("utf-8")
+                raw_body = response.read()
+                self.last_artifact = self.artifacts.response(f"rpc-{method}", request_payload, raw_body)
                 response_payload = json.loads(raw_body)
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-            self.recorder.record("rpc_error", {"endpoint": self.endpoint, "request": request_payload, "error": str(error)})
+            self.artifacts.error(f"rpc-{method}", request_payload, str(error))
             raise SourceError(f"{method}: {error}") from error
 
-        # This is deliberately recorded before callers derive a block, log, or receipt event.
-        self.recorder.record(
-            "rpc_response",
-            {"endpoint": self.endpoint, "request": request_payload, "response": response_payload},
-        )
         if response_payload.get("error"):
             raise SourceError(f"{method}: {response_payload['error']}")
         if "result" not in response_payload:
@@ -127,6 +181,8 @@ class GmxCollector:
         self._headers: dict[int, dict[str, Any]] = {}
         self._receipt_hashes: set[str] = set()
         self._event_count = 0
+        self._source_log_count = 0
+        self._events_by_scope: dict[str, int] = {}
         endpoint = rpc_url or spec["anchor_block"]["rpc_url"]
         self._watched_contracts = {
             role: address.lower()
@@ -148,9 +204,18 @@ class GmxCollector:
             "pinned_configuration_raw": spec.get("configuration_raw"),
             "confirmation_depth": confirmations,
             "raw_first": True,
+            "raw_artifact_directory": "raw",
+            "replay_filter": "target market, target configuration, and WETH/USDC oracle updates",
         }
         self.recorder = JsonlRecorder(output, metadata)
-        self.rpc = PublicJsonRpc(endpoint, timeout_seconds, self.recorder)
+        self.artifacts = RawArtifactStore(output)
+        self.rpc = PublicJsonRpc(endpoint, timeout_seconds, self.artifacts)
+        self._market_address = spec["deployment"]["market_token_address"].lower()
+        self._oracle_token_addresses = {
+            spec["tokens"]["index"]["address"].lower(),
+            spec["tokens"]["long"]["address"].lower(),
+            spec["tokens"]["short"]["address"].lower(),
+        }
 
     def collect(self, start_block: int, end_block: int) -> dict[str, Any]:
         try:
@@ -175,6 +240,7 @@ class GmxCollector:
             return report
         finally:
             self.recorder.close()
+            self.artifacts.close()
 
     def resolve_window_start_block(self) -> int:
         """Resolve the spec's timestamp rule by binary-searching canonical headers."""
@@ -208,26 +274,43 @@ class GmxCollector:
             for range_start, range_end, logs in adaptive_ranges(
                 fetch, chunk_start, chunk_end, self._record_gap, source=f"eth_getLogs:{role}"
             ):
+                self._source_log_count += len(logs)
                 self.recorder.record(
                     "log_range",
-                    {"contract_role": role, "address": address, "from_block": range_start, "to_block": range_end, "log_count": len(logs)},
+                    {
+                        "contract_role": role,
+                        "address": address,
+                        "from_block": range_start,
+                        "to_block": range_end,
+                        "source_log_count": len(logs),
+                        "raw_artifact": self.rpc.last_artifact,
+                    },
                     block_number=range_end,
                 )
                 for log in logs:
-                    self._record_log(role, address, log)
+                    scope = self._log_scope(role, log)
+                    if scope:
+                        self._record_log(role, address, log, scope)
 
-    def _record_log(self, role: str, address: str, log: dict[str, Any]) -> None:
+    def _record_log(self, role: str, address: str, log: dict[str, Any], scope: str) -> None:
         block_number = parse_hex_number(log["blockNumber"])
         transaction_index = parse_hex_number(log["transactionIndex"])
         log_index = parse_hex_number(log["logIndex"])
         self.recorder.record(
-            "gmx_contract_log",
-            {"contract_role": role, "address": address, "log": log},
+            "gmx_market_log",
+            {
+                "scope": scope,
+                "event_name": event_name(log),
+                "contract_role": role,
+                "address": address,
+                "log": log,
+            },
             block_number=block_number,
             transaction_index=transaction_index,
             log_index=log_index,
         )
         self._event_count += 1
+        self._events_by_scope[scope] = self._events_by_scope.get(scope, 0) + 1
         try:
             header = self._header(block_number)
         except SourceError as error:
@@ -250,6 +333,15 @@ class GmxCollector:
             self._receipt_hashes.add(transaction_hash)
             self._record_receipt(transaction_hash, block_number, transaction_index)
 
+    def _log_scope(self, role: str, log: dict[str, Any]) -> str | None:
+        """Keep only evidence needed to reconstruct the pinned market."""
+        if contains_address(log, self._market_address):
+            return "market" if role == "event_emitter" else "market_configuration"
+        if role == "event_emitter" and event_name(log) == "OraclePriceUpdate":
+            if any(contains_address(log, token) for token in self._oracle_token_addresses):
+                return "oracle_dependency"
+        return None
+
     def _record_receipt(self, transaction_hash: str, block_number: int, transaction_index: int) -> None:
         try:
             receipt = self.rpc.call("eth_getTransactionReceipt", [transaction_hash])
@@ -258,7 +350,13 @@ class GmxCollector:
             return
         self.recorder.record(
             "transaction_receipt",
-            {"transaction_hash": transaction_hash, "receipt": receipt},
+            {
+                "transaction_hash": transaction_hash,
+                "raw_artifact": self.rpc.last_artifact,
+                "status": receipt.get("status"),
+                "gas_used": receipt.get("gasUsed"),
+                "effective_gas_price": receipt.get("effectiveGasPrice"),
+            },
             block_number=block_number,
             transaction_index=transaction_index,
         )
@@ -273,7 +371,18 @@ class GmxCollector:
 
     def _record_header(self, block_number: int, reason: str) -> None:
         header = self._header(block_number)
-        self.recorder.record("block_header", {"reason": reason, "header": header}, block_number=block_number)
+        self.recorder.record(
+            "block_header",
+            {
+                "reason": reason,
+                "raw_artifact": self.rpc.last_artifact,
+                "number": header.get("number"),
+                "hash": header.get("hash"),
+                "parent_hash": header.get("parentHash"),
+                "timestamp": header.get("timestamp"),
+            },
+            block_number=block_number,
+        )
 
     def _record_gap(self, gap: RangeGap) -> None:
         self.gaps.append(gap)
@@ -286,13 +395,23 @@ class GmxCollector:
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                    raw_body = response.read().decode("utf-8")
+                    raw_body = response.read()
+                    raw_artifact = self.artifacts.response(f"http-{name}", {"url": url}, raw_body)
                     payload = json.loads(raw_body)
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                self.artifacts.error(f"http-{name}", {"url": url}, str(error))
                 self._record_gap(RangeGap(f"http_snapshot:{name}", 0, 0, str(error)))
                 continue
-            self.recorder.record("http_response", {"source": name, "url": url, "response": payload})
-            self.recorder.record("market_snapshot", {"source": name, "url": url, "observed_at_utc": utc_now()})
+            self.recorder.record(
+                "market_snapshot",
+                {
+                    "source": name,
+                    "url": url,
+                    "raw_artifact": raw_artifact,
+                    "market": target_snapshot(payload, self._market_address),
+                    "observed_at_utc": utc_now(),
+                },
+            )
 
     def _write_report(self, start_block: int, end_block: int, latest_head: int, finalized_head: int) -> dict[str, Any]:
         report = {
@@ -303,6 +422,8 @@ class GmxCollector:
             "latest_head": latest_head,
             "finalized_head": finalized_head,
             "events_recorded": self._event_count,
+            "source_logs_seen": self._source_log_count,
+            "events_by_scope": self._events_by_scope,
             "receipts_recorded": len(self._receipt_hashes),
             "headers_recorded": len(self._headers),
             "gaps": [asdict(gap) for gap in self.gaps],
@@ -355,6 +476,7 @@ def main() -> int:
         return 1
     finally:
         collector.recorder.close()
+        collector.artifacts.close()
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["complete"] else 2
 

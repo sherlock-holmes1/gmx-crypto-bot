@@ -7,8 +7,10 @@ borrowing, price impact, and liquidation.
 ## Status
 
 The repository provides an append-only recording format, deterministic replay
-verifier, and bounded public GMX collector. A position simulator is not
-implemented yet.
+verifier, and bounded public GMX collector. The 1,000-block test recording and
+replay passed with no gaps or reorgs. Target-market normalization is complete.
+Next: the pinned seven-day recording, then validation of reconstructed execution
+against observed terminal orders. A position simulator is not implemented yet.
 
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.
@@ -49,13 +51,15 @@ A recording directory contains:
 
 ```text
 metadata.json     # source, chain, market, configuration and capture bounds
-events.jsonl      # append-only raw event envelopes
+events.jsonl      # append-only ETH/USD replay events and source references
+raw/              # immutable public JSON-RPC and HTTP response bodies + manifest
 completeness-report.json # source ranges, explicit gaps, and reorg findings
 ```
 
 Each event envelope contains `seq`, `kind`, `block_number`,
-`transaction_index`, `log_index`, local receipt timestamps, and its untouched
-`payload`. Chain events replay in canonical block/transaction/log order; events
+`transaction_index`, `log_index`, local receipt timestamps, and its replay
+payload. Every raw source response is stored under `raw/` before a replay event
+is derived. Chain events replay in canonical block/transaction/log order; events
 without canonical coordinates remain in arrival order after canonical events.
 
 ## Collector
@@ -64,12 +68,12 @@ without canonical coordinates remain in arrival order after canonical events.
 queries only public JSON-RPC and GMX public HTTP endpoints. It has no wallet,
 account, private-key, signing, transaction, or order-submission code.
 
-It records raw JSON-RPC and HTTP responses before derived log, header, receipt,
-and snapshot entries. It watches the pinned GMX EventEmitter, DataStore, Oracle,
-OrderHandler, and LiquidationHandler contracts. The collector does not decode
-market-specific event payloads: replay must do that from the preserved raw logs,
-so an incomplete decoder cannot drop an order, execution, cancellation,
-liquidation, oracle, or configuration event.
+It stores full JSON-RPC and HTTP responses in `raw/manifest.jsonl` before it
+derives replay events. It watches the pinned GMX EventEmitter, DataStore, Oracle,
+OrderHandler, and LiquidationHandler contracts. `events.jsonl` retains only the
+pinned ETH/USD market events, target-market configuration changes, and WETH/USDC
+oracle updates. Unrelated GMX markets remain only in the raw source artifacts.
+Receipts and headers are fetched only for retained events.
 
 Large `eth_getLogs` ranges are split recursively. A source failure at a single
 block becomes a `data_gap` record and makes `complete` false. A log whose block
@@ -79,11 +83,16 @@ newer than the selected confirmation depth.
 
 ## Roadmap
 
-1. Define a versioned GMX market specification for one Arbitrum market.
-2. Build a public collector for finalized blocks, GMX events, oracle prices, and
-   configuration changes.
-3. Extend replay with source-range completeness and reorg checks.
-4. Build a GMX position simulator calibrated against observed order executions.
-5. Evaluate one pre-registered strategy on development and holdout periods.
+1. Completed — define a versioned GMX market specification for one Arbitrum market.
+2. Completed — build a public collector for finalized blocks, GMX events, oracle
+   prices, and configuration changes, with raw artifacts and target-market replay filtering.
+3. Completed — verify canonical replay ordering, source-range completeness, and reorg checks.
+4. Collect the pinned seven-day recording.
+5. Validate reconstructed execution against observed terminal orders: join each
+   request to its execution, cancellation, or freeze; compare terminal outcome,
+   oracle prices, execution price, position and cash movements, fees, and receipt
+   result within fixed tolerances; emit per-order and aggregate mismatch reports.
+6. Build a GMX position simulator only after execution validation passes.
+7. Evaluate one pre-registered strategy on development and holdout periods.
 
 Technical references: [GMX architecture](https://docs.gmx.io/docs/api/contracts/architecture/), [fees](https://docs.gmx.io/docs/trading/fees/), and [liquidations](https://docs.gmx.io/docs/trading/liquidations/).
