@@ -52,15 +52,17 @@ A recording directory contains:
 ```text
 metadata.json     # source, chain, market, configuration and capture bounds
 events.jsonl      # append-only ETH/USD replay events and source references
-raw/              # immutable public JSON-RPC and HTTP response bodies + manifest
+raw/              # rotated compressed JSONL response bundles + manifest
 completeness-report.json # source ranges, explicit gaps, and reorg findings
 ```
 
 Each event envelope contains `seq`, `kind`, `block_number`,
 `transaction_index`, `log_index`, local receipt timestamps, and its replay
-payload. Every raw source response is stored under `raw/` before a replay event
-is derived. Chain events replay in canonical block/transaction/log order; events
-without canonical coordinates remain in arrival order after canonical events.
+payload. Every raw source response is stored before a replay event is derived.
+`raw/rpc-000001.jsonl.gz` bundles base64-encoded exact response bodies and rotates
+at 256 MiB of uncompressed records. The manifest maps each source request to its
+bundle record and SHA-256. Chain events replay in canonical block/transaction/log
+order; events without canonical coordinates remain in arrival order after canonical events.
 
 ## Collector
 
@@ -68,8 +70,9 @@ without canonical coordinates remain in arrival order after canonical events.
 queries only public JSON-RPC and GMX public HTTP endpoints. It has no wallet,
 account, private-key, signing, transaction, or order-submission code.
 
-It stores full JSON-RPC and HTTP responses in `raw/manifest.jsonl` before it
-derives replay events. It watches the pinned GMX EventEmitter, DataStore, Oracle,
+It stores full JSON-RPC and HTTP responses in rotated `raw/rpc-*.jsonl.gz` bundles
+and records their request, bundle location, and SHA-256 in `raw/manifest.jsonl`
+before it derives replay events. It watches the pinned GMX EventEmitter, DataStore, Oracle,
 OrderHandler, and LiquidationHandler contracts. `events.jsonl` retains only the
 pinned ETH/USD market events, target-market configuration changes, and WETH/USDC
 oracle updates. Unrelated GMX markets remain only in the raw source artifacts.

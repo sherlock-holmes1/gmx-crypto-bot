@@ -3,11 +3,38 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+import base64
+import gzip
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges, event_name, target_snapshot
+from gmx_crypto_bot.artifacts import RawArtifactStore
+
+
+class RawArtifactStoreTests(unittest.TestCase):
+    def test_responses_are_preserved_in_rotated_compressed_bundles(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            recording = Path(temporary_directory) / "recording"
+            recording.mkdir()
+            store = RawArtifactStore(recording, max_bundle_bytes=1)
+            first = store.response("rpc-eth_getLogs", {"id": 1}, b'{"first":true}')
+            second = store.response("rpc-eth_getBlockByNumber", {"id": 2}, b'{"second":true}')
+            store.close()
+
+            self.assertEqual(first, "raw/rpc-000001.jsonl.gz#1")
+            self.assertEqual(second, "raw/rpc-000002.jsonl.gz#1")
+            bundles = sorted((recording / "raw").glob("rpc-*.jsonl.gz"))
+            self.assertEqual([bundle.name for bundle in bundles], ["rpc-000001.jsonl.gz", "rpc-000002.jsonl.gz"])
+            with gzip.open(bundles[0], "rt", encoding="utf-8") as stream:
+                first_record = json.loads(stream.readline())
+            self.assertEqual(base64.b64decode(first_record["body_base64"]), b'{"first":true}')
+
+            manifest = [json.loads(line) for line in (recording / "raw" / "manifest.jsonl").read_text().splitlines()]
+            self.assertEqual(manifest[0]["artifact"], first)
+            self.assertEqual(manifest[0]["sha256"], first_record["body_sha256"])
 
 
 class AdaptiveRangeTests(unittest.TestCase):

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
-from gmx_crypto_bot.artifacts import RawArtifactStore
+from gmx_crypto_bot.artifacts import DEFAULT_MAX_BUNDLE_BYTES, RawArtifactStore
 from gmx_crypto_bot.recording import JsonlRecorder
 
 DEFAULT_CONFIRMATIONS = 64
@@ -205,6 +205,8 @@ class GmxCollector:
             "confirmation_depth": confirmations,
             "raw_first": True,
             "raw_artifact_directory": "raw",
+            "raw_artifact_format": "rotated compressed JSONL bundles with base64-encoded response bodies",
+            "raw_artifact_max_bundle_bytes": DEFAULT_MAX_BUNDLE_BYTES,
             "replay_filter": "target market, target configuration, and WETH/USDC oracle updates",
         }
         self.recorder = JsonlRecorder(output, metadata)
