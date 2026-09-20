@@ -26,7 +26,11 @@ def canonical_events(events: list[RecordedEvent]) -> list[RecordedEvent]:
 
 def replay(events: list[RecordedEvent]) -> ReplayReport:
     ordered = canonical_events(events)
-    canonical = [event for event in ordered if event.block_number is not None]
+    canonical = [
+        event
+        for event in ordered
+        if None not in (event.block_number, event.transaction_index, event.log_index)
+    ]
     encoded = "\n".join(
         json.dumps(asdict(event), separators=(",", ":"), sort_keys=True) for event in ordered
     ).encode("utf-8")
@@ -72,4 +76,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

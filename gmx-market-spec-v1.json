@@ -1,0 +1,166 @@
+{
+  "schema": "GmxMarketSpec",
+  "version": 1,
+  "status": "read_only_research",
+  "observed_at_utc": "2026-09-20T16:07:54Z",
+  "deployment": {
+    "venue": "GMX V2",
+    "network": "Arbitrum One",
+    "chain_id": 42161,
+    "market_name": "ETH/USD [WETH-USDC]",
+    "market_token_address": "0x70d95587d40A2caf56bd97485aB3Eec10Bee6336",
+    "listed": true,
+    "listing_date_utc": "2023-08-08T00:00:00Z",
+    "initial_collateral_token": "USDC"
+  },
+  "observation_window": {
+    "start_utc": "2026-09-13T16:05:18Z",
+    "end_inclusive_utc": "2026-09-20T16:05:18Z",
+    "duration_hours": 168,
+    "end_block": 507157678,
+    "start_block_rule": "first finalized Arbitrum block with timestamp greater than or equal to start_utc",
+    "end_block_rule": "last finalized Arbitrum block with timestamp less than or equal to end_inclusive_utc"
+  },
+  "anchor_block": {
+    "number": 507157678,
+    "number_hex": "0x1e3a9cae",
+    "hash": "0x6c6e29c14bf4956013a2faf8ee35f995691dcbc21c80032db6ca73bc3ea6837b",
+    "timestamp_utc": "2026-09-20T16:05:18Z",
+    "rpc_url": "https://arb1.arbitrum.io/rpc"
+  },
+  "contracts": {
+    "data_store": "0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8",
+    "reader": "0xfA26cBb46e2614609406de08CA1Dc7f70a684184",
+    "exchange_router": "0x7dE39FF2e232A2203196788d37e234cF8F1b83f1",
+    "oracle": "0x26C02F221e8dB5A821e12347C7eA8a6b6E10842f",
+    "order_handler": "0xa5D2d45228ee2E3A18AB122B2cE84997d008f4Eb",
+    "liquidation_handler": "0x01B85C1e0682418f59C4fe37A2cC56c1213C1fa8",
+    "event_emitter": "0xC8ee91A54287DB53897056e12D9819156D3822Fb"
+  },
+  "tokens": {
+    "index": {
+      "symbol": "WETH",
+      "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      "decimals": 18
+    },
+    "long": {
+      "symbol": "WETH",
+      "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      "decimals": 18
+    },
+    "short": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "market": {
+      "symbol": "GM ETH/USD [WETH-USDC]",
+      "address": "0x70d95587d40A2caf56bd97485aB3Eec10Bee6336",
+      "decimals": 18
+    }
+  },
+  "market_limits": {
+    "leverage_tiers": [
+      {
+        "max_leverage_basis_points": "2000000",
+        "max_leverage_x": "200",
+        "min_collateral_factor_raw_1e30": "5000000000000000000000000000"
+      }
+    ],
+    "min_position_size_usd_raw_1e30": "1000000000000000000000000000000",
+    "min_position_size_usd": "1",
+    "min_collateral_usd_raw_1e30": "1000000000000000000000000000000",
+    "min_collateral_usd": "1",
+    "max_open_interest_long_usd_raw_1e30": "93630999999999996402375947784403550208",
+    "max_open_interest_short_usd_raw_1e30": "93630999999999996402375947784403550208",
+    "max_long_pool_amount_raw_1e18": "32000000000000000000000",
+    "max_short_pool_amount_raw_1e6": "100000000000000",
+    "max_long_pool_usd_for_deposit_raw_1e30": "90000000000000000000000000000000000000",
+    "max_short_pool_usd_for_deposit_raw_1e30": "90000000000000000000000000000000000000"
+  },
+  "configuration_raw": {
+    "is_disabled": false,
+    "is_same_collaterals": false,
+    "is_spot_only": false,
+    "reserve_factor_long": "2750000000000000000000000000000",
+    "reserve_factor_short": "2750000000000000000000000000000",
+    "open_interest_reserve_factor_long": "2700000000000000000000000000000",
+    "open_interest_reserve_factor_short": "2700000000000000000000000000000",
+    "max_collateral_sum_long_token_long": "5000000000000000000000000000000",
+    "max_collateral_sum_long_token_short": "5000000000000000000000000000000",
+    "max_collateral_sum_short_token_long": "5000000000000000000000000000000",
+    "max_collateral_sum_short_token_short": "5000000000000000000000000000000",
+    "min_position_impact_pool_amount": "1627000000000000000000",
+    "position_impact_pool_distribution_rate": "0",
+    "min_collateral_factor": "5000000000000000000000000000",
+    "min_collateral_factor_for_liquidation": "5000000000000000000000000000",
+    "min_collateral_factor_for_open_interest_long": "60000000000000000000",
+    "min_collateral_factor_for_open_interest_short": "60000000000000000000",
+    "max_pnl_factor_for_traders_long": "900000000000000000000000000000",
+    "max_pnl_factor_for_traders_short": "900000000000000000000000000000",
+    "max_pnl_factor_for_deposits_long": "900000000000000000000000000000",
+    "max_pnl_factor_for_deposits_short": "900000000000000000000000000000",
+    "max_pnl_factor_for_withdrawals_long": "700000000000000000000000000000",
+    "max_pnl_factor_for_withdrawals_short": "700000000000000000000000000000",
+    "position_fee_factor_for_balance_was_improved": "400000000000000000000000000",
+    "position_fee_factor_for_balance_was_not_improved": "600000000000000000000000000",
+    "position_impact_factor_positive": "10666295966993053908992",
+    "position_impact_factor_negative": "12799555160391664271360",
+    "position_impact_exponent_factor_positive": "1691788875878012546269187145728",
+    "position_impact_exponent_factor_negative": "1691788875878012546269187145728",
+    "max_position_impact_factor_positive": "4000000000000000000000000000",
+    "max_position_impact_factor_negative": "5000000000000000000000000000",
+    "max_position_impact_factor_for_liquidations": "0",
+    "borrowing_factor_long": "6250000000000000000000",
+    "borrowing_factor_short": "6250000000000000000000",
+    "borrowing_exponent_factor_long": "1000000000000000000000000000000",
+    "borrowing_exponent_factor_short": "1000000000000000000000000000000",
+    "funding_factor": "20000000000000000000000",
+    "funding_exponent_factor": "1000000000000000000000000000000",
+    "funding_increase_factor_per_second": "769658382805074444",
+    "min_funding_increase_rate_per_second": "0",
+    "funding_decrease_factor_per_second": "32069099283544766",
+    "threshold_for_stable_funding": "40000000000000000000000000000",
+    "threshold_for_decrease_funding": "0",
+    "min_funding_factor_per_second_long": "317097919837645865043",
+    "min_funding_factor_per_second_short": "317097919837645865043",
+    "max_funding_factor_per_second_long": "5541540356196536111111",
+    "max_funding_factor_per_second_short": "5541540356196536111111",
+    "max_lendable_impact_factor": "0",
+    "max_lendable_impact_factor_for_withdrawals": "0",
+    "max_lendable_impact_usd": "0",
+    "lent_position_impact_pool_amount": "0",
+    "swap_fee_factor_for_balance_was_improved": "500000000000000000000000000",
+    "swap_fee_factor_for_balance_was_not_improved": "700000000000000000000000000",
+    "atomic_swap_fee_factor": "22500000000000000000000000000",
+    "swap_impact_factor_positive": "200000000000000000000",
+    "swap_impact_factor_negative": "300000000000000000000",
+    "swap_impact_exponent_factor": "2000000000000000000000000000000",
+    "virtual_market_id": "0xf5134a0a1379cd7f246d7a04d2463c57aa177bf09a34e93dafc5e768c05cea63",
+    "virtual_index_token_id": "0x3c48977e4fc47fa4616e13af7ceb68b0d545dce7b1fb9ec7b85bb6e00870a051",
+    "virtual_long_token_id": "0x3c48977e4fc47fa4616e13af7ceb68b0d545dce7b1fb9ec7b85bb6e00870a051",
+    "virtual_short_token_id": "0x0000000000000000000000000000000000000000",
+    "use_open_interest_in_tokens_for_balance": true
+  },
+  "selection_evidence_raw_1e30": {
+    "open_interest_long_usd": "5111790609151549636171594811160342075",
+    "open_interest_short_usd": "5913687027776792504257584659716797810",
+    "available_liquidity_long_usd": "71830287787449757197718370932884093312",
+    "available_liquidity_short_usd": "69850601020848525082030758960785630029"
+  },
+  "source_urls": {
+    "market_catalog": "https://arbitrum-api.gmxinfra.io/markets",
+    "market_state": "https://arbitrum-api.gmxinfra.io/markets/info",
+    "market_config": "https://arbitrum.gmxapi.io/v1/markets/config",
+    "market_limits": "https://arbitrum.gmxapi.io/v1/markets",
+    "contract_addresses": "https://docs.gmx.io/docs/api/contracts/addresses/",
+    "api_integration_guide": "https://docs.gmx.io/docs/api/integration-guide/",
+    "arbitrum_rpc": "https://arb1.arbitrum.io/rpc"
+  },
+  "source_notes": [
+    "All integer values are preserved as decimal strings to prevent precision loss.",
+    "USD and factor fields use GMX 1e30 precision unless a field name states token precision.",
+    "GMX HTTP responses are cached and are not same-block proofs. The anchor block is the latest Arbitrum block observed immediately before the API snapshots.",
+    "The collector must version configuration from on-chain state by block and must not apply this snapshot retroactively."
+  ]
+}
