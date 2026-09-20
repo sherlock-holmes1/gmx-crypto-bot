@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges, event_name, target_snapshot
 from gmx_crypto_bot.artifacts import RawArtifactStore
+from gmx_crypto_bot.recording import load_recording
 
 
 class RawArtifactStoreTests(unittest.TestCase):
@@ -77,6 +78,16 @@ class CollectorIntegrityTests(unittest.TestCase):
         self.assertEqual(report["reorgs"][0]["block_number"], 100)
         self.assertEqual(report["reorgs"][0]["canonical_block_hash"], "0xcanonical")
 
+    def test_replay_events_do_not_reference_raw_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            recording = Path(temporary_directory) / "recording"
+            collector = GmxCollector(_spec(), recording, confirmations=1)
+            collector.rpc = _FakeRpc(log_block_hash="0xcanonical")
+            collector.collect(100, 100)
+            events, _ = load_recording(recording)
+
+        self.assertTrue(all("raw_artifact" not in event.payload for event in events))
+
     def test_market_snapshot_excludes_unrelated_markets(self) -> None:
         snapshot = target_snapshot(
             {
@@ -122,7 +133,6 @@ def _spec() -> dict[str, object]:
 class _FakeRpc:
     def __init__(self, log_block_hash: str) -> None:
         self.log_block_hash = log_block_hash
-        self.last_artifact = None
 
     def call(self, method: str, params: list[object]) -> object:
         if method == "eth_blockNumber":

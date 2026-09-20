@@ -51,7 +51,7 @@ A recording directory contains:
 
 ```text
 metadata.json     # source, chain, market, configuration and capture bounds
-events.jsonl      # append-only ETH/USD replay events and source references
+events.jsonl      # self-contained append-only ETH/USD replay events
 raw/              # rotated compressed JSONL response bundles + manifest
 completeness-report.json # source ranges, explicit gaps, and reorg findings
 ```
@@ -61,8 +61,9 @@ Each event envelope contains `seq`, `kind`, `block_number`,
 payload. Every raw source response is stored before a replay event is derived.
 `raw/rpc-000001.jsonl.gz` bundles base64-encoded exact response bodies and rotates
 at 256 MiB of uncompressed records. The manifest maps each source request to its
-bundle record and SHA-256. Chain events replay in canonical block/transaction/log
-order; events without canonical coordinates remain in arrival order after canonical events.
+bundle record and SHA-256. Replay events do not reference raw files. Chain events
+replay in canonical block/transaction/log order; events without canonical coordinates
+remain in arrival order after canonical events.
 
 ## Collector
 

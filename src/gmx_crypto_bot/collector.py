@@ -109,7 +109,6 @@ class PublicJsonRpc:
         self.timeout_seconds = timeout_seconds
         self.artifacts = artifacts
         self._request_id = 0
-        self.last_artifact: str | None = None
 
     def call(self, method: str, params: list[Any]) -> Any:
         self._request_id += 1
@@ -124,7 +123,7 @@ class PublicJsonRpc:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                 raw_body = response.read()
-                self.last_artifact = self.artifacts.response(f"rpc-{method}", request_payload, raw_body)
+                self.artifacts.response(f"rpc-{method}", request_payload, raw_body)
                 response_payload = json.loads(raw_body)
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
             self.artifacts.error(f"rpc-{method}", request_payload, str(error))
@@ -285,7 +284,6 @@ class GmxCollector:
                         "from_block": range_start,
                         "to_block": range_end,
                         "source_log_count": len(logs),
-                        "raw_artifact": self.rpc.last_artifact,
                     },
                     block_number=range_end,
                 )
@@ -354,7 +352,6 @@ class GmxCollector:
             "transaction_receipt",
             {
                 "transaction_hash": transaction_hash,
-                "raw_artifact": self.rpc.last_artifact,
                 "status": receipt.get("status"),
                 "gas_used": receipt.get("gasUsed"),
                 "effective_gas_price": receipt.get("effectiveGasPrice"),
@@ -377,7 +374,6 @@ class GmxCollector:
             "block_header",
             {
                 "reason": reason,
-                "raw_artifact": self.rpc.last_artifact,
                 "number": header.get("number"),
                 "hash": header.get("hash"),
                 "parent_hash": header.get("parentHash"),
@@ -398,7 +394,7 @@ class GmxCollector:
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                     raw_body = response.read()
-                    raw_artifact = self.artifacts.response(f"http-{name}", {"url": url}, raw_body)
+                    self.artifacts.response(f"http-{name}", {"url": url}, raw_body)
                     payload = json.loads(raw_body)
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
                 self.artifacts.error(f"http-{name}", {"url": url}, str(error))
@@ -409,7 +405,6 @@ class GmxCollector:
                 {
                     "source": name,
                     "url": url,
-                    "raw_artifact": raw_artifact,
                     "market": target_snapshot(payload, self._market_address),
                     "observed_at_utc": utc_now(),
                 },
