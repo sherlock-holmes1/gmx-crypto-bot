@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterator
 
 from gmx_crypto_bot.artifacts import DEFAULT_MAX_BUNDLE_BYTES, RawArtifactStore
+from gmx_crypto_bot.event_decoder import EventDecodeError, decode_event_log
 from gmx_crypto_bot.recording import JsonlRecorder
 
 DEFAULT_CONFIRMATIONS = 64
@@ -335,6 +336,13 @@ class GmxCollector:
 
     def _log_scope(self, role: str, log: dict[str, Any]) -> str | None:
         """Keep only evidence needed to reconstruct the pinned market."""
+        if role == "event_emitter":
+            try:
+                decoded = decode_event_log(log["data"])
+            except (EventDecodeError, KeyError):
+                decoded = None
+            if decoded and "market" in decoded.values:
+                return "market" if decoded.values["market"] == self._market_address else None
         if contains_address(log, self._market_address):
             return "market" if role == "event_emitter" else "market_configuration"
         if role == "event_emitter" and event_name(log) == "OraclePriceUpdate":

@@ -9,8 +9,9 @@ borrowing, price impact, and liquidation.
 The repository provides an append-only recording format, deterministic replay
 verifier, and bounded public GMX collector. The 1,000-block test recording and
 replay passed with no gaps or reorgs. Target-market normalization is complete.
-Next: the pinned seven-day recording, then validation of reconstructed execution
-against observed terminal orders. A position simulator is not implemented yet.
+The pinned seven-day recording and deterministic replay passed with no gaps or
+reorgs. The observed-order validator is active. A position simulator is not
+implemented yet.
 
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.
@@ -36,8 +37,9 @@ The scaffold has no dependencies beyond Python 3.12+.
 python -m unittest discover -s tests -v
 PYTHONPATH=src python -m gmx_crypto_bot.collector --spec gmx-market-spec-v1.json --output recordings/eth-usdc-week-1
 PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --verify
+PYTHONPATH=src python -m gmx_crypto_bot.validator recordings/<recording> --output recordings/<recording>/order-validation.json
 
- PYTHONPATH=src python -m gmx_crypto_bot.collector \
+PYTHONPATH=src python -m gmx_crypto_bot.collector \
     --spec gmx-market-spec-v1.json \
     --output recordings/test-1000-blocks \
     --from-block 507156678 \
@@ -87,16 +89,14 @@ newer than the selected confirmation depth.
 
 ## Roadmap
 
-1. Completed — define a versioned GMX market specification for one Arbitrum market.
-2. Completed — build a public collector for finalized blocks, GMX events, oracle
-   prices, and configuration changes, with raw artifacts and target-market replay filtering.
-3. Completed — verify canonical replay ordering, source-range completeness, and reorg checks.
-4. Collect the pinned seven-day recording.
-5. Validate reconstructed execution against observed terminal orders: join each
-   request to its execution, cancellation, or freeze; compare terminal outcome,
-   oracle prices, execution price, position and cash movements, fees, and receipt
-   result within fixed tolerances; emit per-order and aggregate mismatch reports.
-6. Build a GMX position simulator only after execution validation passes.
-7. Evaluate one pre-registered strategy on development and holdout periods.
+1. Completed — Fix the target surface.
+2. Completed — Build the read-only GMX collector.
+3. Completed — Build deterministic GMX replay.
+   1. Active — Validate reconstructed execution against observed orders.
+   2. Next — Understand GMX perpetuals architecture.
+4. Replace the Polymarket simulator.
+   1. Cross-check reconstructed execution with SimulationRouter.
+5. Calibrate before interpreting results.
+6. Evaluate a strategy only after calibration.
 
 Technical references: [GMX architecture](https://docs.gmx.io/docs/api/contracts/architecture/), [fees](https://docs.gmx.io/docs/trading/fees/), and [liquidations](https://docs.gmx.io/docs/trading/liquidations/).

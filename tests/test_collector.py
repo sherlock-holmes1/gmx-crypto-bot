@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges, event_name, target_snapshot
 from gmx_crypto_bot.artifacts import RawArtifactStore
 from gmx_crypto_bot.recording import load_recording
+from gmx_crypto_bot.validator import _validate_order
 
 
 class RawArtifactStoreTests(unittest.TestCase):
@@ -36,6 +37,33 @@ class RawArtifactStoreTests(unittest.TestCase):
             manifest = [json.loads(line) for line in (recording / "raw" / "manifest.jsonl").read_text().splitlines()]
             self.assertEqual(manifest[0]["artifact"], first)
             self.assertEqual(manifest[0]["sha256"], first_record["body_sha256"])
+
+
+class OrderValidationTests(unittest.TestCase):
+    def test_auto_updated_size_is_compared_to_observed_execution(self) -> None:
+        request = _validation_entry("OrderCreated", 1, {"account": "0xaccount", "sizeDeltaUsd": 100, "acceptablePrice": 0})
+        lifecycle = [
+            _validation_entry("OrderSizeDeltaAutoUpdated", 2, {"nextSizeDeltaUsd": 75}),
+            _validation_entry("OrderExecuted", 3, {"account": "0xaccount"}),
+        ]
+        observed = [_validation_entry("PositionDecrease", 3, {"sizeDeltaUsd": 75, "executionPrice": 100})]
+        receipts = {"0xtx-3": {"payload": {"status": "0x1"}}}
+
+        result = _validate_order("0xorder", request, lifecycle, observed, receipts)
+
+        self.assertEqual(result["status"], "matched")
+        self.assertEqual(result["final_request"]["sizeDeltaUsd"], 75)
+
+
+def _validation_entry(event_name: str, block_number: int, values: dict[str, object]) -> dict[str, object]:
+    return {
+        "event_name": event_name,
+        "values": values,
+        "block_number": block_number,
+        "transaction_index": 0,
+        "log_index": 0,
+        "transaction_hash": f"0xtx-{block_number}",
+    }
 
 
 class AdaptiveRangeTests(unittest.TestCase):
