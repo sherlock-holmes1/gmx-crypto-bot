@@ -19,6 +19,14 @@ from gmx_crypto_bot.recording import JsonlRecorder
 DEFAULT_CONFIRMATIONS = 64
 DEFAULT_CHUNK_SIZE = 5_000
 USER_AGENT = "gmx-crypto-bot/0.1 read-only-research"
+ORDER_LIFECYCLE_EVENTS = {
+    "OrderExecuted",
+    "OrderCancelled",
+    "OrderFrozen",
+    "OrderUpdated",
+    "OrderSizeDeltaAutoUpdated",
+    "OrderCollateralDeltaAmountAutoUpdated",
+}
 
 
 class SourceError(RuntimeError):
@@ -183,6 +191,7 @@ class GmxCollector:
         self._event_count = 0
         self._source_log_count = 0
         self._events_by_scope: dict[str, int] = {}
+        self._target_order_keys: set[str] = set()
         endpoint = rpc_url or spec["anchor_block"]["rpc_url"]
         self._watched_contracts = {
             role: address.lower()
@@ -197,6 +206,7 @@ class GmxCollector:
             "captured_at_utc": utc_now(),
             "spec_sha256": hashlib.sha256(json.dumps(spec, sort_keys=True).encode("utf-8")).hexdigest(),
             "market": spec["deployment"],
+            "tokens": spec["tokens"],
             "contracts": self._watched_contracts,
             "rpc_endpoint": endpoint,
             "pinned_observation_window": spec.get("observation_window"),
@@ -288,7 +298,14 @@ class GmxCollector:
                     },
                     block_number=range_end,
                 )
-                for log in logs:
+                for log in sorted(
+                    logs,
+                    key=lambda item: (
+                        parse_hex_number(item["blockNumber"]),
+                        parse_hex_number(item["transactionIndex"]),
+                        parse_hex_number(item["logIndex"]),
+                    ),
+                ):
                     scope = self._log_scope(role, log)
                     if scope:
                         self._record_log(role, address, log, scope)
@@ -341,8 +358,17 @@ class GmxCollector:
                 decoded = decode_event_log(log["data"])
             except (EventDecodeError, KeyError):
                 decoded = None
-            if decoded and "market" in decoded.values:
-                return "market" if decoded.values["market"] == self._market_address else None
+            if decoded:
+                values = decoded.values
+                if "market" in values:
+                    if values["market"] != self._market_address:
+                        return None
+                    if decoded.event_name == "OrderCreated" and isinstance(values.get("key"), str):
+                        self._target_order_keys.add(values["key"].lower())
+                    return "market"
+                if decoded.event_name in ORDER_LIFECYCLE_EVENTS and isinstance(values.get("key"), str):
+                    if values["key"].lower() in self._target_order_keys:
+                        return "order_lifecycle"
         if contains_address(log, self._market_address):
             return "market" if role == "event_emitter" else "market_configuration"
         if role == "event_emitter" and event_name(log) == "OraclePriceUpdate":

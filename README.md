@@ -6,12 +6,14 @@ borrowing, price impact, and liquidation.
 
 ## Status
 
-The repository provides an append-only recording format, deterministic replay
-verifier, and bounded public GMX collector. The 1,000-block test recording and
-replay passed with no gaps or reorgs. Target-market normalization is complete.
-The pinned seven-day recording and deterministic replay passed with no gaps or
-reorgs. The observed-order validator is active. A position simulator is not
-implemented yet.
+The repository provides an append-only recording format, bounded public GMX
+collector, and deterministic observable-state replay. It reduces target-market
+orders, oracle prices, configuration, open interest, funding, borrowing,
+positions, and fees. The pinned seven-day recording has no gaps or reorgs and
+passes reconstructed-state determinism verification. It remains state-incomplete
+without a block-pinned opening checkpoint for pre-existing orders and positions.
+The observed-order validator is active. A position simulator is not implemented
+yet.
 
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.
@@ -37,6 +39,7 @@ The scaffold has no dependencies beyond Python 3.12+.
 python -m unittest discover -s tests -v
 PYTHONPATH=src python -m gmx_crypto_bot.collector --spec gmx-market-spec-v1.json --output recordings/eth-usdc-week-1
 PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --verify
+PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --spec gmx-market-spec-v1.json --output replay-report.json
 PYTHONPATH=src python -m gmx_crypto_bot.validator recordings/<recording> --output recordings/<recording>/order-validation.json
 
 PYTHONPATH=src python -m gmx_crypto_bot.collector \
@@ -66,6 +69,22 @@ at 256 MiB of uncompressed records. The manifest maps each source request to its
 bundle record and SHA-256. Replay events do not reference raw files. Chain events
 replay in canonical block/transaction/log order; events without canonical coordinates
 remain in arrival order after canonical events.
+
+## Stateful replay
+
+`gmx-replay` reduces target-market order, oracle, configuration, open-interest,
+funding, borrowing, position, and fee events into a deterministic state digest.
+`--output` writes the complete JSON state and calibration report; ordinary output
+is a human summary. Older recordings that predate token metadata can use `--spec`.
+The collector writes target-order terminal lifecycle events directly to
+`events.jsonl`; ordinary replay reads no compressed raw artifacts.
+
+A bounded window cannot reconstruct positions or pending orders that already
+existed at its first block. Supply `--opening-checkpoint checkpoint.json` for a
+complete state. The checkpoint requires `block_number` before the recording,
+`market_token_address`, and any known observable state maps: `oracle`,
+`configuration`, `open_interest_usd`, `open_interest_tokens`, `borrowing`,
+`funding`, `orders`, `positions`, and `fees`. Missing data is never inferred.
 
 ## Collector
 

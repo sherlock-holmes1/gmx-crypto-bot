@@ -7,6 +7,7 @@ import base64
 import gzip
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
@@ -14,6 +15,7 @@ from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adapti
 from gmx_crypto_bot.artifacts import RawArtifactStore
 from gmx_crypto_bot.recording import load_recording
 from gmx_crypto_bot.validator import _validate_order
+from gmx_crypto_bot.event_decoder import DecodedEventLog
 
 
 class RawArtifactStoreTests(unittest.TestCase):
@@ -135,6 +137,21 @@ class CollectorIntegrityTests(unittest.TestCase):
         data = b"\0" * 32 + (96).to_bytes(32, "big") + b"\0" * 32 + len(name).to_bytes(32, "big") + name.ljust(32, b"\0")
 
         self.assertEqual(event_name({"data": "0x" + data.hex()}), "OrderCreated")
+
+    def test_target_order_lifecycle_is_retained_without_raw_replay_scan(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            collector = GmxCollector(_spec(), Path(temporary_directory) / "recording")
+            logs = iter(
+                [
+                    DecodedEventLog("OrderCreated", {"market": collector._market_address, "key": "0xorder"}),
+                    DecodedEventLog("OrderExecuted", {"key": "0xorder"}),
+                ]
+            )
+            with patch("gmx_crypto_bot.collector.decode_event_log", side_effect=lambda _data: next(logs)):
+                self.assertEqual(collector._log_scope("event_emitter", {"data": "0xcreated"}), "market")
+                self.assertEqual(collector._log_scope("event_emitter", {"data": "0xexecuted"}), "order_lifecycle")
+            collector.recorder.close()
+            collector.artifacts.close()
 
 
 def _spec() -> dict[str, object]:
