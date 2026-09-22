@@ -68,6 +68,37 @@ class RecordingReplayTests(unittest.TestCase):
         self.assertEqual(report["orders"]["request_to_terminal_blocks"]["mean"], 2)
         self.assertEqual(report["market"]["open_interest_usd"]["long"], 50)
 
+    def test_replay_loads_embedded_opening_checkpoint(self) -> None:
+        from gmx_crypto_bot.recording import RecordedEvent
+
+        metadata = {
+            "market": {"market_token_address": "0xmarket"},
+            "tokens": {"index": {"address": "0xindex"}},
+        }
+        checkpoint = RecordedEvent(
+            seq=1,
+            kind="opening_state_checkpoint",
+            received_at="test",
+            received_monotonic_ns=1,
+            block_number=9,
+            transaction_index=-1,
+            log_index=-1,
+            payload={
+                "block_number": 9,
+                "market_token_address": "0xmarket",
+                "complete": True,
+                "orders": {"0xexisting": {"terminal": None, "created_coordinate": [9, -1, -1, -1]}},
+                "positions": {"0xposition": {"sizeInUsd": 100}},
+            },
+        )
+
+        state = build_state([checkpoint], metadata)
+
+        self.assertTrue(state.complete)
+        self.assertTrue(state.opening_checkpoint_present)
+        self.assertIn("0xexisting", state.orders)
+        self.assertIn("0xposition", state.positions)
+
     def setUp(self) -> None:
         self._temporary_directory = tempfile.TemporaryDirectory()
         self._path = Path(self._temporary_directory.name) / "sample"

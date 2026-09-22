@@ -173,6 +173,11 @@ def build_state(events: list[RecordedEvent], metadata: dict[str, Any]) -> Replay
     """Apply canonical events to an observable, bounded replay state."""
     market = metadata["market"]
     checkpoint_data = metadata.get("opening_state_checkpoint")
+    checkpoint_events = [event for event in events if event.kind == "opening_state_checkpoint"]
+    if checkpoint_data is None and checkpoint_events:
+        if len(checkpoint_events) != 1:
+            raise ValueError("recording must contain exactly one opening state checkpoint")
+        checkpoint_data = checkpoint_events[0].payload
     checkpoint = isinstance(checkpoint_data, dict)
     state = ReplayState(
         target_market=str(market["market_token_address"]).lower(),
@@ -183,7 +188,11 @@ def build_state(events: list[RecordedEvent], metadata: dict[str, Any]) -> Replay
         state.mark_incomplete("index_token_missing_from_recording_metadata")
     if checkpoint:
         _load_checkpoint(state, checkpoint_data)
+        if checkpoint_data.get("complete") is False:
+            state.mark_incomplete("opening_checkpoint_incomplete")
     for event in events:
+        if event.kind == "opening_state_checkpoint":
+            continue
         state.apply(event)
     return state
 
@@ -219,11 +228,13 @@ def report_from_state(state: ReplayState) -> dict[str, Any]:
     oracle_moves: list[int] = []
     unresolved = 0
     for order in state.orders.values():
-        result = order["terminal"]
+        result = order.get("terminal")
         if result is None:
             unresolved += 1
             continue
         terminal[result["event_name"]] += 1
+        if order.get("created") is None:
+            continue
         delays.append(result["coordinate"][0] - order["created_coordinate"][0])
         request_oracle = order.get("oracle_at_request")
         terminal_oracle = result.get("oracle_at_terminal")
@@ -239,7 +250,9 @@ def report_from_state(state: ReplayState) -> dict[str, Any]:
         "events_applied": state.events_applied,
         "decode_errors": state.decode_errors,
         "orders": {
-            "created": len(state.orders),
+            "tracked": len(state.orders),
+            "created": sum(order.get("created") is not None for order in state.orders.values()),
+            "opening": sum(order.get("opening_checkpoint") is not None for order in state.orders.values()),
             "unresolved": unresolved,
             "terminal_outcomes": dict(sorted(terminal.items())),
             "request_to_terminal_blocks": _distribution(delays),

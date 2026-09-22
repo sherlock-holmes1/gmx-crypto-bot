@@ -117,7 +117,11 @@ def main() -> int:
         print(f"Event digest {report.event_digest}")
         print(f"State digest {report.digest}")
         print(f"State       {'COMPLETE' if report.state_complete else 'INCOMPLETE'}")
-        print(f"Orders      {state_report['orders']['created']} created, {state_report['orders']['unresolved']} unresolved")
+        print(
+            f"Orders      {state_report['orders']['created']} created, "
+            f"{state_report['orders']['opening']} opening, "
+            f"{state_report['orders']['unresolved']} unresolved"
+        )
         print(f"Terminal    {state_report['orders']['terminal_outcomes']}")
         print(f"Data gaps   {state_report['data_quality']['gaps']} · Reorgs {state_report['data_quality']['reorgs']}")
         if verified is not None:

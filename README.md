@@ -36,19 +36,56 @@ does not merge with a complementary token into a fixed payout.
 The scaffold has no dependencies beyond Python 3.12+.
 
 ```bash
-python -m unittest discover -s tests -v
+PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
+read -rsp "Alchemy Arbitrum archive RPC URL: " GMX_ARCHIVE_RPC_URL
+echo
+export GMX_ARCHIVE_RPC_URL
 PYTHONPATH=src python -m gmx_crypto_bot.collector --spec gmx-market-spec-v1.json --output recordings/eth-usdc-week-1
+unset GMX_ARCHIVE_RPC_URL
 PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --verify
 PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --spec gmx-market-spec-v1.json --output replay-report.json
 PYTHONPATH=src python -m gmx_crypto_bot.validator recordings/<recording> --output recordings/<recording>/order-validation.json
 
-PYTHONPATH=src python -m gmx_crypto_bot.collector \
-    --spec gmx-market-spec-v1.json \
-    --output recordings/test-1000-blocks \
-    --from-block 507156678 \
-    --to-block 507157678 \
-    --chunk-size 1000
-```
+
+### Get an Alchemy archive RPC URL
+
+The opening checkpoint reads historical contract state, so the collector needs
+an archive-capable Arbitrum Mainnet endpoint. Alchemy provides archive access
+for Arbitrum API keys.
+
+1. Sign in to the [Alchemy Dashboard](https://dashboard.alchemy.com/). A new
+   account normally has a default app; otherwise open **Apps**, select
+   **Create new app**, and enable **Arbitrum Mainnet**.
+2. Open the app, then open **Endpoints**.
+3. Copy the **Arbitrum Mainnet HTTP** endpoint, not the WebSocket endpoint. It
+   has this form:
+
+   ```text
+   https://arb-mainnet.g.alchemy.com/v2/YOUR_API_KEY
+   ```
+
+4. Load it without putting the credential in shell history:
+
+   ```bash
+   read -rsp "Alchemy Arbitrum archive RPC URL: " GMX_ARCHIVE_RPC_URL
+   echo
+   export GMX_ARCHIVE_RPC_URL
+   ```
+
+5. Run the collector normally. It reads `GMX_ARCHIVE_RPC_URL` automatically;
+   no archive command-line parameter is needed. Remove it from the current
+   shell afterward with `unset GMX_ARCHIVE_RPC_URL`.
+
+Do not add the URL to `gmx-market-spec-v1.json`, `.env`, source control, command
+arguments, or recording files. The collector stores only a redacted provider
+URL. See Alchemy's [API-key instructions](https://www.alchemy.com/docs/create-an-api-key)
+and [Arbitrum quickstart](https://www.alchemy.com/docs/reference/arbitrum-api-quickstart).
+
+The command exits with status `2` before reading the spec or creating the output
+directory if neither `GMX_ARCHIVE_RPC_URL` nor `--archive-rpc-url` is supplied.
+The command-line option exists for automation, but the environment variable is
+preferred because command arguments may be visible in shell history and process
+listings.
 
 ## Recording schema
 
@@ -80,17 +117,24 @@ The collector writes target-order terminal lifecycle events directly to
 `events.jsonl`; ordinary replay reads no compressed raw artifacts.
 
 A bounded window cannot reconstruct positions or pending orders that already
-existed at its first block. Supply `--opening-checkpoint checkpoint.json` for a
-complete state. The checkpoint requires `block_number` before the recording,
-`market_token_address`, and any known observable state maps: `oracle`,
-`configuration`, `open_interest_usd`, `open_interest_tokens`, `borrowing`,
-`funding`, `orders`, `positions`, and `fees`. Missing data is never inferred.
+existed at its first block from window events alone. The collector therefore
+uses `GMX_ARCHIVE_RPC_URL` (or `--archive-rpc-url`) to read `start_block - 1`
+and writes a self-contained `opening_state_checkpoint` row into `events.jsonl`.
+It enumerates GMX's active order and position sets, keeps the target market,
+and captures opening open interest, cumulative borrowing, and funding state.
+Older recordings can still supply an external `--opening-checkpoint` file.
 
 ## Collector
 
 `gmx-collect` accepts a pinned `GmxMarketSpec` and a new output directory. It
 queries only public JSON-RPC and GMX public HTTP endpoints. It has no wallet,
 account, private-key, signing, transaction, or order-submission code.
+
+The ordinary `--rpc-url` handles block resolution, headers, logs, and receipts.
+The separate archive URL is used only for block-pinned opening-state calls. Its
+credential is redacted in `metadata.json` and is not part of raw RPC request
+payloads. The CLI refuses to start without an archive URL, preventing an
+apparently complete recording that lacks its opening state.
 
 It stores full JSON-RPC and HTTP responses in rotated `raw/rpc-*.jsonl.gz` bundles
 and records their request, bundle location, and SHA-256 in `raw/manifest.jsonl`

@@ -6,12 +6,22 @@ import unittest
 import base64
 import gzip
 import json
+import os
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from gmx_crypto_bot.collector import GmxCollector, RangeGap, SourceError, adaptive_ranges, event_name, target_snapshot
+from gmx_crypto_bot.collector import (
+    GmxCollector,
+    RangeGap,
+    SourceError,
+    adaptive_ranges,
+    event_name,
+    main,
+    redact_rpc_endpoint,
+    target_snapshot,
+)
 from gmx_crypto_bot.artifacts import RawArtifactStore
 from gmx_crypto_bot.recording import load_recording
 from gmx_crypto_bot.validator import _validate_order
@@ -98,6 +108,68 @@ class AdaptiveRangeTests(unittest.TestCase):
 
 
 class CollectorIntegrityTests(unittest.TestCase):
+    def test_cli_fails_before_creating_output_without_archive_rpc_url(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "must-not-exist"
+            argv = [
+                "gmx-collect",
+                "--spec",
+                "unused.json",
+                "--output",
+                str(output),
+            ]
+            with patch.dict(os.environ, {"GMX_ARCHIVE_RPC_URL": ""}), patch.object(sys, "argv", argv):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+
+            self.assertFalse(output.exists())
+
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_archive_rpc_secret_is_redacted_from_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            recording = Path(temporary_directory) / "recording"
+            collector = GmxCollector(
+                _spec(),
+                recording,
+                archive_rpc_url="https://arb-mainnet.g.alchemy.com/v2/secret-key?token=also-secret",
+            )
+            collector.recorder.close()
+            collector.artifacts.close()
+            metadata = json.loads((recording / "metadata.json").read_text())
+
+        self.assertEqual(metadata["archive_rpc_endpoint"], "https://arb-mainnet.g.alchemy.com/v2/<redacted>")
+        self.assertNotIn("secret-key", json.dumps(metadata))
+
+    def test_checkpoint_is_recorded_at_block_before_window(self) -> None:
+        checkpoint = {
+            "schema": "GmxOpeningStateCheckpoint",
+            "version": 1,
+            "complete": True,
+            "block_number": 99,
+            "block_hash": "0xcanonical",
+            "market_token_address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "orders": {"0xold-order": {}},
+            "positions": {},
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            recording = Path(temporary_directory) / "recording"
+            collector = GmxCollector(_spec(), recording, archive_rpc_url="https://archive.invalid/v2/key", confirmations=1)
+            collector.rpc = _FakeRpc(log_block_hash="0xcanonical")
+            fake_checkpoint_collector = Mock()
+            fake_checkpoint_collector.capture.return_value = checkpoint
+            with patch("gmx_crypto_bot.collector.OpeningCheckpointCollector", return_value=fake_checkpoint_collector):
+                report = collector.collect(100, 100)
+            events, _metadata = load_recording(recording)
+
+        fake_checkpoint_collector.capture.assert_called_once_with(99)
+        opening = [event for event in events if event.kind == "opening_state_checkpoint"]
+        self.assertEqual(len(opening), 1)
+        self.assertEqual(opening[0].block_number, 99)
+        self.assertEqual(opening[0].transaction_index, -1)
+        self.assertTrue(report["complete"])
+        self.assertIn("0xold-order", collector._target_order_keys)
+
     def test_mismatched_log_block_hash_marks_recording_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             collector = GmxCollector(_spec(), Path(temporary_directory) / "recording", confirmations=1)
@@ -152,6 +224,9 @@ class CollectorIntegrityTests(unittest.TestCase):
                 self.assertEqual(collector._log_scope("event_emitter", {"data": "0xexecuted"}), "order_lifecycle")
             collector.recorder.close()
             collector.artifacts.close()
+
+    def test_rpc_redaction_preserves_non_secret_public_path(self) -> None:
+        self.assertEqual(redact_rpc_endpoint("https://arb1.arbitrum.io/rpc"), "https://arb1.arbitrum.io/rpc")
 
 
 def _spec() -> dict[str, object]:

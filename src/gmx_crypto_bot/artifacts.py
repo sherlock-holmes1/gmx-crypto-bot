@@ -31,7 +31,7 @@ class RawArtifactStore:
         self._sequence = 0
         self._closed = False
 
-    def response(self, source: str, request: dict[str, Any], body: bytes) -> str:
+    def response(self, source: str, request: Any, body: bytes) -> str:
         self._ensure_open()
         self._sequence += 1
         body_sha256 = hashlib.sha256(body).hexdigest()
@@ -65,7 +65,7 @@ class RawArtifactStore:
         )
         return artifact
 
-    def error(self, source: str, request: dict[str, Any], error: str) -> None:
+    def error(self, source: str, request: Any, error: str) -> None:
         self._ensure_open()
         self._sequence += 1
         self._write_manifest(

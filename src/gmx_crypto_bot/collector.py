@@ -4,8 +4,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -13,12 +16,14 @@ from pathlib import Path
 from typing import Any, Callable, Iterator
 
 from gmx_crypto_bot.artifacts import DEFAULT_MAX_BUNDLE_BYTES, RawArtifactStore
+from gmx_crypto_bot.checkpoint import OpeningCheckpointCollector
 from gmx_crypto_bot.event_decoder import EventDecodeError, decode_event_log
 from gmx_crypto_bot.recording import JsonlRecorder
 
 DEFAULT_CONFIRMATIONS = 64
 DEFAULT_CHUNK_SIZE = 5_000
 USER_AGENT = "gmx-crypto-bot/0.1 read-only-research"
+RPC_MAX_ATTEMPTS = 5
 ORDER_LIFECYCLE_EVENTS = {
     "OrderExecuted",
     "OrderCancelled",
@@ -51,6 +56,20 @@ def hex_block(number: int) -> str:
 
 def parse_hex_number(value: str) -> int:
     return int(value, 16)
+
+
+def redact_rpc_endpoint(endpoint: str) -> str:
+    """Keep provider identity in metadata without persisting credentials."""
+    parsed = urllib.parse.urlsplit(endpoint)
+    if not parsed.scheme or not parsed.netloc:
+        return "<redacted>"
+    path_parts = [part for part in parsed.path.split("/") if part]
+    if path_parts and path_parts[-1] not in {"rpc", "v1", "v2"}:
+        path_parts[-1] = "<redacted>"
+    elif path_parts and path_parts[-1] in {"v1", "v2"}:
+        path_parts.append("<redacted>")
+    safe_path = "/" + "/".join(path_parts) if path_parts else ""
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, safe_path, "", ""))
 
 
 def contains_address(log: dict[str, Any], address: str) -> bool:
@@ -122,27 +141,74 @@ class PublicJsonRpc:
     def call(self, method: str, params: list[Any]) -> Any:
         self._request_id += 1
         request_payload = {"jsonrpc": "2.0", "id": self._request_id, "method": method, "params": params}
-        request_body = json.dumps(request_payload, separators=(",", ":")).encode("utf-8")
-        request = urllib.request.Request(
-            self.endpoint,
-            data=request_body,
-            headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                raw_body = response.read()
-                self.artifacts.response(f"rpc-{method}", request_payload, raw_body)
-                response_payload = json.loads(raw_body)
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-            self.artifacts.error(f"rpc-{method}", request_payload, str(error))
-            raise SourceError(f"{method}: {error}") from error
-
+        response_payload = self._send(f"rpc-{method}", request_payload)
         if response_payload.get("error"):
             raise SourceError(f"{method}: {response_payload['error']}")
         if "result" not in response_payload:
             raise SourceError(f"{method}: response has neither result nor error")
         return response_payload["result"]
+
+    def call_many(self, method: str, params_list: list[list[Any]]) -> list[Any]:
+        """Execute an ordered JSON-RPC batch while preserving its exact response."""
+        request_payload: list[dict[str, Any]] = []
+        request_ids: list[int] = []
+        for params in params_list:
+            self._request_id += 1
+            request_ids.append(self._request_id)
+            request_payload.append(
+                {"jsonrpc": "2.0", "id": self._request_id, "method": method, "params": params}
+            )
+        if not request_payload:
+            return []
+        response_payload = self._send(f"rpc-batch-{method}", request_payload)
+        if not isinstance(response_payload, list):
+            raise SourceError(f"{method} batch: response is not a list")
+        by_id = {item.get("id"): item for item in response_payload if isinstance(item, dict)}
+        results: list[Any] = []
+        for request_id in request_ids:
+            item = by_id.get(request_id)
+            if item is None:
+                raise SourceError(f"{method} batch: missing response for request id {request_id}")
+            if item.get("error"):
+                raise SourceError(f"{method} batch: {item['error']}")
+            if "result" not in item:
+                raise SourceError(f"{method} batch: response has neither result nor error")
+            results.append(item["result"])
+        return results
+
+    def _send(self, source: str, request_payload: Any) -> Any:
+        request_body = json.dumps(request_payload, separators=(",", ":")).encode("utf-8")
+        for attempt in range(1, RPC_MAX_ATTEMPTS + 1):
+            request = urllib.request.Request(
+                self.endpoint,
+                data=request_body,
+                headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                    raw_body = response.read()
+                    self.artifacts.response(source, request_payload, raw_body)
+                    return json.loads(raw_body)
+            except urllib.error.HTTPError as error:
+                retryable = error.code == 429 or 500 <= error.code < 600
+                self.artifacts.error(source, request_payload, f"attempt {attempt}: {error}")
+                if not retryable or attempt == RPC_MAX_ATTEMPTS:
+                    raise SourceError(f"{source}: {error}") from error
+                retry_after = (error.headers or {}).get("Retry-After")
+                exponential_delay = min(2 ** (attempt - 1), 8)
+                delay = (
+                    max(float(retry_after), exponential_delay)
+                    if retry_after and retry_after.isdigit()
+                    else exponential_delay
+                )
+                time.sleep(delay)
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                self.artifacts.error(source, request_payload, f"attempt {attempt}: {error}")
+                if attempt == RPC_MAX_ATTEMPTS:
+                    raise SourceError(f"{source}: {error}") from error
+                time.sleep(min(2 ** (attempt - 1), 8))
+        raise AssertionError("unreachable JSON-RPC retry state")
 
 
 def adaptive_ranges(
@@ -175,6 +241,7 @@ class GmxCollector:
         output: Path,
         *,
         rpc_url: str | None = None,
+        archive_rpc_url: str | None = None,
         confirmations: int = DEFAULT_CONFIRMATIONS,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         timeout_seconds: int = 30,
@@ -192,6 +259,7 @@ class GmxCollector:
         self._source_log_count = 0
         self._events_by_scope: dict[str, int] = {}
         self._target_order_keys: set[str] = set()
+        self._opening_checkpoint: dict[str, Any] | None = None
         endpoint = rpc_url or spec["anchor_block"]["rpc_url"]
         self._watched_contracts = {
             role: address.lower()
@@ -208,7 +276,9 @@ class GmxCollector:
             "market": spec["deployment"],
             "tokens": spec["tokens"],
             "contracts": self._watched_contracts,
-            "rpc_endpoint": endpoint,
+            "rpc_endpoint": redact_rpc_endpoint(endpoint),
+            "archive_rpc_endpoint": None if archive_rpc_url is None else redact_rpc_endpoint(archive_rpc_url),
+            "opening_checkpoint_policy": "start_block_minus_one",
             "pinned_observation_window": spec.get("observation_window"),
             "pinned_configuration_anchor_block": spec.get("anchor_block", {}).get("number"),
             "pinned_configuration_raw": spec.get("configuration_raw"),
@@ -222,6 +292,11 @@ class GmxCollector:
         self.recorder = JsonlRecorder(output, metadata)
         self.artifacts = RawArtifactStore(output)
         self.rpc = PublicJsonRpc(endpoint, timeout_seconds, self.artifacts)
+        self.archive_rpc = (
+            None
+            if archive_rpc_url is None
+            else PublicJsonRpc(archive_rpc_url, timeout_seconds, self.artifacts)
+        )
         self._market_address = spec["deployment"]["market_token_address"].lower()
         self._oracle_token_addresses = {
             spec["tokens"]["index"]["address"].lower(),
@@ -243,6 +318,8 @@ class GmxCollector:
                 {"latest_head": latest_head, "finalized_head": finalized_head, "confirmations": self.confirmations},
                 block_number=finalized_head,
             )
+            if self.archive_rpc is not None:
+                self._collect_opening_checkpoint(start_block)
             self._record_header(start_block, "range_start")
             self._record_header(end_block, "range_end")
             self._collect_http_snapshots()
@@ -253,6 +330,28 @@ class GmxCollector:
         finally:
             self.recorder.close()
             self.artifacts.close()
+
+    def _collect_opening_checkpoint(self, start_block: int) -> None:
+        if start_block <= 0:
+            raise ValueError("cannot capture an opening checkpoint before block zero")
+        checkpoint_block = start_block - 1
+        checkpoint = OpeningCheckpointCollector(self.archive_rpc, self.spec).capture(checkpoint_block)
+        canonical_header = self._header(checkpoint_block)
+        canonical_hash = str(canonical_header.get("hash", "")).lower()
+        if checkpoint["block_hash"] != canonical_hash:
+            raise SourceError(
+                "archive RPC checkpoint block hash does not match the canonical collection RPC: "
+                f"{checkpoint['block_hash']} != {canonical_hash}"
+            )
+        self._opening_checkpoint = checkpoint
+        self._target_order_keys.update(str(key).lower() for key in checkpoint["orders"])
+        self.recorder.record(
+            "opening_state_checkpoint",
+            checkpoint,
+            block_number=checkpoint_block,
+            transaction_index=-1,
+            log_index=-1,
+        )
 
     def resolve_window_start_block(self) -> int:
         """Resolve the spec's timestamp rule by binary-searching canonical headers."""
@@ -457,9 +556,17 @@ class GmxCollector:
             "events_by_scope": self._events_by_scope,
             "receipts_recorded": len(self._receipt_hashes),
             "headers_recorded": len(self._headers),
+            "opening_checkpoint": None
+            if self._opening_checkpoint is None
+            else {
+                "block_number": self._opening_checkpoint["block_number"],
+                "block_hash": self._opening_checkpoint["block_hash"],
+                "orders": len(self._opening_checkpoint["orders"]),
+                "positions": len(self._opening_checkpoint["positions"]),
+            },
             "gaps": [asdict(gap) for gap in self.gaps],
             "reorgs": self.reorgs,
-            "complete": not self.gaps and not self.reorgs,
+            "complete": not self.gaps and not self.reorgs and self._opening_checkpoint is not None,
         }
         (self.output / "completeness-report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return report
@@ -479,12 +586,22 @@ def main() -> int:
     parser.add_argument("--from-block", type=int, help="Override the pinned observation-window start block")
     parser.add_argument("--to-block", type=int, help="Override the pinned observation-window end block")
     parser.add_argument("--rpc-url", help="Public Arbitrum JSON-RPC override")
+    parser.add_argument(
+        "--archive-rpc-url",
+        default=os.environ.get("GMX_ARCHIVE_RPC_URL"),
+        help="Archive Arbitrum RPC used only at start_block - 1 (default: GMX_ARCHIVE_RPC_URL)",
+    )
     parser.add_argument("--confirmations", type=int, default=DEFAULT_CONFIRMATIONS)
     parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     parser.add_argument("--timeout-seconds", type=int, default=30)
     args = parser.parse_args()
     if args.confirmations < 1 or args.chunk_size < 1 or args.timeout_seconds < 1:
         parser.error("confirmations, chunk size, and timeout must be positive")
+    if not args.archive_rpc_url:
+        parser.error(
+            "an Alchemy archive RPC URL is required for the opening checkpoint; "
+            "set GMX_ARCHIVE_RPC_URL or pass --archive-rpc-url"
+        )
 
     spec = load_spec(args.spec)
     window = spec["observation_window"]
@@ -492,6 +609,7 @@ def main() -> int:
         spec,
         args.output,
         rpc_url=args.rpc_url,
+        archive_rpc_url=args.archive_rpc_url,
         confirmations=args.confirmations,
         chunk_size=args.chunk_size,
         timeout_seconds=args.timeout_seconds,

@@ -2,7 +2,7 @@
   "schema": "GmxMarketSpec",
   "version": 1,
   "status": "read_only_research",
-  "observed_at_utc": "2026-09-20T16:07:54Z",
+  "observed_at_utc": "2026-09-22T01:07:04.748876Z",
   "deployment": {
     "venue": "GMX V2",
     "network": "Arbitrum One",
@@ -14,18 +14,18 @@
     "initial_collateral_token": "USDC"
   },
   "observation_window": {
-    "start_utc": "2026-09-13T16:05:18Z",
-    "end_inclusive_utc": "2026-09-20T16:05:18Z",
+    "start_utc": "2026-09-15T01:06:45Z",
+    "end_inclusive_utc": "2026-09-22T01:06:45Z",
     "duration_hours": 168,
-    "end_block": 507157678,
+    "end_block": 507621808,
     "start_block_rule": "first finalized Arbitrum block with timestamp greater than or equal to start_utc",
     "end_block_rule": "last finalized Arbitrum block with timestamp less than or equal to end_inclusive_utc"
   },
   "anchor_block": {
-    "number": 507157678,
-    "number_hex": "0x1e3a9cae",
-    "hash": "0x6c6e29c14bf4956013a2faf8ee35f995691dcbc21c80032db6ca73bc3ea6837b",
-    "timestamp_utc": "2026-09-20T16:05:18Z",
+    "number": 507621808,
+    "number_hex": "0x1e41b1b0",
+    "hash": "0x6a1ba6ad906adcf518da43e21be1abab64ea2cee07e0bd6ed0415903bba2b833",
+    "timestamp_utc": "2026-09-22T01:06:45Z",
     "rpc_url": "https://arb1.arbitrum.io/rpc"
   },
   "contracts": {
@@ -104,10 +104,10 @@
     "max_pnl_factor_for_withdrawals_short": "700000000000000000000000000000",
     "position_fee_factor_for_balance_was_improved": "400000000000000000000000000",
     "position_fee_factor_for_balance_was_not_improved": "600000000000000000000000000",
-    "position_impact_factor_positive": "10666295966993053908992",
-    "position_impact_factor_negative": "12799555160391664271360",
-    "position_impact_exponent_factor_positive": "1691788875878012546269187145728",
-    "position_impact_exponent_factor_negative": "1691788875878012546269187145728",
+    "position_impact_factor_positive": "31870757905168141910016",
+    "position_impact_factor_negative": "38244909486201766936576",
+    "position_impact_exponent_factor_positive": "1621316250047369518151670693888",
+    "position_impact_exponent_factor_negative": "1621316250047369518151670693888",
     "max_position_impact_factor_positive": "4000000000000000000000000000",
     "max_position_impact_factor_negative": "5000000000000000000000000000",
     "max_position_impact_factor_for_liquidations": "0",
@@ -117,15 +117,15 @@
     "borrowing_exponent_factor_short": "1000000000000000000000000000000",
     "funding_factor": "20000000000000000000000",
     "funding_exponent_factor": "1000000000000000000000000000000",
-    "funding_increase_factor_per_second": "769658382805074444",
+    "funding_increase_factor_per_second": "807196135578158444",
     "min_funding_increase_rate_per_second": "0",
-    "funding_decrease_factor_per_second": "32069099283544766",
+    "funding_decrease_factor_per_second": "33633172315756605",
     "threshold_for_stable_funding": "40000000000000000000000000000",
     "threshold_for_decrease_funding": "0",
     "min_funding_factor_per_second_long": "317097919837645865043",
     "min_funding_factor_per_second_short": "317097919837645865043",
-    "max_funding_factor_per_second_long": "5541540356196536111111",
-    "max_funding_factor_per_second_short": "5541540356196536111111",
+    "max_funding_factor_per_second_long": "5811812176162741111111",
+    "max_funding_factor_per_second_short": "5811812176162741111111",
     "max_lendable_impact_factor": "0",
     "max_lendable_impact_factor_for_withdrawals": "0",
     "max_lendable_impact_usd": "0",
@@ -143,10 +143,10 @@
     "use_open_interest_in_tokens_for_balance": true
   },
   "selection_evidence_raw_1e30": {
-    "open_interest_long_usd": "5111790609151549636171594811160342075",
-    "open_interest_short_usd": "5913687027776792504257584659716797810",
-    "available_liquidity_long_usd": "71830287787449757197718370932884093312",
-    "available_liquidity_short_usd": "69850601020848525082030758960785630029"
+    "open_interest_long_usd": "5775245892992299619121123538659079359",
+    "open_interest_short_usd": "6189634897530256157984955047290751298",
+    "available_liquidity_long_usd": "71909082234225081935877510750497867017",
+    "available_liquidity_short_usd": "69174161869737136174775203370552729345"
   },
   "source_urls": {
     "market_catalog": "https://arbitrum-api.gmxinfra.io/markets",
