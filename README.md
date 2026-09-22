@@ -136,6 +136,13 @@ credential is redacted in `metadata.json` and is not part of raw RPC request
 payloads. The CLI refuses to start without an archive URL, preventing an
 apparently complete recording that lacks its opening state.
 
+Alchemy may occasionally return a transient Arbitrum archive error such as
+`getStateObject ... layer stale` for one item in a JSON-RPC batch. The collector
+keeps successful batch results and retries only the failed read with bounded
+backoff. If all retries fail, collection stops instead of writing an incomplete
+opening checkpoint. A failed output directory is intentionally retained as
+diagnostic evidence and cannot be reused for a new run.
+
 It stores full JSON-RPC and HTTP responses in rotated `raw/rpc-*.jsonl.gz` bundles
 and records their request, bundle location, and SHA-256 in `raw/manifest.jsonl`
 before it derives replay events. It watches the pinned GMX EventEmitter, DataStore, Oracle,

@@ -72,6 +72,27 @@ def redact_rpc_endpoint(endpoint: str) -> str:
     return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, safe_path, "", ""))
 
 
+def retryable_rpc_error(error: Any) -> bool:
+    """Identify transient provider errors that are safe to repeat for read-only calls."""
+    if not isinstance(error, dict):
+        return False
+    code = error.get("code")
+    message = str(error.get("message", "")).lower()
+    if code == 429:
+        return True
+    return code in {-32000, -32603} and any(
+        marker in message
+        for marker in (
+            "layer stale",
+            "temporarily unavailable",
+            "timeout",
+            "timed out",
+            "internal error",
+            "not processed yet",
+        )
+    )
+
+
 def contains_address(log: dict[str, Any], address: str) -> bool:
     """Check ABI-padded topics and data without relying on an event-specific decoder."""
     normalized = address.removeprefix("0x").lower()
@@ -139,14 +160,20 @@ class PublicJsonRpc:
         self._request_id = 0
 
     def call(self, method: str, params: list[Any]) -> Any:
-        self._request_id += 1
-        request_payload = {"jsonrpc": "2.0", "id": self._request_id, "method": method, "params": params}
-        response_payload = self._send(f"rpc-{method}", request_payload)
-        if response_payload.get("error"):
-            raise SourceError(f"{method}: {response_payload['error']}")
-        if "result" not in response_payload:
-            raise SourceError(f"{method}: response has neither result nor error")
-        return response_payload["result"]
+        for attempt in range(1, RPC_MAX_ATTEMPTS + 1):
+            self._request_id += 1
+            request_payload = {"jsonrpc": "2.0", "id": self._request_id, "method": method, "params": params}
+            response_payload = self._send(f"rpc-{method}", request_payload)
+            error = response_payload.get("error")
+            if error:
+                if retryable_rpc_error(error) and attempt < RPC_MAX_ATTEMPTS:
+                    time.sleep(min(2 ** (attempt - 1), 8))
+                    continue
+                raise SourceError(f"{method}: {error}")
+            if "result" not in response_payload:
+                raise SourceError(f"{method}: response has neither result nor error")
+            return response_payload["result"]
+        raise AssertionError("unreachable JSON-RPC retry state")
 
     def call_many(self, method: str, params_list: list[list[Any]]) -> list[Any]:
         """Execute an ordered JSON-RPC batch while preserving its exact response."""
@@ -169,8 +196,12 @@ class PublicJsonRpc:
             item = by_id.get(request_id)
             if item is None:
                 raise SourceError(f"{method} batch: missing response for request id {request_id}")
-            if item.get("error"):
-                raise SourceError(f"{method} batch: {item['error']}")
+            error = item.get("error")
+            if error:
+                if retryable_rpc_error(error):
+                    results.append(self.call(method, params_list[len(results)]))
+                    continue
+                raise SourceError(f"{method} batch: {error}")
             if "result" not in item:
                 raise SourceError(f"{method} batch: response has neither result nor error")
             results.append(item["result"])

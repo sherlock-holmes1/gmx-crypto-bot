@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from gmx_crypto_bot.collector import (
     GmxCollector,
+    PublicJsonRpc,
     RangeGap,
     SourceError,
     adaptive_ranges,
@@ -108,6 +109,23 @@ class AdaptiveRangeTests(unittest.TestCase):
 
 
 class CollectorIntegrityTests(unittest.TestCase):
+    def test_transient_layer_stale_batch_item_is_retried_individually(self) -> None:
+        rpc = PublicJsonRpc("https://archive.invalid", 30, Mock())
+        batch_response = [
+            {"jsonrpc": "2.0", "id": 1, "result": "0xfirst"},
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "error": {"code": -32000, "message": "getStateObject error: layer stale"},
+            },
+        ]
+        retry_response = {"jsonrpc": "2.0", "id": 3, "result": "0xsecond"}
+        with patch.object(rpc, "_send", side_effect=[batch_response, retry_response]) as send:
+            results = rpc.call_many("eth_call", [[{"data": "0x1"}], [{"data": "0x2"}]])
+
+        self.assertEqual(results, ["0xfirst", "0xsecond"])
+        self.assertEqual(send.call_count, 2)
+
     def test_cli_fails_before_creating_output_without_archive_rpc_url(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             output = Path(temporary_directory) / "must-not-exist"
