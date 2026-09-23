@@ -24,8 +24,16 @@ from gmx_crypto_bot.collector import (
     target_snapshot,
 )
 from gmx_crypto_bot.artifacts import RawArtifactStore
+from gmx_crypto_bot.checkpoint import _decode_order, normalize_recorded_order_checkpoint
 from gmx_crypto_bot.recording import load_recording
-from gmx_crypto_bot.validator import _validate_order
+from gmx_crypto_bot.validator import (
+    FLOAT_PRECISION,
+    FUNDING_PRECISION,
+    _attach_pre_position_state,
+    _compare_execution_price,
+    _compare_fee_math,
+    _validate_order,
+)
 from gmx_crypto_bot.event_decoder import DecodedEventLog
 
 
@@ -53,19 +61,163 @@ class RawArtifactStoreTests(unittest.TestCase):
 
 
 class OrderValidationTests(unittest.TestCase):
+    def test_deployed_order_tuple_has_thirteen_number_slots(self) -> None:
+        words = [0] * 30
+        words[0] = 32
+        words[1] = 19 * 32  # addresses offset from tuple root
+        words[2] = 6  # order type
+        words[13] = 0  # source chain
+        words[14] = 0  # extra deployed numeric slot
+        words[15:19] = [1, 0, 0, 1]  # long, unwrap, frozen, auto-cancel
+        words[19] = 28 * 32  # actual data-list offset
+        words[27] = 8 * 32  # swap-path offset from addresses base
+        encoded = "0x" + "".join(f"{word:064x}" for word in words)
+
+        order = _decode_order(encoded)
+
+        self.assertTrue(order["isLong"])
+        self.assertTrue(order["autoCancel"])
+        self.assertFalse(order["shouldUnwrapNativeToken"])
+        self.assertEqual(order["dataList"], [])
+
+    def test_order_decoder_accepts_twelve_number_slots(self) -> None:
+        words = [0] * 29
+        words[0] = 32
+        words[1] = 18 * 32
+        words[2] = 2
+        words[14:18] = [1, 0, 0, 0]
+        words[18] = 27 * 32
+        words[26] = 8 * 32
+        encoded = "0x" + "".join(f"{word:064x}" for word in words)
+
+        order = _decode_order(encoded)
+
+        self.assertTrue(order["isLong"])
+        self.assertEqual(order["orderType"], 2)
+        self.assertEqual(order["dataList"], [])
+
+    def test_legacy_checkpoint_flags_are_corrected_without_losing_raw_words(self) -> None:
+        words = [0] * 28
+        words[0] = 6
+        words[13:17] = [1, 0, 0, 1]
+        words[17] = 28 * 32
+        raw = {"orderType": 6, "isLong": False, "shouldUnwrapNativeToken": True,
+               "dataList": [f"0x{word:064x}" for word in words]}
+
+        corrected = normalize_recorded_order_checkpoint(raw)
+
+        self.assertTrue(corrected["isLong"])
+        self.assertFalse(corrected["shouldUnwrapNativeToken"])
+        self.assertTrue(corrected["autoCancel"])
+        self.assertTrue(corrected["data_list_unavailable"])
+        self.assertEqual(corrected["legacy_decoder_words"], raw["dataList"])
+
     def test_auto_updated_size_is_compared_to_observed_execution(self) -> None:
-        request = _validation_entry("OrderCreated", 1, {"account": "0xaccount", "sizeDeltaUsd": 100, "acceptablePrice": 0})
+        request = _validation_entry("OrderCreated", 1, {
+            "account": "0xaccount", "sizeDeltaUsd": 100, "acceptablePrice": 0,
+            "orderType": 4, "isLong": False, "initialCollateralToken": "0xusdc",
+        })
         lifecycle = [
             _validation_entry("OrderSizeDeltaAutoUpdated", 2, {"nextSizeDeltaUsd": 75}),
             _validation_entry("OrderExecuted", 3, {"account": "0xaccount"}),
         ]
-        observed = [_validation_entry("PositionDecrease", 3, {"sizeDeltaUsd": 75, "executionPrice": 100})]
-        receipts = {"0xtx-3": {"payload": {"status": "0x1"}}}
+        observed = [_validation_entry("PositionDecrease", 3, {
+            "sizeDeltaUsd": 75, "executionPrice": 100, "isLong": False, "collateralToken": "0xusdc",
+        })]
+        receipts = {"0xtx-3": {"payload": {"status": "0x1", "gas_used": "0x100"}}}
 
         result = _validate_order("0xorder", request, lifecycle, observed, receipts)
 
         self.assertEqual(result["status"], "matched")
         self.assertEqual(result["final_request"]["sizeDeltaUsd"], 75)
+
+    def test_cancelled_order_checks_terminal_receipt(self) -> None:
+        request = _validation_entry("OrderCreated", 1, {"account": "0xaccount"})
+        cancellation = _validation_entry("OrderCancelled", 2, {
+            "account": "0xaccount", "reason": "USER_INITIATED_CANCEL",
+        })
+        receipts = {"0xtx-2": {"payload": {"status": "0x1", "gas_used": "0x200"}}}
+
+        result = _validate_order("0xorder", request, [cancellation], [], receipts)
+
+        self.assertEqual(result["status"], "matched")
+        self.assertEqual(result["checks"]["receipt"], "matched")
+        self.assertEqual(result["checks"]["gas_used"], "matched")
+
+    def test_pre_position_uses_checkpoint_and_canonical_updates(self) -> None:
+        first = _validation_entry("PositionDecrease", 12, {
+            "positionKey": "0xposition", "isLong": True, "sizeInUsd": 60,
+            "sizeInTokens": 6, "collateralAmount": 50,
+        })
+        second = _validation_entry("PositionDecrease", 13, {
+            "positionKey": "0xposition", "isLong": True, "sizeInUsd": 0,
+            "sizeInTokens": 0, "collateralAmount": 0,
+        })
+        borrowing = _validation_entry("CumulativeBorrowingFactorUpdated", 11, {
+            "isLong": True, "nextValue": 25,
+        })
+
+        _attach_pre_position_state(
+            [second, first],
+            {"0xposition": {"sizeInUsd": 100, "sizeInTokens": 10, "collateralAmount": 80, "isLong": True}},
+            [borrowing],
+            {"long": {"cumulative_factor": {"nextCumulativeBorrowingFactor": 20}}},
+        )
+
+        self.assertEqual(first["pre_position"]["sizeInUsd"], 100)
+        self.assertEqual(first["cumulative_borrowing_factor"], 25)
+        self.assertEqual(second["pre_position"]["sizeInUsd"], 60)
+
+    def test_fee_math_uses_pre_position_and_reports_discrepancy(self) -> None:
+        size = 100 * FLOAT_PRECISION
+        price = 10**24
+        position = {
+            "event_name": "PositionDecrease",
+            "values": {"sizeDeltaUsd": size},
+            "pre_position": {
+                "sizeInUsd": size, "borrowingFactor": 0, "fundingFeeAmountPerSize": 0,
+            },
+        }
+        fee_values = {
+            "collateralTokenPrice.min": price,
+            "positionFeeFactor": 10**28,
+            "positionFeeAmount": 1_000_000,
+            "borrowingFeeUsd": size // 100,
+            "borrowingFeeAmount": 1_000_000,
+            "latestFundingFeeAmountPerSize": FUNDING_PRECISION // size,
+            "fundingFeeAmount": 1,
+            "liquidationFeeAmount": 0,
+            "uiFeeAmount": 0,
+            "referral.traderDiscountAmount": 0,
+            "totalCostAmount": 2_000_001,
+        }
+        fees = {"values": fee_values, "cumulative_borrowing_factor": 10**28}
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+
+        _compare_fee_math({"orderType": 4}, position, fees, checks, mismatches)
+
+        self.assertEqual(mismatches, [])
+        self.assertEqual(checks["position_fee"], "matched")
+        self.assertEqual(checks["borrowing_fee_usd"], "matched")
+        self.assertEqual(checks["funding_fee"], "matched")
+        fee_values["borrowingFeeAmount"] += 1
+        _compare_fee_math({"orderType": 4}, position, fees, {}, mismatches)
+        self.assertIn("borrowing_fee_amount_mismatch", mismatches)
+
+    def test_execution_price_uses_pending_impact_for_increase(self) -> None:
+        values = {
+            "sizeDeltaUsd": 1000, "sizeDeltaInTokens": 10,
+            "pendingPriceImpactAmount": 2, "isLong": True,
+            "indexTokenPrice.max": 100, "executionPrice": 83,
+        }
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+
+        _compare_execution_price(values, 0, 0, checks, mismatches, increase=True)
+
+        self.assertEqual(checks["execution_price"], "matched")
+        self.assertEqual(mismatches, [])
 
 
 def _validation_entry(event_name: str, block_number: int, values: dict[str, object]) -> dict[str, object]:

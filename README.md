@@ -43,9 +43,8 @@ export GMX_ARCHIVE_RPC_URL
 PYTHONPATH=src python -m gmx_crypto_bot.collector --spec gmx-market-spec-v1.json --output recordings/eth-usdc-week-1
 unset GMX_ARCHIVE_RPC_URL
 PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --verify
-PYTHONPATH=src python -m gmx_crypto_bot.replay recordings/<recording> --spec gmx-market-spec-v1.json --output replay-report.json
 PYTHONPATH=src python -m gmx_crypto_bot.validator recordings/<recording> --output recordings/<recording>/order-validation.json
-
+```
 
 ### Get an Alchemy archive RPC URL
 

@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
+from gmx_crypto_bot.checkpoint import normalize_recorded_order_checkpoint
 from gmx_crypto_bot.event_decoder import EventDecodeError, decode_event_log
 from gmx_crypto_bot.recording import RecordedEvent
 
@@ -218,6 +219,14 @@ def _load_checkpoint(state: ReplayState, checkpoint: dict[str, Any]) -> None:
         if value is not None:
             if not isinstance(value, dict):
                 raise ValueError(f"opening checkpoint {name} must be an object")
+            if name == "orders":
+                value = {
+                    key: {
+                        **order,
+                        "opening_checkpoint": normalize_recorded_order_checkpoint(order["opening_checkpoint"]),
+                    } if isinstance(order, dict) and isinstance(order.get("opening_checkpoint"), dict) else order
+                    for key, order in value.items()
+                }
             setattr(state, name, _jsonable(value))
 
 
