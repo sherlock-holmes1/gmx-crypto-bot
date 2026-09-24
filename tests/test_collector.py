@@ -32,6 +32,7 @@ from gmx_crypto_bot.validator import (
     _attach_pre_position_state,
     _compare_execution_price,
     _compare_fee_math,
+    _compare_position_math,
     _validate_order,
 )
 from gmx_crypto_bot.event_decoder import DecodedEventLog
@@ -168,6 +169,29 @@ class OrderValidationTests(unittest.TestCase):
         self.assertEqual(first["cumulative_borrowing_factor"], 25)
         self.assertEqual(second["pre_position"]["sizeInUsd"], 60)
 
+    def test_pre_position_tracks_pending_impact_across_increase_and_decrease(self) -> None:
+        increase = _validation_entry("PositionIncrease", 11, {
+            "positionKey": "0xposition", "isLong": True, "sizeInUsd": 20,
+            "sizeInTokens": 20, "pendingPriceImpactAmount": 3,
+        })
+        decrease = _validation_entry("PositionDecrease", 12, {
+            "positionKey": "0xposition", "isLong": True, "sizeDeltaUsd": 10,
+            "sizeInUsd": 10, "sizeInTokens": 10,
+        })
+        next_decrease = _validation_entry("PositionDecrease", 13, {
+            "positionKey": "0xposition", "isLong": True, "sizeDeltaUsd": 10,
+            "sizeInUsd": 0, "sizeInTokens": 0,
+        })
+
+        _attach_pre_position_state(
+            [next_decrease, decrease, increase],
+            {"0xposition": {"sizeInUsd": 10, "sizeInTokens": 10, "pendingImpactAmount": -5}},
+            [], {},
+        )
+
+        self.assertEqual(decrease["pre_position"]["pendingImpactAmount"], -2)
+        self.assertEqual(next_decrease["pre_position"]["pendingImpactAmount"], -1)
+
     def test_fee_math_uses_pre_position_and_reports_discrepancy(self) -> None:
         size = 100 * FLOAT_PRECISION
         price = 10**24
@@ -218,6 +242,49 @@ class OrderValidationTests(unittest.TestCase):
 
         self.assertEqual(checks["execution_price"], "matched")
         self.assertEqual(mismatches, [])
+
+    def test_claimable_funding_rounds_down(self) -> None:
+        size = 2 * FLOAT_PRECISION
+        position = {"event_name": "PositionDecrease", "values": {"sizeDeltaUsd": size},
+                    "pre_position": {"sizeInUsd": size, "borrowingFactor": 0,
+                                     "fundingFeeAmountPerSize": 0,
+                                     "longTokenClaimableFundingAmountPerSize": 0,
+                                     "shortTokenClaimableFundingAmountPerSize": 0}}
+        values = {"collateralTokenPrice.min": 10**24, "positionFeeFactor": 0,
+                  "positionFeeAmount": 0, "latestFundingFeeAmountPerSize": 0,
+                  "fundingFeeAmount": 0, "latestLongTokenClaimableFundingAmountPerSize": FUNDING_PRECISION // (size * 2),
+                  "latestShortTokenClaimableFundingAmountPerSize": FUNDING_PRECISION // (size * 2),
+                  "claimableLongTokenAmount": 0, "claimableShortTokenAmount": 0,
+                  "borrowingFeeAmount": 0, "liquidationFeeAmount": 0,
+                  "uiFeeAmount": 0, "totalCostAmount": 0}
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+        _compare_fee_math({"orderType": 4}, position,
+                          {"values": values, "cumulative_borrowing_factor": 0}, checks, mismatches)
+        self.assertEqual(checks["claimable_long_funding"], "matched")
+        self.assertEqual(checks["claimable_short_funding"], "matched")
+        values["claimableLongTokenAmount"] = 1
+        _compare_fee_math({"orderType": 4}, position,
+                          {"values": values, "cumulative_borrowing_factor": 0}, {}, mismatches)
+        self.assertIn("claimable_long_funding_mismatch", mismatches)
+
+    def test_decrease_pending_impact_rounds_negative_away_from_zero(self) -> None:
+        position = {"event_name": "PositionDecrease", "pre_position": {
+            "sizeInUsd": 10, "sizeInTokens": 10, "pendingImpactAmount": -1,
+        }, "values": {
+            "sizeDeltaUsd": 5, "sizeDeltaInTokens": 5, "sizeInUsd": 5,
+            "sizeInTokens": 5, "isLong": True, "indexTokenPrice.min": 1,
+            "indexTokenPrice.max": 2, "uncappedBasePnlUsd": 0,
+            "proportionalPendingImpactUsd": -2, "priceImpactUsd": 0,
+            "executionPrice": 1,
+        }}
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+        _compare_position_math(position, checks, mismatches)
+        self.assertEqual(checks["proportional_pending_impact"], "matched")
+        position["values"]["proportionalPendingImpactUsd"] = -1
+        _compare_position_math(position, {}, mismatches)
+        self.assertIn("proportional_pending_impact_mismatch", mismatches)
 
 
 def _validation_entry(event_name: str, block_number: int, values: dict[str, object]) -> dict[str, object]:

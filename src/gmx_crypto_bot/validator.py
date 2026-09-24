@@ -232,6 +232,16 @@ def _attach_pre_position_state(
         ):
             if field in values:
                 next_position[field] = values[field]
+        old_pending = (previous or {}).get("pendingImpactAmount", 0)
+        if entry["event_name"] == "PositionIncrease" and isinstance(values.get("pendingPriceImpactAmount"), int):
+            next_position["pendingImpactAmount"] = old_pending + values["pendingPriceImpactAmount"]
+        elif entry["event_name"] == "PositionDecrease" and previous is not None:
+            size = previous.get("sizeInUsd")
+            delta = values.get("sizeDeltaUsd")
+            if isinstance(old_pending, int) and isinstance(size, int) and size > 0 and isinstance(delta, int):
+                next_position["pendingImpactAmount"] = old_pending - _proportional_pending_impact(
+                    old_pending, delta, size
+                )
         positions[key] = next_position
 
 
@@ -476,6 +486,15 @@ def _compare_position_math(position: dict[str, Any], checks: dict[str, str], mis
         values.get("uncappedBasePnlUsd") == expected_pnl,
         "uncapped_pnl_mismatch", mismatches,
     )
+    pending_amount = previous.get("pendingImpactAmount")
+    if isinstance(pending_amount, int) and old_usd > 0:
+        proportional_amount = _proportional_pending_impact(pending_amount, delta_usd, old_usd)
+        impact_price = values.get("indexTokenPrice.min" if proportional_amount > 0 else "indexTokenPrice.max")
+        if isinstance(impact_price, int):
+            checks["proportional_pending_impact"] = _comparison(
+                values.get("proportionalPendingImpactUsd") == proportional_amount * impact_price,
+                "proportional_pending_impact_mismatch", mismatches,
+            )
 
 
 def _compare_execution_price(
@@ -563,6 +582,14 @@ def _compare_fee_math(
                 values.get("fundingFeeAmount") == expected_funding,
                 "funding_fee_mismatch", mismatches,
             )
+        for token_side in ("Long", "Short"):
+            old_claimable = previous.get(f"{token_side.lower()}TokenClaimableFundingAmountPerSize")
+            latest_claimable = values.get(f"latest{token_side}TokenClaimableFundingAmountPerSize")
+            if isinstance(old_claimable, int) and isinstance(latest_claimable, int) and latest_claimable >= old_claimable:
+                checks[f"claimable_{token_side.lower()}_funding"] = _comparison(
+                    values.get(f"claimable{token_side}TokenAmount") == old_size * (latest_claimable - old_claimable) // FUNDING_PRECISION,
+                    f"claimable_{token_side.lower()}_funding_mismatch", mismatches,
+                )
     else:
         checks["pre_position_fees"] = "unavailable"
     amount = values.get("positionFeeAmount")
@@ -587,6 +614,11 @@ def _compare_fee_math(
 
 def _ceil_div(numerator: int, denominator: int) -> int:
     return (numerator + denominator - 1) // denominator
+
+
+def _proportional_pending_impact(amount: int, delta_size: int, total_size: int) -> int:
+    numerator = amount * delta_size
+    return -_ceil_div(-numerator, total_size) if numerator < 0 else numerator // total_size
 
 
 def _trunc_div(numerator: int, denominator: int) -> int:
