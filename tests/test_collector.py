@@ -30,9 +30,12 @@ from gmx_crypto_bot.validator import (
     FLOAT_PRECISION,
     FUNDING_PRECISION,
     _attach_pre_position_state,
+    _associate_execution_fees,
+    _compare_execution_fee_events,
     _compare_execution_price,
     _compare_fee_math,
     _compare_position_math,
+    _single_update_topup,
     _validate_order,
 )
 from gmx_crypto_bot.event_decoder import DecodedEventLog
@@ -144,6 +147,53 @@ class OrderValidationTests(unittest.TestCase):
         self.assertEqual(result["status"], "matched")
         self.assertEqual(result["checks"]["receipt"], "matched")
         self.assertEqual(result["checks"]["gas_used"], "matched")
+
+    def test_execution_fees_follow_each_terminal_in_batched_transaction(self) -> None:
+        terminal_a = _validation_entry("OrderExecuted", 10, {"key": "0xa"})
+        terminal_b = _validation_entry("OrderCancelled", 10, {"key": "0xb"})
+        keeper_a = _validation_entry("KeeperExecutionFee", 10, {"executionFeeAmount": 40})
+        refund_a = _validation_entry("ExecutionFeeRefund", 10, {"refundFeeAmount": 60})
+        keeper_b = _validation_entry("KeeperExecutionFee", 10, {"executionFeeAmount": 20})
+        refund_b = _validation_entry("ExecutionFeeRefund", 10, {"refundFeeAmount": 80})
+        for index, entry in enumerate((terminal_a, keeper_a, refund_a, terminal_b, keeper_b, refund_b)):
+            entry["log_index"] = index
+        timeline = {"0xtx-10": [refund_b, terminal_b, keeper_a, terminal_a, keeper_b, refund_a]}
+
+        fees = _associate_execution_fees(timeline)
+        self.assertEqual(fees[("0xtx-10", 0)], [keeper_a, refund_a])
+        self.assertEqual(fees[("0xtx-10", 3)], [keeper_b, refund_b])
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+        _compare_execution_fee_events({"executionFee": 100}, fees[("0xtx-10", 3)], checks, mismatches)
+        self.assertEqual(checks["execution_fee_event_balance"], "matched")
+        self.assertEqual(mismatches, [])
+        refund_b["values"]["refundFeeAmount"] = 79
+        _compare_execution_fee_events({"executionFee": 100}, fees[("0xtx-10", 3)], {}, mismatches)
+        self.assertIn("execution_fee_event_balance_mismatch", mismatches)
+
+    def test_update_receipt_topup_is_counted_once(self) -> None:
+        wnt = "0x" + "ab" * 20
+        logs = [
+            {"logIndex": "0x3", "address": wnt,
+             "topics": [
+                 "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                 "0x" + "00" * 32,
+                 "0x" + "00" * 12 + "31ef83a530fde1b38ee9a18093a333d8bbbc40d5",
+             ], "data": "0x5"},
+            {"logIndex": "0x4", "address": "0x" + "cd" * 20,
+             "topics": [], "data": "update"},
+        ]
+        with patch("gmx_crypto_bot.validator.event_name_from_data", side_effect=lambda value: "OrderUpdated" if value == "update" else None):
+            self.assertEqual(_single_update_topup(logs, 4, wnt), 5)
+            self.assertIsNone(_single_update_topup(logs + [logs[1]], 4, wnt))
+        created = {"logIndex": "0x2", "address": "0x" + "cd" * 20,
+                   "topics": [], "data": "created"}
+        with patch("gmx_crypto_bot.validator.event_name_from_data", side_effect=lambda value: {
+            "update": "OrderUpdated", "created": "OrderCreated",
+        }.get(value)):
+            self.assertEqual(_single_update_topup([created, *logs], 4, wnt), 5)
+            earlier_transfer = dict(logs[0], logIndex="0x1")
+            self.assertEqual(_single_update_topup([earlier_transfer, created, logs[1]], 4, wnt), 0)
 
     def test_pre_position_uses_checkpoint_and_canonical_updates(self) -> None:
         first = _validation_entry("PositionDecrease", 12, {

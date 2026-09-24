@@ -22,6 +22,8 @@ DECREASE_ORDER_TYPES = {4, 5, 6, 7}
 MAX_UINT256 = (1 << 256) - 1
 FLOAT_PRECISION = 10**30
 FUNDING_PRECISION = 10**45
+ARBITRUM_ORDER_VAULT = "0x31ef83a530fde1b38ee9a18093a333d8bbbc40d5"
+ERC20_TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 UNMODELED_ECONOMICS = (
     "historical_configuration_factors",
     "independent_price_impact",
@@ -29,7 +31,7 @@ UNMODELED_ECONOMICS = (
     "decrease_collateral_and_cash",
     "net_realized_pnl",
     "output_amounts",
-    "execution_fee_refund",
+    "execution_fee_gas_and_transfer_proof",
     "liquidation_settlement",
     "terminal_reason_reconstruction",
 )
@@ -62,20 +64,21 @@ def validate_orders(recording: Path) -> ValidationReport:
     target_market = metadata["market"]["market_token_address"].lower()
     index_token = metadata.get("tokens", {}).get("index", {}).get("address", "").lower()
     created, opening, observed, receipts, decode_errors = _load_replay_evidence(recording, target_market, index_token)
-    lifecycle, raw_decode_errors = _load_terminal_lifecycle(recording, set(created) | set(opening))
+    lifecycle, execution_fees, raw_decode_errors = _load_terminal_lifecycle(recording, set(created) | set(opening))
+    update_topups = _load_order_update_topups(recording, lifecycle, index_token)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
 
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
-        order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts)
+        order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts, execution_fees, update_topups)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
     for key, request in sorted(opening.items()):
         if key in created or not any(entry["event_name"] in TERMINAL_EVENTS for entry in lifecycle.get(key, [])):
             continue
-        order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts)
+        order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts, execution_fees, update_topups)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -89,7 +92,10 @@ def validate_orders(recording: Path) -> ValidationReport:
             check_counts[check][outcome] += 1
     remaining_checks = sorted({
         check for check, counts in check_counts.items() if counts.get("unavailable", 0)
-    } | set(UNMODELED_ECONOMICS))
+    } | set(UNMODELED_ECONOMICS) | (
+        {"ambiguous_order_update_topups"}
+        if check_counts["execution_fee_event_balance"].get("unavailable_update_receipt", 0) else set()
+    ))
     implemented_checks_pass = not mismatched and not decode_errors
     economic_calibration_complete = not remaining_checks and implemented_checks_pass
     return ValidationReport(
@@ -245,12 +251,15 @@ def _attach_pre_position_state(
         positions[key] = next_position
 
 
-def _load_terminal_lifecycle(recording: Path, target_keys: set[str]) -> tuple[dict[str, list[dict[str, Any]]], int]:
+def _load_terminal_lifecycle(
+    recording: Path, target_keys: set[str]
+) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]], int]:
     lifecycle: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    fee_timeline: dict[str, list[dict[str, Any]]] = defaultdict(list)
     decode_errors = 0
     for log in _iter_raw_event_emitter_logs(recording):
         name = event_name_from_data(log.get("data", ""))
-        if name not in LIFECYCLE_EVENTS:
+        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback"}:
             continue
         try:
             decoded = decode_event_log(log["data"])
@@ -258,11 +267,95 @@ def _load_terminal_lifecycle(recording: Path, target_keys: set[str]) -> tuple[di
             decode_errors += 1
             continue
         key = _order_key(decoded)
-        if key in target_keys:
-            lifecycle[key].append(_event_entry_from_log(log, decoded))
+        entry = _event_entry_from_log(log, decoded)
+        if name in TERMINAL_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback"}:
+            fee_timeline[entry["transaction_hash"]].append(entry)
+        if key in target_keys and name in LIFECYCLE_EVENTS:
+            lifecycle[key].append(entry)
     for entries in lifecycle.values():
         entries.sort(key=_coordinate)
-    return lifecycle, decode_errors
+    return lifecycle, _associate_execution_fees(fee_timeline), decode_errors
+
+
+def _associate_execution_fees(
+    timeline: dict[str, list[dict[str, Any]]]
+) -> dict[tuple[str, int], list[dict[str, Any]]]:
+    """Fee events follow their order terminal event, including in batched transactions."""
+    result: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for transaction_hash, entries in timeline.items():
+        current_terminal: tuple[str, int] | None = None
+        for entry in sorted(entries, key=_coordinate):
+            if entry["event_name"] in TERMINAL_EVENTS:
+                current_terminal = (transaction_hash, entry["log_index"])
+            elif current_terminal is not None:
+                result[current_terminal].append(entry)
+    return result
+
+
+def _load_order_update_topups(
+    recording: Path, lifecycle: dict[str, list[dict[str, Any]]], wnt: str
+) -> dict[tuple[str, int], int]:
+    """Read WNT top-ups from captured update receipts, without relying on event amounts."""
+    wanted: dict[str, list[int]] = defaultdict(list)
+    for entries in lifecycle.values():
+        for entry in entries:
+            if entry["event_name"] == "OrderUpdated":
+                wanted[entry["transaction_hash"]].append(entry["log_index"])
+    if not wanted:
+        return {}
+    sequences: dict[int, str] = {}
+    bundles: set[str] = set()
+    with (recording / "raw" / "manifest.jsonl").open(encoding="utf-8") as stream:
+        for line in stream:
+            item = json.loads(line)
+            if item.get("source") != "rpc-eth_getTransactionReceipt" or item.get("kind") != "response":
+                continue
+            params = item.get("request", {}).get("params", [])
+            if params and params[0].lower() in wanted:
+                sequences[item["seq"]] = params[0].lower()
+                bundles.add(item["bundle"])
+    topups: dict[tuple[str, int], int] = {}
+    for bundle in sorted(bundles):
+        with gzip.open(recording / bundle, "rt", encoding="utf-8") as stream:
+            for line in stream:
+                item = json.loads(line)
+                transaction_hash = sequences.get(item["seq"])
+                if transaction_hash is None:
+                    continue
+                response = json.loads(base64.b64decode(item["body_base64"]))
+                logs = response.get("result", {}).get("logs", [])
+                for update_index in wanted[transaction_hash]:
+                    amount = _single_update_topup(logs, update_index, wnt)
+                    if amount is not None:
+                        topups[(transaction_hash, update_index)] = amount
+    return topups
+
+
+def _single_update_topup(logs: list[dict[str, Any]], update_index: int, wnt: str) -> int | None:
+    order_events = [
+        (log, event_name_from_data(log.get("data", "")))
+        for log in logs
+        if log.get("address", "").lower() != wnt
+    ]
+    updates = [log for log, name in order_events if name == "OrderUpdated" and int(log["logIndex"], 16) == update_index]
+    if len(updates) != 1:
+        return None
+    prior_order_index = max((
+        int(log["logIndex"], 16) for log, name in order_events
+        if name in {"OrderCreated", "OrderUpdated", "OrderExecuted", "OrderCancelled", "OrderFrozen"}
+        and int(log["logIndex"], 16) < update_index
+    ), default=-1)
+    transfers = [
+        log for log in logs
+        if log.get("address", "").lower() == wnt
+        and len(log.get("topics", [])) == 3
+        and log["topics"][0].lower() == ERC20_TRANSFER_TOPIC
+        and log["topics"][2][-40:].lower() == ARBITRUM_ORDER_VAULT[2:]
+        and prior_order_index < int(log["logIndex"], 16) < update_index
+    ]
+    if len(transfers) > 1:
+        return None
+    return int(transfers[0]["data"], 16) if transfers else 0
 
 
 def _iter_raw_event_emitter_logs(recording: Path) -> Iterator[dict[str, Any]]:
@@ -307,6 +400,8 @@ def _validate_order(
     lifecycle: list[dict[str, Any]],
     observed: list[dict[str, Any]],
     receipts: dict[str, dict[str, Any]],
+    execution_fees: dict[tuple[str, int], list[dict[str, Any]]] | None = None,
+    update_topups: dict[tuple[str, int], int] | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -323,6 +418,13 @@ def _validate_order(
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
+    fee_events = (execution_fees or {}).get((terminal["transaction_hash"], terminal["log_index"]), [])
+    _compare_execution_fee_events(
+        final_request,
+        fee_events,
+        checks, mismatches,
+        updates=updates, update_topups=update_topups or {},
+    )
     if len(terminals) != 1:
         mismatches.append("multiple_terminal_events")
     checks["terminal_after_request"] = _comparison(_coordinate(terminal) > _coordinate(request), "terminal_before_request", mismatches)
@@ -399,7 +501,53 @@ def _validate_order(
             "missing_terminal_gas", mismatches,
         )
     status = "mismatch" if mismatches else "matched"
-    return _order_result(key, request, final_request, terminal, observed, checks, mismatches, status)
+    result = _order_result(key, request, final_request, terminal, observed, checks, mismatches, status)
+    result["observed_execution_fee_events"] = fee_events
+    result["observed_order_update_topups"] = [
+        {"transaction_hash": entry["transaction_hash"], "log_index": entry["log_index"],
+         "amount": (update_topups or {}).get((entry["transaction_hash"], entry["log_index"]))}
+        for entry in updates if entry["event_name"] == "OrderUpdated"
+    ]
+    return result
+
+
+def _compare_execution_fee_events(
+    request: dict[str, Any], events: list[dict[str, Any]],
+    checks: dict[str, str], mismatches: list[str], *,
+    updates: list[dict[str, Any]] | None = None,
+    update_topups: dict[tuple[str, int], int] | None = None,
+) -> None:
+    fee = request.get("executionFee")
+    keeper = [entry for entry in events if entry["event_name"] == "KeeperExecutionFee"]
+    refund = [entry for entry in events if entry["event_name"] in {"ExecutionFeeRefund", "ExecutionFeeRefundCallback"}]
+    if fee == 0 and not keeper and not refund:
+        checks["execution_fee_event_balance"] = "not_applicable"
+        return
+    if not isinstance(fee, int) or len(keeper) != 1 or len(refund) > 1:
+        checks["execution_fee_event_balance"] = "unavailable"
+        return
+    keeper_amount = keeper[0]["values"].get("executionFeeAmount")
+    refund_amount = refund[0]["values"].get("refundFeeAmount") if refund else 0
+    if not isinstance(keeper_amount, int) or not isinstance(refund_amount, int):
+        checks["execution_fee_event_balance"] = "unavailable"
+        return
+    paid = keeper_amount + refund_amount
+    if keeper_amount >= 0 and refund_amount >= 0 and paid == fee:
+        checks["execution_fee_event_balance"] = "matched"
+        return
+    update_entries = [entry for entry in updates or [] if entry["event_name"] == "OrderUpdated"]
+    topups = update_topups or {}
+    if any((entry["transaction_hash"], entry["log_index"]) not in topups for entry in update_entries):
+        checks["execution_fee_event_balance"] = "unavailable_update_receipt"
+        return
+    fee += sum(topups[(entry["transaction_hash"], entry["log_index"])] for entry in update_entries)
+    if update_entries and paid != fee:
+        checks["execution_fee_event_balance"] = "unavailable_update_receipt"
+        return
+    checks["execution_fee_event_balance"] = _comparison(
+        keeper_amount >= 0 and refund_amount >= 0 and paid == fee,
+        "execution_fee_event_balance_mismatch", mismatches,
+    )
 
 
 def _compare_execution(
