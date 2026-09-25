@@ -32,10 +32,12 @@ from gmx_crypto_bot.validator import (
     _attach_pre_position_state,
     _associate_execution_fees,
     _compare_execution_fee_events,
+    _compare_collateral_conversion,
     _compare_execution_price,
     _compare_fee_math,
     _compare_position_math,
     _single_update_topup,
+    _reconstruct_terminal_reason,
     _validate_order,
 )
 from gmx_crypto_bot.event_decoder import DecodedEventLog
@@ -147,6 +149,55 @@ class OrderValidationTests(unittest.TestCase):
         self.assertEqual(result["status"], "matched")
         self.assertEqual(result["checks"]["receipt"], "matched")
         self.assertEqual(result["checks"]["gas_used"], "matched")
+
+    def test_terminal_reason_reconstruction_uses_independent_evidence(self) -> None:
+        request = {"account": "0xaccount", "market": "0xmarket", "initialCollateralToken": "0xusdc",
+                   "isLong": False, "autoCancel": True, "orderType": 5}
+        terminal = _validation_entry("OrderCancelled", 3, {"reason": "AUTO_CANCEL", "reasonBytes": "0x"})
+        closed = _validation_entry("PositionDecrease", 3, {
+            "account": "0xaccount", "market": "0xmarket", "collateralToken": "0xusdc",
+            "isLong": False, "sizeInUsd": 0,
+        })
+        closed["log_index"] = 1
+        terminal["log_index"] = 2
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [], {}, [closed], []), "matched")
+        mismatches: list[str] = []
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [], {}, [], mismatches), "mismatch")
+        self.assertEqual(mismatches, ["auto_cancel_without_matching_position_close"])
+
+        terminal["values"] = {"reason": "", "reasonBytes": "0x4dfbbff3"}
+        request["orderType"] = 4
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [], {}, [closed], []), "matched")
+        active = dict(closed, values=dict(closed["values"], sizeInUsd=10))
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [], {}, [active], []), "mismatch")
+
+        terminal["values"] = {"reason": "USER_INITIATED_CANCEL", "reasonBytes": "0x"}
+        keeper = _validation_entry("KeeperExecutionFee", 3, {"keeper": "0xaccount"})
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [keeper], {}, [], []), "matched")
+
+        request["acceptablePrice"] = 100
+        terminal["values"] = {"reason": "", "reasonBytes": "0xe09ad0e9" + f"{101:064x}{100:064x}"}
+        self.assertEqual(_reconstruct_terminal_reason(request, terminal, [], {}, [], []), "matched")
+
+    def test_swapped_collateral_is_reconciled_to_position_and_prices(self) -> None:
+        request = {"initialCollateralToken": "0xbtc", "initialCollateralDeltaAmount": 10,
+                   "minOutputAmount": 18}
+        position = {"values": {"collateralToken": "0xusdc", "collateralDeltaAmount": 16}}
+        fees = {"values": {"totalCostAmount": 2}}
+        swap = _validation_entry("SwapInfo", 2, {
+            "tokenIn": "0xbtc", "tokenOut": "0xusdc", "amountIn": 10,
+            "amountInAfterFees": 10, "tokenInPrice": 2, "tokenOutPrice": 1,
+            "priceImpactAmount": -1, "tokenInPriceImpactAmount": 0, "amountOut": 18,
+        })
+        checks: dict[str, str] = {}
+        mismatches: list[str] = []
+        _compare_collateral_conversion(request, position, fees, [swap], checks, mismatches)
+        self.assertEqual(checks, {"collateral_conversion": "matched", "swap_output_arithmetic": "matched"})
+        self.assertEqual(mismatches, [])
+        swap["values"]["amountOut"] = 20
+        _compare_collateral_conversion(request, position, fees, [swap], checks, mismatches)
+        self.assertIn("collateral_conversion_mismatch", mismatches)
+        self.assertIn("swap_output_arithmetic_mismatch", mismatches)
 
     def test_execution_fees_follow_each_terminal_in_batched_transaction(self) -> None:
         terminal_a = _validation_entry("OrderExecuted", 10, {"key": "0xa"})
