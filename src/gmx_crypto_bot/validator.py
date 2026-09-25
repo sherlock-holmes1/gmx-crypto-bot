@@ -23,13 +23,11 @@ MAX_UINT256 = (1 << 256) - 1
 FLOAT_PRECISION = 10**30
 FUNDING_PRECISION = 10**45
 ARBITRUM_ORDER_VAULT = "0x31ef83a530fde1b38ee9a18093a333d8bbbc40d5"
+ARBITRUM_MULTICHAIN_VAULT = "0xceaadfaf6a8c489b250e407987877c5fdfcdbe6e"
 ERC20_TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 UNMODELED_ECONOMICS = (
     "historical_configuration_factors",
     "independent_price_impact",
-    "decrease_collateral_and_cash",
-    "net_realized_pnl",
-    "output_amounts",
     "execution_fee_gas_and_transfer_proof",
     "liquidation_settlement",
 )
@@ -66,14 +64,15 @@ def validate_orders(recording: Path) -> ValidationReport:
     )
     lifecycle, execution_fees, raw_decode_errors = _load_terminal_lifecycle(recording, set(created) | set(opening))
     update_topups = _load_order_update_topups(recording, lifecycle, index_token)
-    swaps = _load_execution_swaps(recording, lifecycle)
+    swaps, payouts = _load_execution_receipt_evidence(recording, lifecycle)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
 
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
-                                execution_fees, update_topups, opening_positions, position_events, swaps.get(key, []))
+                                execution_fees, update_topups, opening_positions, position_events,
+                                swaps.get(key, []), payouts.get(key, []), metadata)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -81,7 +80,8 @@ def validate_orders(recording: Path) -> ValidationReport:
         if key in created or not any(entry["event_name"] in TERMINAL_EVENTS for entry in lifecycle.get(key, [])):
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
-                                execution_fees, update_topups, opening_positions, position_events, swaps.get(key, []))
+                                execution_fees, update_topups, opening_positions, position_events,
+                                swaps.get(key, []), payouts.get(key, []), metadata)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -176,8 +176,7 @@ def _load_replay_evidence(
             if name == "CumulativeBorrowingFactorUpdated":
                 borrowing_events.append(entry)
             elif name == "OraclePriceUpdate":
-                if decoded.values.get("token") == index_token:
-                    oracle_events.append(entry)
+                oracle_events.append(entry)
             elif name == "OrderCreated":
                 if decoded.values.get("market") != target_market:
                     continue
@@ -191,14 +190,15 @@ def _load_replay_evidence(
                 if isinstance(key, str):
                     observed[key].append(entry)
                 position_events.append(entry)
-    _attach_pre_position_state(position_events, opening_positions, borrowing_events, opening_borrowing, oracle_events)
+    _attach_pre_position_state(position_events, opening_positions, borrowing_events, opening_borrowing,
+                               oracle_events, index_token)
     return created, opening, observed, receipts, opening_positions, position_events, decode_errors
 
 
 def _attach_pre_position_state(
     events: list[dict[str, Any]], opening_positions: dict[str, dict[str, Any]],
     borrowing_events: list[dict[str, Any]], opening_borrowing: dict[str, Any],
-    oracle_events: list[dict[str, Any]] | None = None
+    oracle_events: list[dict[str, Any]] | None = None, index_token: str | None = None,
 ) -> None:
     """Reconstruct the position immediately before each observed position event."""
     positions = {key.lower(): dict(value) for key, value in opening_positions.items()}
@@ -206,15 +206,17 @@ def _attach_pre_position_state(
         side: opening_borrowing.get(side, {}).get("cumulative_factor", {}).get("nextCumulativeBorrowingFactor")
         for side in ("long", "short")
     }
-    oracle_at_transaction: dict[str, Any] | None = None
+    oracle_at_transaction: dict[str, dict[str, Any]] = {}
     oracle_transaction: str | None = None
     for entry in sorted(events + borrowing_events + (oracle_events or []), key=_coordinate):
         values = entry["values"]
         if entry["transaction_hash"] != oracle_transaction:
             oracle_transaction = entry["transaction_hash"]
-            oracle_at_transaction = None
+            oracle_at_transaction = {}
         if entry["event_name"] == "OraclePriceUpdate":
-            oracle_at_transaction = values
+            token = values.get("token")
+            if isinstance(token, str):
+                oracle_at_transaction[token] = values
             continue
         if entry["event_name"] == "CumulativeBorrowingFactorUpdated":
             borrowing["long" if values.get("isLong") else "short"] = values.get("nextValue")
@@ -225,7 +227,9 @@ def _attach_pre_position_state(
         key = key.lower()
         previous = positions.get(key)
         entry["pre_position"] = dict(previous) if previous is not None else None
-        entry["oracle_at_event"] = dict(oracle_at_transaction) if oracle_at_transaction is not None else None
+        oracle = oracle_at_transaction.get(index_token) if index_token else next(reversed(oracle_at_transaction.values()), None)
+        entry["oracle_at_event"] = dict(oracle) if oracle is not None else None
+        entry["oracle_prices_at_event"] = {token: dict(price) for token, price in oracle_at_transaction.items()}
         is_long = previous.get("isLong") if previous is not None else values.get("isLong")
         entry["cumulative_borrowing_factor"] = borrowing["long" if is_long else "short"]
         if entry["event_name"] == "PositionFeesCollected":
@@ -335,10 +339,10 @@ def _load_order_update_topups(
     return topups
 
 
-def _load_execution_swaps(
+def _load_execution_receipt_evidence(
     recording: Path, lifecycle: dict[str, list[dict[str, Any]]]
-) -> dict[str, list[dict[str, Any]]]:
-    """Decode swap events from saved execution receipts, including off-market hops."""
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
+    """Decode swap and payout evidence from saved execution receipts."""
     wanted: dict[str, set[str]] = defaultdict(set)
     for key, entries in lifecycle.items():
         for entry in entries:
@@ -357,6 +361,7 @@ def _load_execution_swaps(
                 bundles.add(item["bundle"])
     emitter = json.loads((recording / "metadata.json").read_text(encoding="utf-8"))["contracts"]["event_emitter"].lower()
     swaps: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    payouts: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for bundle in sorted(bundles):
         with gzip.open(recording / bundle, "rt", encoding="utf-8") as stream:
             for line in stream:
@@ -365,18 +370,38 @@ def _load_execution_swaps(
                 if transaction_hash is None:
                     continue
                 response = json.loads(base64.b64decode(item["body_base64"]))
+                active_key: str | None = None
                 for log in response.get("result", {}).get("logs", []):
                     if log.get("address", "").lower() != emitter:
+                        topics = log.get("topics", [])
+                        if (active_key is not None and len(topics) == 3
+                                and topics[0].lower() == ERC20_TRANSFER_TOPIC):
+                            payouts[active_key].append({
+                                "event_name": "ERC20Transfer",
+                                "token": log["address"].lower(),
+                                "from": "0x" + topics[1][-40:].lower(),
+                                "to": "0x" + topics[2][-40:].lower(),
+                                "amount": int(log["data"], 16),
+                                "log_index": int(log["logIndex"], 16),
+                                "transaction_hash": transaction_hash,
+                            })
                         continue
-                    if event_name_from_data(log.get("data", "")) not in {"SwapInfo", "SwapFeesCollected"}:
+                    name = event_name_from_data(log.get("data", ""))
+                    if name not in {"SwapInfo", "SwapFeesCollected", "PositionDecrease", "OrderExecuted", "MultichainTransferIn"}:
                         continue
                     decoded = decode_event_log(log["data"])
                     key = decoded.values.get("orderKey", decoded.values.get("tradeKey"))
-                    if key in wanted[transaction_hash]:
+                    if name == "PositionDecrease" and key in wanted[transaction_hash]:
+                        active_key = key
+                    elif name == "OrderExecuted":
+                        active_key = None
+                    elif name == "MultichainTransferIn" and active_key is not None:
+                        payouts[active_key].append(_event_entry_from_log(log, decoded))
+                    if name in {"SwapInfo", "SwapFeesCollected"} and key in wanted[transaction_hash]:
                         swaps[key].append(_event_entry_from_log(log, decoded))
     for entries in swaps.values():
         entries.sort(key=_coordinate)
-    return swaps
+    return swaps, payouts
 
 
 def _single_update_topup(logs: list[dict[str, Any]], update_index: int, wnt: str) -> int | None:
@@ -453,6 +478,8 @@ def _validate_order(
     opening_positions: dict[str, dict[str, Any]] | None = None,
     position_events: list[dict[str, Any]] | None = None,
     swap_events: list[dict[str, Any]] | None = None,
+    payout_events: list[dict[str, Any]] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -466,6 +493,7 @@ def _validate_order(
             final_request.update(update["values"])
     mismatches: list[str] = []
     checks: dict[str, str] = {}
+    modeled_settlement: dict[str, Any] | None = None
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
@@ -540,6 +568,11 @@ def _validate_order(
             _compare_fee_math(final_request, position, fees, checks, mismatches)
             if position["event_name"] == "PositionIncrease":
                 _compare_collateral_conversion(final_request, position, fees, swap_events or [], checks, mismatches)
+            elif final_request.get("orderType") != 7:
+                modeled_settlement = _compare_decrease_settlement(
+                    final_request, position, fees, swap_events or [], payout_events or [],
+                    metadata or {}, checks, mismatches,
+                )
         elif fees is None:
             checks["position_fees"] = "unavailable"
     receipt = receipts.get(terminal["transaction_hash"])
@@ -560,6 +593,9 @@ def _validate_order(
     result = _order_result(key, request, final_request, terminal, observed, checks, mismatches, status)
     result["observed_execution_fee_events"] = fee_events
     result["observed_swap_events"] = swap_events or []
+    result["observed_payout_events"] = payout_events or []
+    if modeled_settlement is not None:
+        result["modeled_decrease_settlement"] = modeled_settlement
     result["observed_order_update_topups"] = [
         {"transaction_hash": entry["transaction_hash"], "log_index": entry["log_index"],
          "amount": (update_topups or {}).get((entry["transaction_hash"], entry["log_index"]))}
@@ -715,6 +751,231 @@ def _compare_collateral_conversion(
         chain_valid &= amount >= minimum
     checks["collateral_conversion"] = _comparison(chain_valid, "collateral_conversion_mismatch", mismatches)
     checks["swap_output_arithmetic"] = _comparison(arithmetic_valid, "swap_output_arithmetic_mismatch", mismatches)
+
+
+def _model_decrease_settlement(
+    request: dict[str, Any], position: dict[str, Any], fees: dict[str, Any],
+    swap_events: list[dict[str, Any]], metadata: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Apply GMX's ordered decrease costs and output swaps using recorded factors."""
+    previous = position.get("pre_position")
+    values = position["values"]
+    fee_values = fees["values"]
+    if not isinstance(previous, dict):
+        return None
+    collateral_token = values.get("collateralToken")
+    pnl_side = "long" if values.get("isLong") else "short"
+    pnl_token = metadata.get("tokens", {}).get(pnl_side, {}).get("address", "").lower()
+    oracle_prices = position.get("oracle_prices_at_event", {})
+    pnl_oracle = oracle_prices.get(pnl_token)
+    collateral_oracle = oracle_prices.get(collateral_token)
+    collateral_price = fee_values.get("collateralTokenPrice.min")
+    if pnl_token == collateral_token:
+        pnl_min = collateral_price
+        pnl_max = fee_values.get("collateralTokenPrice.max")
+    else:
+        pnl_min = pnl_oracle.get("minPrice") if isinstance(pnl_oracle, dict) else None
+        pnl_max = pnl_oracle.get("maxPrice") if isinstance(pnl_oracle, dict) else None
+    base = values.get("basePnlUsd")
+    impact = values.get("totalImpactUsd")
+    funding = fee_values.get("fundingFeeAmount")
+    total_fee = fee_values.get("totalCostAmount")
+    collateral = previous.get("collateralAmount")
+    if not all(isinstance(value, int) for value in (
+        pnl_min, pnl_max, collateral_price, base, impact, funding, total_fee, collateral
+    )) or min(pnl_min, pnl_max, collateral_price) <= 0 or total_fee < funding:
+        return None
+    output = 0
+    secondary = 0
+    if base > 0:
+        profit = base // pnl_max
+        if collateral_token == pnl_token:
+            output += profit
+        else:
+            secondary += profit
+    if impact > 0:
+        profit = impact // pnl_max
+        if collateral_token == pnl_token:
+            output += profit
+        else:
+            secondary += profit
+    hops = [event for event in swap_events if event["event_name"] == "SwapInfo"]
+    pre_hops = [event for event in hops if _coordinate(event) < _coordinate(position)]
+    post_hops = [event for event in hops if _coordinate(event) > _coordinate(position)]
+    swaps_valid = True
+    if request.get("decreasePositionSwapType") == 1 and secondary > 0 and pre_hops:
+        hop = pre_hops[0]["values"]
+        swaps_valid &= len(pre_hops) == 1 and hop.get("tokenIn") == pnl_token
+        swaps_valid &= hop.get("amountIn") == secondary and hop.get("tokenOut") == collateral_token
+        swaps_valid &= hop.get("receiver") == request.get("market")
+        if not isinstance(hop.get("amountOut"), int):
+            return None
+        output += hop["amountOut"]
+        secondary = 0
+    elif pre_hops:
+        swaps_valid = False
+
+    def pay_cost(cost_usd: int) -> bool:
+        nonlocal output, collateral, secondary
+        if cost_usd <= 0:
+            return True
+        needed = _ceil_div(cost_usd, collateral_price)
+        taken = min(output, needed)
+        output -= taken
+        needed -= taken
+        taken = min(collateral, needed)
+        collateral -= taken
+        needed -= taken
+        if needed == 0:
+            return True
+        secondary_needed = needed * collateral_price // pnl_min
+        taken = min(secondary, secondary_needed)
+        secondary -= taken
+        return taken == secondary_needed
+
+    costs_paid = all((
+        pay_cost(funding * collateral_price),
+        pay_cost(-base) if base < 0 else True,
+        pay_cost((total_fee - funding) * collateral_price),
+        pay_cost(-impact) if impact < 0 else True,
+        pay_cost(values.get("values.priceImpactDiffUsd", 0)),
+    ))
+    requested_withdrawal = request.get("initialCollateralDeltaAmount")
+    old_size = previous.get("sizeInUsd")
+    size_delta = values.get("sizeDeltaUsd")
+    if not isinstance(requested_withdrawal, int) or not isinstance(old_size, int) or not isinstance(size_delta, int):
+        return None
+    withdrawal = 0 if size_delta == old_size else requested_withdrawal
+    if withdrawal > collateral:
+        return None
+    collateral -= withdrawal
+    output += withdrawal
+    closed = values.get("sizeInUsd") == 0 or values.get("sizeInTokens") == 0
+    if closed:
+        output += collateral
+        collateral = 0
+    output_token = collateral_token
+    if request.get("decreasePositionSwapType") == 2 and output > 0 and post_hops:
+        hop = post_hops[0]["values"]
+        if (hop.get("tokenIn") == collateral_token and hop.get("amountIn") == output
+                and hop.get("tokenOut") == pnl_token and hop.get("receiver") == request.get("market")):
+            if not isinstance(hop.get("amountOut"), int):
+                return None
+            output = secondary + hop["amountOut"]
+            secondary = 0
+            output_token = pnl_token
+            post_hops = post_hops[1:]
+        # A failed optional swap leaves the original output tokens unchanged.
+    if secondary == 0:
+        for event in post_hops:
+            hop = event["values"]
+            if hop.get("tokenIn") != output_token or hop.get("amountIn") != output:
+                swaps_valid = False
+                break
+            if not isinstance(hop.get("amountOut"), int):
+                return None
+            output_token, output = hop.get("tokenOut"), hop["amountOut"]
+    elif post_hops:
+        swaps_valid = False
+    return {
+        "remaining_collateral": collateral,
+        "output_token": output_token,
+        "output_amount": output,
+        "secondary_output_token": pnl_token,
+        "secondary_output_amount": secondary,
+        "net_realized_pnl_usd": base + impact - total_fee * collateral_price,
+        "costs_paid": costs_paid,
+        "swaps_valid": swaps_valid,
+        "collateral_price": collateral_price,
+        "collateral_oracle": collateral_oracle,
+        "oracle_prices": oracle_prices,
+    }
+
+
+def _compare_decrease_settlement(
+    request: dict[str, Any], position: dict[str, Any], fees: dict[str, Any],
+    swap_events: list[dict[str, Any]], payout_events: list[dict[str, Any]],
+    metadata: dict[str, Any], checks: dict[str, str], mismatches: list[str],
+) -> dict[str, Any] | None:
+    model = _model_decrease_settlement(request, position, fees, swap_events, metadata)
+    if model is None:
+        for check in ("decrease_collateral_and_cash", "net_realized_pnl", "output_amounts"):
+            checks[check] = "unavailable"
+        return None
+    values = position["values"]
+    previous = position["pre_position"]
+    collateral_matches = (
+        model["costs_paid"] and model["swaps_valid"]
+        and values.get("collateralAmount") == model["remaining_collateral"]
+        and values.get("collateralDeltaAmount") == previous["collateralAmount"] - model["remaining_collateral"]
+    )
+    checks["decrease_collateral_and_cash"] = _comparison(
+        collateral_matches, "decrease_collateral_mismatch", mismatches,
+    )
+    expected = Counter()
+    if model["output_amount"] > 0:
+        expected[(model["output_token"], model["output_amount"])] += 1
+    if model["secondary_output_amount"] > 0:
+        expected[(model["secondary_output_token"], model["secondary_output_amount"])] += 1
+    recorded_multichain = [
+        event for event in payout_events
+        if event["event_name"] == "MultichainTransferIn"
+        and event["values"].get("account") == request.get("receiver")
+        and event["values"].get("amount", 0) > 0
+    ]
+    checkpoint_route_unknown = request.get("data_list_unavailable") is True
+    if request.get("srcChainId") or (checkpoint_route_unknown and recorded_multichain):
+        actual = Counter(
+            (event["values"].get("token"), event["values"].get("amount"))
+            for event in recorded_multichain
+            if checkpoint_route_unknown or event["values"].get("srcChainId") == request.get("srcChainId")
+        )
+        transferred = Counter(
+            (event["token"], event["amount"])
+            for event in payout_events
+            if event["event_name"] == "ERC20Transfer" and event["amount"] > 0
+            and event["to"] == ARBITRUM_MULTICHAIN_VAULT
+        )
+    else:
+        receiver = request.get("receiver")
+        wnt = metadata.get("tokens", {}).get("index", {}).get("address", "").lower()
+        actual = Counter(
+            (event["token"], event["amount"])
+            for event in payout_events
+            if event["event_name"] == "ERC20Transfer" and event["amount"] > 0
+            and (event["to"] == receiver or (
+                request.get("shouldUnwrapNativeToken") is True and event["token"] == wnt
+                and event["to"] == "0x" + "0" * 40 and event["from"] != ARBITRUM_ORDER_VAULT
+            ))
+        )
+        transferred = actual
+    payout_matches = actual == expected and transferred == expected
+    checks["output_amounts"] = _comparison(
+        model["swaps_valid"] and payout_matches, "decrease_output_amount_mismatch", mismatches,
+    )
+    cap_matches = values.get("basePnlUsd") == values.get("uncappedBasePnlUsd")
+    if cap_matches:
+        checks["net_realized_pnl"] = _comparison(
+            checks.get("uncapped_pnl") == "matched" and collateral_matches and payout_matches,
+            "net_realized_pnl_mismatch", mismatches,
+        )
+    else:
+        checks["net_realized_pnl"] = "unavailable"
+    minimum = request.get("minOutputAmount", 0)
+    if isinstance(minimum, int) and minimum > 0:
+        prices = model["oracle_prices"]
+        primary_price = prices.get(model["output_token"], {}).get("minPrice")
+        secondary_price = prices.get(model["secondary_output_token"], {}).get("minPrice")
+        if not isinstance(primary_price, int) or (model["secondary_output_amount"] > 0 and not isinstance(secondary_price, int)):
+            checks["minimum_output_usd"] = "unavailable"
+        else:
+            output_usd = model["output_amount"] * primary_price + model["secondary_output_amount"] * (secondary_price or 0)
+            checks["minimum_output_usd"] = _comparison(output_usd >= minimum, "minimum_output_usd_mismatch", mismatches)
+    result = {key: value for key, value in model.items() if key not in {"oracle_prices", "collateral_oracle"}}
+    result["payout_route"] = "checkpoint_route_inferred_from_receipt" if checkpoint_route_unknown and recorded_multichain else (
+        "multichain" if request.get("srcChainId") else "direct"
+    )
+    return result
 
 
 def _compare_execution(

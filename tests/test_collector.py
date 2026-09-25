@@ -33,6 +33,8 @@ from gmx_crypto_bot.validator import (
     _associate_execution_fees,
     _compare_execution_fee_events,
     _compare_collateral_conversion,
+    _compare_decrease_settlement,
+    ARBITRUM_MULTICHAIN_VAULT,
     _compare_execution_price,
     _compare_fee_math,
     _compare_position_math,
@@ -198,6 +200,46 @@ class OrderValidationTests(unittest.TestCase):
         _compare_collateral_conversion(request, position, fees, [swap], checks, mismatches)
         self.assertIn("collateral_conversion_mismatch", mismatches)
         self.assertIn("swap_output_arithmetic_mismatch", mismatches)
+
+    def test_full_decrease_settlement_matches_collateral_and_receipt(self) -> None:
+        token = "0xweth"
+        request = {"initialCollateralDeltaAmount": 100, "decreasePositionSwapType": 0,
+                   "srcChainId": 0, "receiver": "0xtrader", "minOutputAmount": 0}
+        position = _validation_entry("PositionDecrease", 2, {
+            "isLong": True, "collateralToken": token, "basePnlUsd": -20,
+            "uncappedBasePnlUsd": -20, "totalImpactUsd": -4,
+            "sizeDeltaUsd": 10, "sizeInUsd": 0, "sizeInTokens": 0,
+            "collateralAmount": 0, "collateralDeltaAmount": 100,
+        })
+        position["pre_position"] = {"collateralAmount": 100, "sizeInUsd": 10}
+        fees = _validation_entry("PositionFeesCollected", 2, {
+            "collateralTokenPrice.min": 2, "collateralTokenPrice.max": 2,
+            "fundingFeeAmount": 1, "totalCostAmount": 3,
+        })
+        payout = {"event_name": "ERC20Transfer", "token": token, "amount": 85,
+                  "to": "0xtrader", "from": "0xmarket"}
+        metadata = {"tokens": {"long": {"address": token}, "index": {"address": token}}}
+        checks = {"uncapped_pnl": "matched"}
+        mismatches: list[str] = []
+        model = _compare_decrease_settlement(request, position, fees, [], [payout], metadata, checks, mismatches)
+        self.assertEqual(model["output_amount"], 85)
+        self.assertEqual(model["remaining_collateral"], 0)
+        self.assertEqual(mismatches, [])
+        self.assertEqual({checks[name] for name in (
+            "decrease_collateral_and_cash", "net_realized_pnl", "output_amounts"
+        )}, {"matched"})
+
+        request["data_list_unavailable"] = True
+        payout = _validation_entry("MultichainTransferIn", 2, {
+            "token": token, "amount": 85, "account": "0xtrader", "srcChainId": 8453,
+        })
+        transfer = {"event_name": "ERC20Transfer", "token": token, "amount": 85,
+                    "to": ARBITRUM_MULTICHAIN_VAULT, "from": "0xmarket"}
+        model = _compare_decrease_settlement(request, position, fees, [], [transfer, payout], metadata, checks, mismatches)
+        self.assertEqual(model["payout_route"], "checkpoint_route_inferred_from_receipt")
+        self.assertEqual(mismatches, [])
+        _compare_decrease_settlement(request, position, fees, [], [payout], metadata, checks, mismatches)
+        self.assertIn("decrease_output_amount_mismatch", mismatches)
 
     def test_execution_fees_follow_each_terminal_in_batched_transaction(self) -> None:
         terminal_a = _validation_entry("OrderExecuted", 10, {"key": "0xa"})
