@@ -291,6 +291,56 @@ Sources: [MarketUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contra
 [PositionPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/PositionPricingUtils.sol),
 and [DecreasePositionCollateralUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/position/DecreasePositionCollateralUtils.sol).
 
+## Execution-fee trace evidence (in progress)
+
+Collect six representative transaction traces from the terminal containing
+`GMX_ARCHIVE_RPC_URL`:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.execution_fees.backfill recordings/eth-usdc-week-2
+```
+
+The sample covers increases, decreases, user/automatic cancellations, multichain
+refunds, and callback orders where present. The collector saves receipts,
+transactions, call traces, and historical payment-library bytecode under
+`execution-fee-traces/`, with original RPC responses in each capture directory.
+Completed transaction files are reused on reruns. Collection checks transaction
+and receipt identities against recorded block hashes and rechecks the block
+hash after tracing. `--limit 0` selects all applicable transactions.
+
+Opcode probes are optional because full struct-log responses are large. Add
+`--gas-probes` to collect GMX's two `GAS` readings from every
+`payExecutionFee` frame into `{transaction_hash}.gas-v2.json`; the original RPC
+response is preserved in the referenced capture directory. The validator also
+supports the sample-calibrated compact-trace profile, bound to the payment-library
+runtime hash and 388-byte calldata. It rejects other code or input shapes unless
+an opcode probe is present. The profile matches all seven sampled gas readings;
+full-population validation remains required before relying on it across the
+recording.
+
+Replay the captured evidence offline:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.execution_fees.validate recordings/eth-usdc-week-2
+```
+
+The validator reads the three gas settings from committed historical DataStore
+calls, reconstructs GMX's measured gas from the two probed `GAS` readings or the
+sample-calibrated compact-trace profile, and checks the keeper fee against the
+transaction gas price with integer rounding.
+It also verifies committed native or wrapped-native transfers, corroborates
+wrapped-native ERC-20 transfers in receipt logs, and checks multichain refund
+credits. Reverted calls and descendants of reverted calls do not count as
+payments. Delegate-call values do not count as native transfers. Six sample
+transactions cover common execution, cancellation, multichain, and wrapped
+refund paths. Full offline validation covers 3,151 transactions, 3,511 orders
+joined to validated requests, and 12 additional positive-fee calls joined to
+traced fee events. All 3,523 positive-fee calls match the historical gas
+settings and keeper fee; keeper and refund transfers are proven. Twelve zero-fee
+calls are classified separately. The 12 extra order keys lack entries in the
+order-validation table, but their payment calls and receipt transfers are
+independently verified.
+
 ## Roadmap
 
 1. Completed — Fix the target surface.
