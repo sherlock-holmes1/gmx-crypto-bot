@@ -12,6 +12,7 @@ from typing import Any, Iterator
 
 from gmx_crypto_bot.checkpoint import normalize_recorded_order_checkpoint
 from gmx_crypto_bot.event_decoder import DecodedEventLog, EventDecodeError, decode_event_log, event_name_from_data
+from gmx_crypto_bot.price_impact import HistoricalFactor, load_factor_histories, predict_current_impact
 
 
 TERMINAL_EVENTS = {"OrderExecuted", "OrderCancelled", "OrderFrozen"}
@@ -22,12 +23,12 @@ DECREASE_ORDER_TYPES = {4, 5, 6, 7}
 MAX_UINT256 = (1 << 256) - 1
 FLOAT_PRECISION = 10**30
 FUNDING_PRECISION = 10**45
+IMPACT_ROUNDING_TOLERANCE_USD = 10**18  # $1e-12 in GMX's 30-decimal USD units
 ARBITRUM_ORDER_VAULT = "0x31ef83a530fde1b38ee9a18093a333d8bbbc40d5"
 ARBITRUM_MULTICHAIN_VAULT = "0xceaadfaf6a8c489b250e407987877c5fdfcdbe6e"
 ERC20_TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 UNMODELED_ECONOMICS = (
     "historical_configuration_factors",
-    "independent_price_impact",
     "execution_fee_gas_and_transfer_proof",
     "liquidation_settlement",
 )
@@ -62,9 +63,14 @@ def validate_orders(recording: Path) -> ValidationReport:
     created, opening, observed, receipts, opening_positions, position_events, decode_errors = _load_replay_evidence(
         recording, target_market, index_token
     )
-    lifecycle, execution_fees, raw_decode_errors = _load_terminal_lifecycle(recording, set(created) | set(opening))
+    virtual_id = metadata.get("pinned_configuration_raw", {}).get("virtual_index_token_id", "").lower()
+    lifecycle, execution_fees, virtual_events, raw_decode_errors = _load_terminal_lifecycle(
+        recording, set(created) | set(opening), virtual_id
+    )
+    _attach_pre_virtual_inventory(position_events, virtual_events)
     update_topups = _load_order_update_topups(recording, lifecycle, index_token)
     swaps, payouts = _load_execution_receipt_evidence(recording, lifecycle)
+    impact_factors = load_factor_histories(recording, metadata)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
@@ -72,7 +78,7 @@ def validate_orders(recording: Path) -> ValidationReport:
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -81,7 +87,7 @@ def validate_orders(recording: Path) -> ValidationReport:
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -137,7 +143,10 @@ def _load_replay_evidence(
     position_events: list[dict[str, Any]] = []
     borrowing_events: list[dict[str, Any]] = []
     oracle_events: list[dict[str, Any]] = []
+    open_interest_events: list[dict[str, Any]] = []
+    impact_pool_events: list[dict[str, Any]] = []
     opening_borrowing: dict[str, Any] = {}
+    opening_open_interest_tokens: dict[str, int] = {}
     decode_errors = 0
     with (recording / "events.jsonl").open(encoding="utf-8") as stream:
         for line in stream:
@@ -145,6 +154,7 @@ def _load_replay_evidence(
             if event["kind"] == "opening_state_checkpoint":
                 opening_positions = event["payload"].get("positions", {})
                 opening_borrowing = event["payload"].get("borrowing", {})
+                opening_open_interest_tokens = event["payload"].get("open_interest_tokens", {})
                 for key, order in event["payload"].get("orders", {}).items():
                     values = order.get("opening_checkpoint")
                     if not isinstance(values, dict):
@@ -166,7 +176,7 @@ def _load_replay_evidence(
             if event["kind"] != "gmx_market_log":
                 continue
             name = event["payload"].get("event_name")
-            if name not in {"OrderCreated", "CumulativeBorrowingFactorUpdated", "OraclePriceUpdate"} | POSITION_EVENTS:
+            if name not in {"OrderCreated", "CumulativeBorrowingFactorUpdated", "OraclePriceUpdate", "OpenInterestInTokensUpdated", "PositionImpactPoolAmountUpdated"} | POSITION_EVENTS:
                 continue
             decoded = _decode_recorded_log(event)
             if decoded is None:
@@ -177,6 +187,10 @@ def _load_replay_evidence(
                 borrowing_events.append(entry)
             elif name == "OraclePriceUpdate":
                 oracle_events.append(entry)
+            elif name == "OpenInterestInTokensUpdated":
+                open_interest_events.append(entry)
+            elif name == "PositionImpactPoolAmountUpdated":
+                impact_pool_events.append(entry)
             elif name == "OrderCreated":
                 if decoded.values.get("market") != target_market:
                     continue
@@ -191,7 +205,8 @@ def _load_replay_evidence(
                     observed[key].append(entry)
                 position_events.append(entry)
     _attach_pre_position_state(position_events, opening_positions, borrowing_events, opening_borrowing,
-                               oracle_events, index_token)
+                               oracle_events, index_token, open_interest_events, opening_open_interest_tokens)
+    _attach_pre_impact_pool(position_events, impact_pool_events)
     return created, opening, observed, receipts, opening_positions, position_events, decode_errors
 
 
@@ -199,6 +214,8 @@ def _attach_pre_position_state(
     events: list[dict[str, Any]], opening_positions: dict[str, dict[str, Any]],
     borrowing_events: list[dict[str, Any]], opening_borrowing: dict[str, Any],
     oracle_events: list[dict[str, Any]] | None = None, index_token: str | None = None,
+    open_interest_events: list[dict[str, Any]] | None = None,
+    opening_open_interest_tokens: dict[str, int] | None = None,
 ) -> None:
     """Reconstruct the position immediately before each observed position event."""
     positions = {key.lower(): dict(value) for key, value in opening_positions.items()}
@@ -208,7 +225,9 @@ def _attach_pre_position_state(
     }
     oracle_at_transaction: dict[str, dict[str, Any]] = {}
     oracle_transaction: str | None = None
-    for entry in sorted(events + borrowing_events + (oracle_events or []), key=_coordinate):
+    interest = dict(opening_open_interest_tokens or {})
+    latest_interest_update: dict[str, dict[str, Any]] = {}
+    for entry in sorted(events + borrowing_events + (oracle_events or []) + (open_interest_events or []), key=_coordinate):
         values = entry["values"]
         if entry["transaction_hash"] != oracle_transaction:
             oracle_transaction = entry["transaction_hash"]
@@ -220,6 +239,12 @@ def _attach_pre_position_state(
             continue
         if entry["event_name"] == "CumulativeBorrowingFactorUpdated":
             borrowing["long" if values.get("isLong") else "short"] = values.get("nextValue")
+            continue
+        if entry["event_name"] == "OpenInterestInTokensUpdated":
+            side = "long" if values.get("isLong") else "short"
+            cell = f"{values.get('collateralToken')}:{side}"
+            interest[cell] = values.get("nextValue")
+            latest_interest_update[cell] = entry
             continue
         key = values.get("positionKey")
         if not isinstance(key, str):
@@ -234,6 +259,26 @@ def _attach_pre_position_state(
         entry["cumulative_borrowing_factor"] = borrowing["long" if is_long else "short"]
         if entry["event_name"] == "PositionFeesCollected":
             continue
+        side = "long" if values.get("isLong") else "short"
+        cell = f"{values.get('collateralToken')}:{side}"
+        size_delta_tokens = values.get("sizeDeltaInTokens")
+        signed_delta = size_delta_tokens if entry["event_name"] == "PositionIncrease" else -size_delta_tokens if isinstance(size_delta_tokens, int) else None
+        update = latest_interest_update.get(cell)
+        update_matches = (
+            isinstance(signed_delta, int) and isinstance(interest.get(cell), int)
+            and (signed_delta == 0 or (
+                update is not None and update["transaction_hash"] == entry["transaction_hash"]
+                and update["values"].get("delta") == signed_delta
+            ))
+        )
+        if update_matches:
+            before = dict(interest)
+            before[cell] -= signed_delta
+            entry["pre_open_interest_tokens"] = {
+                side_name: sum(value for name, value in before.items() if name.endswith(f":{side_name}"))
+                for side_name in ("long", "short")
+            }
+        entry["open_interest_update_matches"] = update_matches
         if not values.get("sizeInUsd"):
             positions.pop(key, None)
             continue
@@ -259,15 +304,79 @@ def _attach_pre_position_state(
         positions[key] = next_position
 
 
+def _attach_pre_virtual_inventory(
+    position_events: list[dict[str, Any]], virtual_events: list[dict[str, Any]],
+) -> None:
+    """Reconstruct pre-trade virtual inventory from all recorded markets sharing the token ID."""
+    if not virtual_events:
+        return
+    first = min(virtual_events, key=_coordinate)["values"]
+    inventory = first["nextValue"] - first["delta"]
+    latest: dict[str, Any] | None = None
+    continuous = True
+    positions = [event for event in position_events if event["event_name"] in {"PositionIncrease", "PositionDecrease"}]
+    for entry in sorted(virtual_events + positions, key=_coordinate):
+        values = entry["values"]
+        if entry["event_name"] == "VirtualPositionInventoryUpdated":
+            if values["nextValue"] - values["delta"] != inventory:
+                continuous = False
+            inventory = values["nextValue"]
+            latest = entry
+            continue
+        size = values.get("sizeDeltaInTokens")
+        if not isinstance(size, int):
+            entry["virtual_inventory_update_matches"] = False
+            continue
+        signed_size = size if entry["event_name"] == "PositionIncrease" else -size
+        expected_delta = -signed_size if values.get("isLong") else signed_size
+        matches = expected_delta == 0 or (
+            latest is not None and latest["transaction_hash"] == entry["transaction_hash"]
+            and latest["values"].get("delta") == expected_delta
+        )
+        entry["virtual_inventory_update_matches"] = matches
+        entry["virtual_inventory_continuous"] = continuous
+        if matches and continuous:
+            entry["pre_virtual_inventory_tokens"] = inventory - expected_delta
+
+
+def _attach_pre_impact_pool(
+    position_events: list[dict[str, Any]], pool_events: list[dict[str, Any]],
+) -> None:
+    """Recover position-impact pool amounts from event next values and deltas."""
+    if not pool_events:
+        return
+    first = min(pool_events, key=_coordinate)["values"]
+    amount = first["nextValue"] - first["delta"]
+    latest: dict[str, Any] | None = None
+    continuous = True
+    positions = [event for event in position_events if event["event_name"] in {"PositionIncrease", "PositionDecrease"}]
+    for entry in sorted(pool_events + positions, key=_coordinate):
+        if entry["event_name"] == "PositionImpactPoolAmountUpdated":
+            values = entry["values"]
+            if values["nextValue"] - values["delta"] != amount:
+                continuous = False
+            amount = values["nextValue"]
+            latest = entry
+            continue
+        entry["impact_pool_continuous"] = continuous
+        if continuous:
+            if latest is not None and latest["transaction_hash"] == entry["transaction_hash"]:
+                entry["pre_impact_pool_amount"] = amount - latest["values"]["delta"]
+            else:
+                entry["pre_impact_pool_amount"] = amount
+        latest = None
+
+
 def _load_terminal_lifecycle(
-    recording: Path, target_keys: set[str]
-) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]], int]:
+    recording: Path, target_keys: set[str], virtual_id: str = "",
+) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]], list[dict[str, Any]], int]:
     lifecycle: dict[str, list[dict[str, Any]]] = defaultdict(list)
     fee_timeline: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    virtual_events: list[dict[str, Any]] = []
     decode_errors = 0
     for log in _iter_raw_event_emitter_logs(recording):
         name = event_name_from_data(log.get("data", ""))
-        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback"}:
+        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated"}:
             continue
         try:
             decoded = decode_event_log(log["data"])
@@ -276,13 +385,17 @@ def _load_terminal_lifecycle(
             continue
         key = _order_key(decoded)
         entry = _event_entry_from_log(log, decoded)
+        if name == "VirtualPositionInventoryUpdated":
+            if decoded.values.get("virtualTokenId") == virtual_id:
+                virtual_events.append(entry)
+            continue
         if name in TERMINAL_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback"}:
             fee_timeline[entry["transaction_hash"]].append(entry)
         if key in target_keys and name in LIFECYCLE_EVENTS:
             lifecycle[key].append(entry)
     for entries in lifecycle.values():
         entries.sort(key=_coordinate)
-    return lifecycle, _associate_execution_fees(fee_timeline), decode_errors
+    return lifecycle, _associate_execution_fees(fee_timeline), virtual_events, decode_errors
 
 
 def _associate_execution_fees(
@@ -480,6 +593,7 @@ def _validate_order(
     swap_events: list[dict[str, Any]] | None = None,
     payout_events: list[dict[str, Any]] | None = None,
     metadata: dict[str, Any] | None = None,
+    impact_factors: dict[str, HistoricalFactor] | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -494,6 +608,8 @@ def _validate_order(
     mismatches: list[str] = []
     checks: dict[str, str] = {}
     modeled_settlement: dict[str, Any] | None = None
+    modeled_price_impact: dict[str, Any] | None = None
+    impact_factors_at_execution: dict[str, int | None] | None = None
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
@@ -530,6 +646,13 @@ def _validate_order(
             checks["position_execution"] = "mismatch"
         else:
             checks["position_execution"] = "matched"
+            coordinate = _coordinate(position)[:3]
+            impact_factors_at_execution = {
+                field: history.at(coordinate) for field, history in (impact_factors or {}).items()
+            }
+            modeled_price_impact = _compare_independent_price_impact(
+                position, impact_factors_at_execution, checks, mismatches,
+            )
             _compare_execution(final_request, position, checks, mismatches)
             checks["position_transaction"] = _comparison(
                 position["transaction_hash"] == terminal["transaction_hash"],
@@ -594,6 +717,10 @@ def _validate_order(
     result["observed_execution_fee_events"] = fee_events
     result["observed_swap_events"] = swap_events or []
     result["observed_payout_events"] = payout_events or []
+    if impact_factors_at_execution is not None:
+        result["historical_price_impact_factors"] = impact_factors_at_execution
+    if modeled_price_impact is not None:
+        result["modeled_price_impact"] = modeled_price_impact
     if modeled_settlement is not None:
         result["modeled_decrease_settlement"] = modeled_settlement
     result["observed_order_update_topups"] = [
@@ -976,6 +1103,78 @@ def _compare_decrease_settlement(
         "multichain" if request.get("srcChainId") else "direct"
     )
     return result
+
+
+def _compare_independent_price_impact(
+    position: dict[str, Any], factors: dict[str, int | None],
+    checks: dict[str, str], mismatches: list[str],
+) -> dict[str, Any] | None:
+    """Compare OI/virtual-inventory impact and decrease caps to chain events."""
+    required = (
+        "position_impact_factor_positive", "position_impact_factor_negative",
+        "position_impact_exponent_factor_positive", "position_impact_exponent_factor_negative",
+        "max_position_impact_factor_positive", "max_position_impact_factor_negative",
+        "max_lendable_impact_factor", "max_lendable_impact_usd",
+    )
+    values = position["values"]
+    interest = position.get("pre_open_interest_tokens")
+    virtual = position.get("pre_virtual_inventory_tokens")
+    pool = position.get("pre_impact_pool_amount")
+    if (not isinstance(interest, dict) or not isinstance(virtual, int) or not isinstance(pool, int)
+            or not position.get("open_interest_update_matches")
+            or not position.get("virtual_inventory_update_matches")
+            or not position.get("virtual_inventory_continuous")
+            or not position.get("impact_pool_continuous")
+            or any(not isinstance(factors.get(name), int) for name in required)):
+        checks["independent_price_impact"] = "unavailable"
+        return None
+    increase = position["event_name"] == "PositionIncrease"
+    size_usd = values.get("sizeDeltaUsd")
+    size_tokens = values.get("sizeDeltaInTokens")
+    index_min = values.get("indexTokenPrice.min")
+    index_max = values.get("indexTokenPrice.max")
+    if not all(isinstance(value, int) for value in (size_usd, size_tokens, index_min, index_max)):
+        checks["independent_price_impact"] = "unavailable"
+        return None
+    token_delta = size_tokens if increase else -size_tokens
+    model = predict_current_impact(
+        interest["long"], interest["short"], virtual, token_delta,
+        values.get("isLong") is True, index_min, index_max, factors,
+    )
+    current = model["selected_impact_usd"]
+    positive_cap = size_usd * factors["max_position_impact_factor_positive"] // FLOAT_PRECISION
+    if current > 0:
+        current = min(current, positive_cap)
+    observed_current = values.get("pendingPriceImpactUsd") if increase else values.get("priceImpactUsd")
+    valid = isinstance(observed_current, int) and abs(current - observed_current) <= IMPACT_ROUNDING_TOLERANCE_USD
+    model["current_impact_usd"] = current
+    if not increase:
+        pending = values.get("proportionalPendingImpactUsd")
+        if not isinstance(pending, int):
+            checks["independent_price_impact"] = "unavailable"
+            return None
+        total = current + pending
+        impact_diff = 0
+        if total < 0:
+            negative_cap = -(size_usd * factors["max_position_impact_factor_negative"] // FLOAT_PRECISION)
+            if total < negative_cap:
+                impact_diff = negative_cap - total
+                total = negative_cap
+        if total > 0:
+            total = min(total, positive_cap)
+            if factors["max_lendable_impact_factor"] or factors["max_lendable_impact_usd"]:
+                checks["independent_price_impact"] = "unavailable"
+                return None
+            total = min(total, pool * index_min)
+        observed_total = values.get("totalImpactUsd")
+        observed_diff = values.get("values.priceImpactDiffUsd", 0)
+        valid &= isinstance(observed_total, int) and abs(total - observed_total) <= IMPACT_ROUNDING_TOLERANCE_USD
+        valid &= isinstance(observed_diff, int) and abs(impact_diff - observed_diff) <= IMPACT_ROUNDING_TOLERANCE_USD
+        model["total_impact_usd"] = total
+        model["negative_cap_diff_usd"] = impact_diff
+    checks["independent_price_impact"] = _comparison(valid, "independent_price_impact_mismatch", mismatches)
+    model["rounding_tolerance_usd"] = IMPACT_ROUNDING_TOLERANCE_USD
+    return model
 
 
 def _compare_execution(
