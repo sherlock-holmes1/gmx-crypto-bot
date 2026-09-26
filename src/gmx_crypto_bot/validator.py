@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
+from gmx_crypto_bot.accrual_validation import AccrualReplay, compare_accrual, compare_liquidation_configuration
 from gmx_crypto_bot.swap_validation import SwapReplay, STATE_EVENTS, compare_swaps
 from gmx_crypto_bot.referral import ReferralState, compare_referral
 from gmx_crypto_bot.historical_configuration import build_fee_histories, compare_historical_fees
@@ -56,6 +57,8 @@ class ValidationReport:
     check_counts: dict[str, dict[str, int]]
     remaining_economic_checks: list[str]
     orders: list[dict[str, Any]]
+    historical_configuration_complete: bool = False
+    accrual_validation: dict[str, Any] | None = None
 
 
 def validate_orders(recording: Path) -> ValidationReport:
@@ -83,6 +86,8 @@ def validate_orders(recording: Path) -> ValidationReport:
                     and isinstance(entry["values"].get("uiFeeReceiver"), str)}
     fee_histories = build_fee_histories(recording, metadata, configuration_events, ui_receivers)
     referral_state = ReferralState(recording, metadata, configuration_events)
+    accrual_replay = AccrualReplay(recording, metadata)
+    accrual_replay.run(configuration_events)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
@@ -90,7 +95,7 @@ def validate_orders(recording: Path) -> ValidationReport:
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []))
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -99,7 +104,7 @@ def validate_orders(recording: Path) -> ValidationReport:
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []))
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -111,13 +116,35 @@ def validate_orders(recording: Path) -> ValidationReport:
     for order in results:
         for check, outcome in order["checks"].items():
             check_counts[check][outcome] += 1
+    accrual_summary = accrual_replay.summary()
+    for event, check in [("Funding", "funding_update_derivation"), ("CumulativeBorrowingFactorUpdated", "borrowing_update_derivation")]:
+        counts = accrual_summary["counts"][event]
+        check_counts[check].update(counts or {"unavailable": 1})
+    check_counts["accrual_closing_state"]["matched" if accrual_summary["complete"] else "unavailable"] += 1
+    if any(r["status"] == "mismatch" for r in accrual_summary["updates"]) or any(c["status"] == "mismatch" for c in accrual_summary["closing"].values()) or accrual_summary["errors"] or accrual_summary["continuity_errors"]:
+        mismatch_counts["accrual_reconstruction_mismatch"] += 1
     remaining_checks = sorted({
         check for check, counts in check_counts.items() if counts.get("unavailable", 0)
     } | set(UNMODELED_ECONOMICS) | (
         {"ambiguous_order_update_topups"}
         if check_counts["execution_fee_event_balance"].get("unavailable_update_receipt", 0) else set()
     ))
-    implemented_checks_pass = not mismatched and not decode_errors
+    configuration_checks = (
+        "historical_position_fee_factor", "historical_position_fee_amount",
+        "historical_position_fee_receiver_factor", "historical_borrowing_fee_receiver_factor",
+        "historical_ui_fee_factor", "historical_ui_fee_amount", "historical_referral_identity",
+        "historical_referral_discount", "historical_pro_discount", "historical_protocol_fee",
+        "independent_price_impact", "historical_swap_fees", "independent_swap_price_impact",
+        "independent_swap_state", "independent_swap_output", "historical_fee_factors_liquidation",
+        "independent_funding_accumulators", "independent_borrowing_accumulators",
+    )
+    configuration_complete = accrual_summary["complete"] and all(
+        check_counts.get(name) and set(check_counts[name]) == {"matched"}
+        for name in configuration_checks
+    )
+    if configuration_complete:
+        remaining_checks.remove("historical_configuration_factors")
+    implemented_checks_pass = not mismatched and not decode_errors and not mismatch_counts.get("accrual_reconstruction_mismatch")
     economic_calibration_complete = not remaining_checks and implemented_checks_pass
     return ValidationReport(
         schema="GmxObservedOrderValidationReport",
@@ -137,6 +164,8 @@ def validate_orders(recording: Path) -> ValidationReport:
         check_counts={key: dict(sorted(counts.items())) for key, counts in sorted(check_counts.items())},
         remaining_economic_checks=remaining_checks,
         orders=results,
+        historical_configuration_complete=configuration_complete,
+        accrual_validation=accrual_summary,
     )
 
 
@@ -391,7 +420,7 @@ def _load_terminal_lifecycle(
     decode_errors = 0
     for log in _iter_raw_event_emitter_logs(recording):
         name = event_name_from_data(log.get("data", ""))
-        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated", "SetUint", "UiFeeFactorUpdated"} | (STATE_EVENTS if swap_replay and swap_replay.available else set()):
+        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated", "SetUint", "SetInt", "SetBool", "PositionFeesInfo", "InsolventClose", "UiFeeFactorUpdated"} | (STATE_EVENTS if swap_replay and swap_replay.available else set()):
             continue
         try:
             decoded = decode_event_log(log["data"])
@@ -404,7 +433,7 @@ def _load_terminal_lifecycle(
             if swap_state_events is not None and swap_replay.wants(name, decoded.values):
                 swap_state_events.append(entry)
             continue
-        if name in {"SetUint", "UiFeeFactorUpdated"}:
+        if name in {"SetUint", "SetInt", "SetBool", "PositionFeesInfo", "InsolventClose", "UiFeeFactorUpdated"}:
             if configuration_events is not None:
                 configuration_events.append(entry)
             continue
@@ -620,6 +649,7 @@ def _validate_order(
     fee_histories: dict | None = None,
     referral_state: ReferralState | None = None,
     modeled_swaps: list[dict[str, Any]] | None = None,
+    accrual_replay: AccrualReplay | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -638,6 +668,7 @@ def _validate_order(
     impact_factors_at_execution: dict[str, int | None] | None = None
     historical_fee_factors = None
     modeled_referral = None
+    modeled_liquidation_configuration = None
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
@@ -719,6 +750,11 @@ def _validate_order(
             historical_fee_factors = compare_historical_fees(
                 final_request, position, fees, modeled_price_impact, fee_histories or {}, checks, mismatches,
             )
+            compare_accrual(accrual_replay, key, checks, mismatches)
+            modeled_liquidation_configuration = compare_liquidation_configuration(
+                accrual_replay, key, final_request, position, fees, modeled_price_impact,
+                fee_histories or {}, checks, mismatches, referral_state, swap_events or [],
+            )
             modeled_referral = compare_referral(
                 referral_state, final_request, position, fees, historical_fee_factors,
                 modeled_price_impact, checks, mismatches,
@@ -754,6 +790,8 @@ def _validate_order(
     result["observed_swap_events"] = swap_events or []
     result["modeled_swaps"] = modeled_swaps or []
     result["observed_payout_events"] = payout_events or []
+    if modeled_liquidation_configuration is not None:
+        result["modeled_liquidation_configuration"] = modeled_liquidation_configuration
     if modeled_referral is not None:
         result["modeled_referral"] = modeled_referral
     if historical_fee_factors is not None:

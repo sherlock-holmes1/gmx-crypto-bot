@@ -164,9 +164,9 @@ improvement flag, including the selected virtual-inventory curve, before choosin
 the position-fee tier. Global receiver factors and nonzero UI fees require an
 opening archive snapshot; missing values stay unavailable. In `eth-usdc-week-2`,
 the block-hash-verified opening snapshot supplies all ten required settings, and
-all six historical fee comparisons match all 2,948 ordinary executions. Liquidation fee
-structs and independent funding and borrowing accumulator derivation remain
-outside these checks. Swap configuration has its separate checks below.
+all six historical fee comparisons match all 2,948 ordinary executions. Liquidation fee configuration and independently derived funding/borrowing
+accumulators have their separate checks below. Swap configuration has its own
+checks.
 
 With `GMX_ARCHIVE_RPC_URL` available in the environment, run:
 
@@ -244,14 +244,52 @@ and changed virtual-market assignments remain unavailable. Swap exponentiation
 reproduces PRBMath 2.4.3 integer log2, multiplication, and exp2 rounding; no
 comparison tolerance is used for swaps. The recording exercises 377 positive and
 283 negative impacts, 226 virtual-curve selections, and two input impact-pool
-supplements. The test suite contains 69 tests, including eight recorded rounding
-regressions. Broader historical configuration, independent funding/borrowing
-accrual, liquidation settlement, and keeper-cost proof remain open.
+supplements. The test suite contains 81 tests, including eight recorded rounding
+regressions. Historical configuration is complete for this recording. Full
+liquidation settlement and keeper-cost proof remain open.
 
 Formula sources: [SwapPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/SwapPricingUtils.sol),
 [SwapUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/swap/SwapUtils.sol),
 [MarketUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/market/MarketUtils.sol),
 and [PRBMath 2.4.3](https://github.com/PaulRBerg/prb-math/tree/v2.4.3/contracts).
+
+## Independent funding, borrowing, and liquidation configuration
+
+All 3,397 funding updates and 6,794 borrowing updates match exact integer
+reconstruction from historical settings, pool/open-interest state, prices, and
+elapsed time. Both checks cover all 3,051 position executions. All 48 closing
+configuration/state values match archive reads. Block timestamps are recovered
+from raw RPC headers and verified against execution-log block hashes.
+
+The replay models static/adaptive funding, collateral-specific funding and
+claimable amounts, saved-rate evolution and bounds, legacy/kink borrowing, and
+the smaller-side exemption. Observed accumulator results are comparison targets,
+not inputs to subsequent modeled accumulator updates. Missing evidence,
+inconsistent state, or mismatched closing values prevent the gate from closing.
+
+Historical liquidation fee configuration matches all 103 liquidations. One
+hundred intact structures match directly. For three erased structures, the model
+reconstructs fees and the exact unpaid balance at the insolvency fee step.
+Complete liquidation settlement and payout transfers are separate open checks.
+
+For a new recording, from an archive-enabled terminal:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.accrual_backfill recordings/eth-usdc-week-2
+PYTHONPATH=src python3 -m gmx_crypto_bot.validator recordings/eth-usdc-week-2 --output recordings/eth-usdc-week-2/order-validation.json
+```
+
+`accrual_backfill` captures 96 read-only archive values across opening and closing
+blocks, checks both hashes before/after calls, preserves raw responses, and
+creates `accrual-configuration.json` without overwriting existing evidence.
+Subsequent validation is offline. `historical_configuration_complete` is true
+only when the historical fee/referral/impact/swap, accrual, closing-state, and
+liquidation-configuration checks all pass. Overall validation remains incomplete
+until liquidation settlement and execution-fee proof pass.
+
+Sources: [MarketUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/market/MarketUtils.sol),
+[PositionPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/PositionPricingUtils.sol),
+and [DecreasePositionCollateralUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/position/DecreasePositionCollateralUtils.sol).
 
 ## Roadmap
 
