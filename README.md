@@ -165,8 +165,8 @@ the position-fee tier. Global receiver factors and nonzero UI fees require an
 opening archive snapshot; missing values stay unavailable. In `eth-usdc-week-2`,
 the block-hash-verified opening snapshot supplies all ten required settings, and
 all six historical fee comparisons match all 2,948 ordinary executions. Liquidation fee
-structs, referral/pro discounts, swap configuration, and independent funding and
-borrowing accumulator derivation remain outside these new checks.
+structs and independent funding and borrowing accumulator derivation remain
+outside these checks. Swap configuration has its separate checks below.
 
 With `GMX_ARCHIVE_RPC_URL` available in the environment, run:
 
@@ -181,6 +181,77 @@ and raw return values, and refuses to overwrite an existing file. It stores no
 RPC URL. The validator checks the snapshot identity, block hash, storage keys,
 and values before applying subsequent writes in block/transaction/log order.
 Validator exit code 2 means full economic validation remains incomplete.
+
+## Referral and pro discounts
+
+`referral_backfill` reads the historical ReferralStorage address from the pinned
+OrderHandler, captures opening trader codes, owners, affiliate tiers, custom
+shares, pro tiers, pro factors, and minimum affiliate rewards. It collects the
+complete ReferralStorage change-log interval and verifies log block hashes
+against the archive provider. Original RPC responses are preserved in a separate
+`referral-backfill-*` raw-evidence directory; the recording is unchanged.
+
+Run from a terminal with `GMX_ARCHIVE_RPC_URL` exported:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.referral_backfill recordings/eth-usdc-week-2
+PYTHONPATH=src python3 -m gmx_crypto_bot.validator recordings/eth-usdc-week-2 --output recordings/eth-usdc-week-2/order-validation.json
+```
+
+Historical state reads use Alchemy. Log queries use public Arbitrum RPC by
+default; `GMX_LOGS_RPC_URL` can select another log provider. Successful backfills
+create `referral-configuration.json` and refuse to overwrite an existing file.
+Failures retain raw diagnostics without publishing a complete snapshot.
+
+The seven-day recording passes all four historical referral/pro checks on all
+2,948 ordinary executions, with zero mismatches. The archive snapshot contains
+839 calls for 368 traders and a complete interval of 563 referral change logs.
+All observed pro tiers are zero; nonzero pro-discount overlap is tested with
+synthetic cases and is not exercised by this recording.
+
+The validator reconstructs referral identity and discounts at each fee event,
+using block, transaction, and log order. It compares trader discounts, affiliate
+rewards, pro discounts, and the remaining protocol fee. Missing historical
+inputs remain unavailable. Liquidations retain their separate settlement gate.
+
+Formula sources: [ReferralUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/referral/ReferralUtils.sol),
+[PositionPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/PositionPricingUtils.sol),
+and [ReferralStorage](https://github.com/gmx-io/gmx-contracts/blob/master/contracts/referrals/ReferralStorage.sol).
+
+## Independent swap validation
+
+The validator reconstructs swap fees, pool and shared virtual inventory, impact
+curves, impact-pool caps, and output amounts from opening archive state and
+canonical raw events. All four independent comparisons match all 660 hops across 37 markets
+(635 orders). The opening snapshot contains 549 archive reads. All fee, impact,
+pool-delta, and output comparisons require exact integer equality.
+
+Run from a terminal with `GMX_ARCHIVE_RPC_URL` exported:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.swap_backfill recordings/eth-usdc-week-2
+PYTHONPATH=src python3 -m gmx_crypto_bot.validator recordings/eth-usdc-week-2 --output recordings/eth-usdc-week-2/order-validation.json
+```
+
+The backfill reads market token pairs, pool and impact-pool balances, virtual
+market IDs and inventories, both fee/impact factors, exponents, fee-receiver
+settings, and UI settings at opening block 505256001. It checks the recorded
+block hash before and after calls, preserves original responses, writes
+`swap-opening-state.json`, and refuses to overwrite an existing snapshot.
+
+Absent anchors, broken state continuity, missing same-transaction oracle prices,
+and changed virtual-market assignments remain unavailable. Swap exponentiation
+reproduces PRBMath 2.4.3 integer log2, multiplication, and exp2 rounding; no
+comparison tolerance is used for swaps. The recording exercises 377 positive and
+283 negative impacts, 226 virtual-curve selections, and two input impact-pool
+supplements. The test suite contains 69 tests, including eight recorded rounding
+regressions. Broader historical configuration, independent funding/borrowing
+accrual, liquidation settlement, and keeper-cost proof remain open.
+
+Formula sources: [SwapPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/SwapPricingUtils.sol),
+[SwapUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/swap/SwapUtils.sol),
+[MarketUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/market/MarketUtils.sol),
+and [PRBMath 2.4.3](https://github.com/PaulRBerg/prb-math/tree/v2.4.3/contracts).
 
 ## Roadmap
 

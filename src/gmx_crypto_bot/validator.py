@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
+from gmx_crypto_bot.swap_validation import SwapReplay, STATE_EVENTS, compare_swaps
+from gmx_crypto_bot.referral import ReferralState, compare_referral
 from gmx_crypto_bot.historical_configuration import build_fee_histories, compare_historical_fees
 from gmx_crypto_bot.checkpoint import normalize_recorded_order_checkpoint
 from gmx_crypto_bot.event_decoder import DecodedEventLog, EventDecodeError, decode_event_log, event_name_from_data
@@ -66,9 +68,12 @@ def validate_orders(recording: Path) -> ValidationReport:
     )
     virtual_id = metadata.get("pinned_configuration_raw", {}).get("virtual_index_token_id", "").lower()
     configuration_events: list[dict[str, Any]] = []
+    swap_replay = SwapReplay(recording, metadata)
+    swap_state_events: list[dict[str, Any]] = []
     lifecycle, execution_fees, virtual_events, raw_decode_errors = _load_terminal_lifecycle(
-        recording, set(created) | set(opening), virtual_id, configuration_events
+        recording, set(created) | set(opening), virtual_id, configuration_events, swap_replay, swap_state_events
     )
+    swap_replay.replay(swap_state_events, configuration_events, set(created) | set(opening))
     _attach_pre_virtual_inventory(position_events, virtual_events)
     update_topups = _load_order_update_topups(recording, lifecycle, index_token)
     swaps, payouts = _load_execution_receipt_evidence(recording, lifecycle)
@@ -77,6 +82,7 @@ def validate_orders(recording: Path) -> ValidationReport:
                     for entry in entries if entry["event_name"] == "PositionFeesCollected"
                     and isinstance(entry["values"].get("uiFeeReceiver"), str)}
     fee_histories = build_fee_histories(recording, metadata, configuration_events, ui_receivers)
+    referral_state = ReferralState(recording, metadata, configuration_events)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
@@ -84,7 +90,7 @@ def validate_orders(recording: Path) -> ValidationReport:
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []))
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -93,7 +99,7 @@ def validate_orders(recording: Path) -> ValidationReport:
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []))
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -376,6 +382,8 @@ def _attach_pre_impact_pool(
 def _load_terminal_lifecycle(
     recording: Path, target_keys: set[str], virtual_id: str = "",
     configuration_events: list[dict[str, Any]] | None = None,
+    swap_replay: SwapReplay | None = None,
+    swap_state_events: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]], list[dict[str, Any]], int]:
     lifecycle: dict[str, list[dict[str, Any]]] = defaultdict(list)
     fee_timeline: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -383,7 +391,7 @@ def _load_terminal_lifecycle(
     decode_errors = 0
     for log in _iter_raw_event_emitter_logs(recording):
         name = event_name_from_data(log.get("data", ""))
-        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated", "SetUint", "UiFeeFactorUpdated"}:
+        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated", "SetUint", "UiFeeFactorUpdated"} | (STATE_EVENTS if swap_replay and swap_replay.available else set()):
             continue
         try:
             decoded = decode_event_log(log["data"])
@@ -392,6 +400,10 @@ def _load_terminal_lifecycle(
             continue
         key = _order_key(decoded)
         entry = _event_entry_from_log(log, decoded)
+        if name in STATE_EVENTS and swap_replay is not None:
+            if swap_state_events is not None and swap_replay.wants(name, decoded.values):
+                swap_state_events.append(entry)
+            continue
         if name in {"SetUint", "UiFeeFactorUpdated"}:
             if configuration_events is not None:
                 configuration_events.append(entry)
@@ -606,6 +618,8 @@ def _validate_order(
     metadata: dict[str, Any] | None = None,
     impact_factors: dict[str, HistoricalFactor] | None = None,
     fee_histories: dict | None = None,
+    referral_state: ReferralState | None = None,
+    modeled_swaps: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -623,6 +637,7 @@ def _validate_order(
     modeled_price_impact: dict[str, Any] | None = None
     impact_factors_at_execution: dict[str, int | None] | None = None
     historical_fee_factors = None
+    modeled_referral = None
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
@@ -704,6 +719,10 @@ def _validate_order(
             historical_fee_factors = compare_historical_fees(
                 final_request, position, fees, modeled_price_impact, fee_histories or {}, checks, mismatches,
             )
+            modeled_referral = compare_referral(
+                referral_state, final_request, position, fees, historical_fee_factors,
+                modeled_price_impact, checks, mismatches,
+            )
             _compare_fee_math(final_request, position, fees, checks, mismatches)
             if position["event_name"] == "PositionIncrease":
                 _compare_collateral_conversion(final_request, position, fees, swap_events or [], checks, mismatches)
@@ -728,11 +747,15 @@ def _validate_order(
             and int(gas_used, 16) > 0,
             "missing_terminal_gas", mismatches,
         )
+    compare_swaps(swap_events or [], modeled_swaps or [], checks, mismatches, final_request)
     status = "mismatch" if mismatches else "matched"
     result = _order_result(key, request, final_request, terminal, observed, checks, mismatches, status)
     result["observed_execution_fee_events"] = fee_events
     result["observed_swap_events"] = swap_events or []
+    result["modeled_swaps"] = modeled_swaps or []
     result["observed_payout_events"] = payout_events or []
+    if modeled_referral is not None:
+        result["modeled_referral"] = modeled_referral
     if historical_fee_factors is not None:
         result["historical_fee_factors"] = historical_fee_factors
     if impact_factors_at_execution is not None:
