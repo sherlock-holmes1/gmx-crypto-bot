@@ -231,9 +231,11 @@ def predict_current_impact(
         if signed_usd_delta < 0:
             virtual_long -= signed_usd_delta
             virtual_short -= signed_usd_delta
-        virtual_impact, _ = balance_impact(
+        virtual_impact, virtual_improved = balance_impact(
             virtual_long, virtual_short, signed_usd_delta, is_long, *args,
         )
+        if virtual_impact < market_impact:
+            improved = virtual_improved
     selected = min(market_impact, virtual_impact)
     return {
         "market_impact_usd": market_impact,

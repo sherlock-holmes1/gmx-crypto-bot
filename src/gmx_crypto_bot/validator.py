@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
+from gmx_crypto_bot.historical_configuration import build_fee_histories, compare_historical_fees
 from gmx_crypto_bot.checkpoint import normalize_recorded_order_checkpoint
 from gmx_crypto_bot.event_decoder import DecodedEventLog, EventDecodeError, decode_event_log, event_name_from_data
 from gmx_crypto_bot.price_impact import HistoricalFactor, load_factor_histories, predict_current_impact
@@ -64,13 +65,18 @@ def validate_orders(recording: Path) -> ValidationReport:
         recording, target_market, index_token
     )
     virtual_id = metadata.get("pinned_configuration_raw", {}).get("virtual_index_token_id", "").lower()
+    configuration_events: list[dict[str, Any]] = []
     lifecycle, execution_fees, virtual_events, raw_decode_errors = _load_terminal_lifecycle(
-        recording, set(created) | set(opening), virtual_id
+        recording, set(created) | set(opening), virtual_id, configuration_events
     )
     _attach_pre_virtual_inventory(position_events, virtual_events)
     update_topups = _load_order_update_topups(recording, lifecycle, index_token)
     swaps, payouts = _load_execution_receipt_evidence(recording, lifecycle)
     impact_factors = load_factor_histories(recording, metadata)
+    ui_receivers = {entry["values"]["uiFeeReceiver"].lower() for entries in observed.values()
+                    for entry in entries if entry["event_name"] == "PositionFeesCollected"
+                    and isinstance(entry["values"].get("uiFeeReceiver"), str)}
+    fee_histories = build_fee_histories(recording, metadata, configuration_events, ui_receivers)
     decode_errors += raw_decode_errors
     results: list[dict[str, Any]] = []
     mismatch_counts: Counter[str] = Counter()
@@ -78,7 +84,7 @@ def validate_orders(recording: Path) -> ValidationReport:
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -87,7 +93,7 @@ def validate_orders(recording: Path) -> ValidationReport:
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
@@ -369,6 +375,7 @@ def _attach_pre_impact_pool(
 
 def _load_terminal_lifecycle(
     recording: Path, target_keys: set[str], virtual_id: str = "",
+    configuration_events: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[tuple[str, int], list[dict[str, Any]]], list[dict[str, Any]], int]:
     lifecycle: dict[str, list[dict[str, Any]]] = defaultdict(list)
     fee_timeline: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -376,7 +383,7 @@ def _load_terminal_lifecycle(
     decode_errors = 0
     for log in _iter_raw_event_emitter_logs(recording):
         name = event_name_from_data(log.get("data", ""))
-        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated"}:
+        if name not in LIFECYCLE_EVENTS | {"KeeperExecutionFee", "ExecutionFeeRefund", "ExecutionFeeRefundCallback", "VirtualPositionInventoryUpdated", "SetUint", "UiFeeFactorUpdated"}:
             continue
         try:
             decoded = decode_event_log(log["data"])
@@ -385,6 +392,10 @@ def _load_terminal_lifecycle(
             continue
         key = _order_key(decoded)
         entry = _event_entry_from_log(log, decoded)
+        if name in {"SetUint", "UiFeeFactorUpdated"}:
+            if configuration_events is not None:
+                configuration_events.append(entry)
+            continue
         if name == "VirtualPositionInventoryUpdated":
             if decoded.values.get("virtualTokenId") == virtual_id:
                 virtual_events.append(entry)
@@ -594,6 +605,7 @@ def _validate_order(
     payout_events: list[dict[str, Any]] | None = None,
     metadata: dict[str, Any] | None = None,
     impact_factors: dict[str, HistoricalFactor] | None = None,
+    fee_histories: dict | None = None,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -610,6 +622,7 @@ def _validate_order(
     modeled_settlement: dict[str, Any] | None = None
     modeled_price_impact: dict[str, Any] | None = None
     impact_factors_at_execution: dict[str, int | None] | None = None
+    historical_fee_factors = None
     if not terminals:
         return _order_result(key, request, final_request, None, observed, checks, ["no_terminal_event_in_window"], "unresolved")
     terminal = terminals[-1]
@@ -688,6 +701,9 @@ def _validate_order(
                 "fee_trade_size_mismatch",
                 mismatches,
             )
+            historical_fee_factors = compare_historical_fees(
+                final_request, position, fees, modeled_price_impact, fee_histories or {}, checks, mismatches,
+            )
             _compare_fee_math(final_request, position, fees, checks, mismatches)
             if position["event_name"] == "PositionIncrease":
                 _compare_collateral_conversion(final_request, position, fees, swap_events or [], checks, mismatches)
@@ -717,6 +733,8 @@ def _validate_order(
     result["observed_execution_fee_events"] = fee_events
     result["observed_swap_events"] = swap_events or []
     result["observed_payout_events"] = payout_events or []
+    if historical_fee_factors is not None:
+        result["historical_fee_factors"] = historical_fee_factors
     if impact_factors_at_execution is not None:
         result["historical_price_impact_factors"] = impact_factors_at_execution
     if modeled_price_impact is not None:

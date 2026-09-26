@@ -156,6 +156,32 @@ hash differs from a freshly read canonical header becomes a `reorg_detected`
 record and also makes the recording incomplete. The collector refuses ranges
 newer than the selected confirmation depth.
 
+## Historical fee configuration
+
+The validator versions position-fee settings from the complete raw `SetUint`
+history and the pinned closing configuration. It reconstructs the balance
+improvement flag, including the selected virtual-inventory curve, before choosing
+the position-fee tier. Global receiver factors and nonzero UI fees require an
+opening archive snapshot; missing values stay unavailable. In `eth-usdc-week-2`,
+the block-hash-verified opening snapshot supplies all ten required settings, and
+all six historical fee comparisons match all 2,948 ordinary executions. Liquidation fee
+structs, referral/pro discounts, swap configuration, and independent funding and
+borrowing accumulator derivation remain outside these new checks.
+
+With `GMX_ARCHIVE_RPC_URL` available in the environment, run:
+
+```bash
+PYTHONPATH=src python3 -m gmx_crypto_bot.fee_config_backfill recordings/eth-usdc-week-2
+PYTHONPATH=src python3 -m gmx_crypto_bot.validator recordings/eth-usdc-week-2 --output recordings/eth-usdc-week-2/order-validation.json
+```
+
+The backfill checks the recorded opening block hash before and after read-only
+historical calls. It creates `fee-opening-configuration.json` with storage keys
+and raw return values, and refuses to overwrite an existing file. It stores no
+RPC URL. The validator checks the snapshot identity, block hash, storage keys,
+and values before applying subsequent writes in block/transaction/log order.
+Validator exit code 2 means full economic validation remains incomplete.
+
 ## Roadmap
 
 1. Completed — Fix the target surface.
