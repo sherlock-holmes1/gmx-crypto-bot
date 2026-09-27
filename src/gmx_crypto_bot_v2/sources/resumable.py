@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from gmx_crypto_bot_v2.sources.request_store import RequestStore
-from gmx_crypto_bot_v2.sources.rpc import PublicJsonRpc
+from gmx_crypto_bot_v2.sources.rpc import PublicJsonRpc, SourceError
 
 
 class ResumableRpc(PublicJsonRpc):
@@ -55,6 +55,11 @@ class ResumableRpc(PublicJsonRpc):
         self.artifacts = Capture()
         try:
             response = super()._send(source, request_payload)
+        except SourceError as error:
+            raise SourceError(
+                "RPC transport failed",
+                safe_detail=f"{self.store.namespace}: {error.safe_detail}",
+            ) from error
         finally:
             self.artifacts = capture
         values = response if isinstance(response, list) else [response]

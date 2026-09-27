@@ -57,7 +57,7 @@ def run(args, stages=None):
         result = coordinator.run(stages)
     except SourceError as error:
         print(
-            f"Source request failed ({type(error).__name__}); completed work is retained for --resume."
+            f"Source request failed: {error.safe_detail}. Completed work is retained for --resume."
         )
         return 1
     except (OSError, ValueError, RuntimeError) as error:

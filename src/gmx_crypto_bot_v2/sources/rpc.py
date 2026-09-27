@@ -20,6 +20,12 @@ from gmx_crypto_bot_v2.evidence.artifacts import RawArtifactStore
 class SourceError(RuntimeError):
     """A public source did not return a usable response."""
 
+    def __init__(
+        self, message, *, safe_detail="RPC provider returned an unusable response"
+    ):
+        super().__init__(message)
+        self.safe_detail = safe_detail
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -174,10 +180,13 @@ class PublicJsonRpc:
                 self.artifacts.error(
                     source,
                     request_payload,
-                    f"attempt {attempt}: {type(error).__name__}",
+                    f"attempt {attempt}: HTTP {error.code}",
                 )
                 if not retryable or attempt == RPC_MAX_ATTEMPTS:
-                    raise SourceError(f"{source}: {type(error).__name__}") from error
+                    raise SourceError(
+                        f"{source}: HTTP {error.code}",
+                        safe_detail=f"{source}: HTTP {error.code} after {attempt} attempt(s)",
+                    ) from error
                 retry_after = (error.headers or {}).get("Retry-After")
                 exponential_delay = min(2 ** (attempt - 1), 8)
                 delay = (
@@ -194,7 +203,10 @@ class PublicJsonRpc:
                     f"attempt {attempt}: {type(error).__name__}",
                 )
                 if attempt == RPC_MAX_ATTEMPTS:
-                    raise SourceError(f"{source}: {type(error).__name__}") from error
+                    raise SourceError(
+                        f"{source}: {type(error).__name__}",
+                        safe_detail=f"{source}: {type(error).__name__} after {attempt} attempt(s)",
+                    ) from error
                 self.retries += 1
                 time.sleep(min(2 ** (attempt - 1), 8))
         raise AssertionError("unreachable JSON-RPC retry state")
