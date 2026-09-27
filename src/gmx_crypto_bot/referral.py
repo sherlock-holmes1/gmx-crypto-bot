@@ -123,7 +123,8 @@ class ReferralState:
     def __init__(self, recording: Path, metadata: dict, config_events: list[dict]):
         self.histories: dict[tuple[str,Any],History]={}
         self.available=False
-        path=recording/'referral-configuration.json'
+        path=recording/'liquidation-referral-configuration.json'
+        if not path.exists():path=recording/'referral-configuration.json'
         if not path.exists():return
         s=json.loads(path.read_text());complete=json.loads((recording/'completeness-report.json').read_text())
         start,end=complete['source_block_range']['from'],complete['source_block_range']['to']

@@ -10,9 +10,9 @@ The repository provides an append-only recording format, bounded public GMX
 collector, and deterministic observable-state replay. It reduces target-market
 orders, oracle prices, configuration, open interest, funding, borrowing,
 positions, and fees. The pinned seven-day recording has no gaps or reorgs and
-passes reconstructed-state determinism verification. It remains state-incomplete
-without a block-pinned opening checkpoint for pre-existing orders and positions.
-The observed-order validator is active. A position simulator is not implemented
+passes reconstructed-state determinism verification. Its embedded block-pinned opening checkpoint reconstructs pre-existing orders
+and positions. The observed-order validator passes all 3,614 terminal orders,
+including all 103 liquidation settlements and all 3,511 execution-fee proofs. A position simulator is not implemented
 yet.
 
 No wallet, private key, signing, order-submission, or live-capital code belongs
@@ -245,8 +245,8 @@ reproduces PRBMath 2.4.3 integer log2, multiplication, and exp2 rounding; no
 comparison tolerance is used for swaps. The recording exercises 377 positive and
 283 negative impacts, 226 virtual-curve selections, and two input impact-pool
 supplements. The test suite contains 81 tests, including eight recorded rounding
-regressions. Historical configuration is complete for this recording. Full
-liquidation settlement and keeper-cost proof remain open.
+regressions. Historical configuration, liquidation settlement, and keeper-cost proof are
+complete for this recording.
 
 Formula sources: [SwapPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/SwapPricingUtils.sol),
 [SwapUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/swap/SwapUtils.sol),
@@ -270,7 +270,7 @@ inconsistent state, or mismatched closing values prevent the gate from closing.
 Historical liquidation fee configuration matches all 103 liquidations. One
 hundred intact structures match directly. For three erased structures, the model
 reconstructs fees and the exact unpaid balance at the insolvency fee step.
-Complete liquidation settlement and payout transfers are separate open checks.
+Complete liquidation settlement and payout transfers match all 103 liquidations.
 
 For a new recording, from an archive-enabled terminal:
 
@@ -284,14 +284,14 @@ blocks, checks both hashes before/after calls, preserves raw responses, and
 creates `accrual-configuration.json` without overwriting existing evidence.
 Subsequent validation is offline. `historical_configuration_complete` is true
 only when the historical fee/referral/impact/swap, accrual, closing-state, and
-liquidation-configuration checks all pass. Overall validation remains incomplete
-until liquidation settlement and execution-fee proof pass.
+liquidation-configuration checks all pass. Overall validation also requires liquidation settlement and execution-fee proof
+to pass; both gates are complete for the seven-day recording.
 
 Sources: [MarketUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/market/MarketUtils.sol),
 [PositionPricingUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/pricing/PositionPricingUtils.sol),
 and [DecreasePositionCollateralUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/position/DecreasePositionCollateralUtils.sol).
 
-## Execution-fee trace evidence (in progress)
+## Execution-fee trace evidence
 
 Collect six representative transaction traces from the terminal containing
 `GMX_ARCHIVE_RPC_URL`:
@@ -315,8 +315,7 @@ response is preserved in the referenced capture directory. The validator also
 supports the sample-calibrated compact-trace profile, bound to the payment-library
 runtime hash and 388-byte calldata. It rejects other code or input shapes unless
 an opcode probe is present. The profile matches all seven sampled gas readings;
-full-population validation remains required before relying on it across the
-recording.
+full-population validation matches every positive-fee call in the recording.
 
 Replay the captured evidence offline:
 
@@ -341,12 +340,62 @@ calls are classified separately. The 12 extra order keys lack entries in the
 order-validation table, but their payment calls and receipt transfers are
 independently verified.
 
+The main order validator runs this proof against its freshly reconstructed
+orders and saved traces. It does not trust `verification.json` or require an
+older `order-validation.json` as an input. All 3,511 fee-paying terminal orders
+must have exactly one matching payment proof; 103 zero-fee liquidations are not
+applicable to execution fees. Missing trace/gas evidence keeps validation
+incomplete. Corrupt evidence, changed block identities, omitted/duplicate
+payments, or failed transfer proofs produce mismatches. The 12 additional proven
+payment calls retain their separate unindexed-order reconciliation status.
+
+## Liquidation settlement
+
+The seven-day recording matches all 103 liquidations: 100 solvent closes and
+three fee-step insolvent closes. The expanded referral snapshot covers all
+liquidation-only traders. All 3,614 terminal orders match with zero mismatches
+and decode errors. The test suite passes 116 tests.
+
+`liquidation_settlement` reconstructs full-close cash flows in GMX payment order:
+funding, loss, fees, negative impact, then impact-cap difference. It stops at the
+first insolvent payment, checks the exact `InsolventClose` step and unpaid USD,
+and checks erased fees while retaining claimable funding. Position size and
+collateral must close to zero; released outputs must match recipient transfers.
+Multichain payouts require both the vault transfer and matching account/chain
+credit. Native payouts require a committed withdrawal and recipient CALL from
+the saved transaction trace; a WETH burn alone is insufficient.
+
+Funding, borrowing, position/liquidation fees, UI fees, and referral/pro discounts
+come from historical inputs. Cash comparisons use exact integers. Observed price
+impact is admitted only after the separate independent-impact check passes its
+existing tolerance. Unsupported capped-PnL or output-swap paths, missing opening
+state, and missing receipt/trace evidence remain unavailable. This verifies
+settlement of observed liquidations; it does not model liquidation eligibility.
+
+Older referral snapshots exclude liquidation-only traders. With
+`GMX_ARCHIVE_RPC_URL` exported, collect the complete expanded snapshot:
+
+```bash
+PYTHONPATH=src python -m gmx_crypto_bot.referral_backfill recordings/eth-usdc-week-2 --include-liquidations
+PYTHONPATH=src python -m gmx_crypto_bot.validator recordings/eth-usdc-week-2 --output recordings/eth-usdc-week-2/order-validation.json
+```
+
+The backfill writes `liquidation-referral-configuration.json` and preserves the
+original snapshot and raw recording. It includes ordinary and liquidation
+traders and their referral/pro dependencies. The validator prefers this expanded
+snapshot and checks its identity and historical evidence before using it.
+Subsequent validation is offline. An existing expanded snapshot is never
+overwritten. `liquidation_settlement` leaves the remaining-check list only when
+all applicable orders match.
+
+Settlement rules: [GMX DecreasePositionCollateralUtils](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/position/DecreasePositionCollateralUtils.sol).
+
 ## Roadmap
 
 1. Completed — Fix the target surface.
 2. Completed — Build the read-only GMX collector.
 3. Completed — Build deterministic GMX replay.
-   1. Active — Validate reconstructed execution against observed orders.
+   1. Completed — Validate reconstructed execution against observed orders in the seven-day recording.
    2. Next — Understand GMX perpetuals architecture.
 4. Replace the Polymarket simulator.
    1. Cross-check reconstructed execution with SimulationRouter.

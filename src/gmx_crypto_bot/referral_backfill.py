@@ -31,6 +31,12 @@ def collect_referral_ranges(rpc, contract: str, start: int, end: int, chunk_size
     return ranges
 
 
+def executed_traders(validation: dict) -> set[str]:
+    """Include liquidation-only traders: their discounts also affect settlement."""
+    return {order['final_request']['account'].lower() for order in validation['orders']
+            if order.get('terminal') and order['terminal']['event_name'] == 'OrderExecuted'}
+
+
 def collect(recording: Path, archive, logs_rpc, *, progress=print) -> dict:
     m=json.loads((recording/'metadata.json').read_text());report=json.loads((recording/'completeness-report.json').read_text())
     if not report.get('complete') or report.get('gaps') or report.get('reorgs'):raise ValueError('recording incomplete')
@@ -55,7 +61,7 @@ def collect(recording: Path, archive, logs_rpc, *, progress=print) -> dict:
     ref=address(read(handler,'referralStorage()')[0])
     if ref==ZERO:raise ValueError('zero referral storage pointer')
     validation=json.loads((recording/'order-validation.json').read_text())
-    traders={o['final_request']['account'].lower() for o in validation['orders'] if o.get('terminal',{} ) and o['terminal']['event_name']=='OrderExecuted' and o['final_request'].get('orderType')!=7}
+    traders=executed_traders(validation)
     progress(f'Collecting referral contract changes for {len(traders)} traders; read-only RPC.')
     ranges=collect_referral_ranges(logs_rpc,ref,start,end)
     changes=[];hashes={}
@@ -104,11 +110,14 @@ def collect(recording: Path, archive, logs_rpc, *, progress=print) -> dict:
 
 
 def main() -> int:
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('recording',type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('recording',type=Path)
+    parser.add_argument('--include-liquidations', action='store_true',
+                        help='write a separate complete snapshot including liquidation-only traders')
+    args=parser.parse_args()
     endpoint=os.environ.get('GMX_ARCHIVE_RPC_URL')
     if not endpoint:parser.error('set GMX_ARCHIVE_RPC_URL in this terminal')
-    target=args.recording/'referral-configuration.json'
-    if target.exists():parser.error('referral-configuration.json already exists; refusing overwrite')
+    target=args.recording/('liquidation-referral-configuration.json' if args.include_liquidations else 'referral-configuration.json')
+    if target.exists():parser.error(f'{target.name} already exists; refusing overwrite')
     evidence=args.recording/('referral-backfill-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid4().hex[:6])
     evidence.mkdir();artifacts=RawArtifactStore(evidence)
     try:

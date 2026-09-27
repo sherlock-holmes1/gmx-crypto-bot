@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
+from gmx_crypto_bot.execution_fees.gate import apply_execution_fee_proof
+from gmx_crypto_bot.liquidation_settlement import compare_liquidation_settlement
 from gmx_crypto_bot.accrual_validation import AccrualReplay, compare_accrual, compare_liquidation_configuration
 from gmx_crypto_bot.swap_validation import SwapReplay, STATE_EVENTS, compare_swaps
 from gmx_crypto_bot.referral import ReferralState, compare_referral
@@ -59,6 +61,7 @@ class ValidationReport:
     orders: list[dict[str, Any]]
     historical_configuration_complete: bool = False
     accrual_validation: dict[str, Any] | None = None
+    execution_fee_validation: dict[str, Any] | None = None
 
 
 def validate_orders(recording: Path) -> ValidationReport:
@@ -95,7 +98,7 @@ def validate_orders(recording: Path) -> ValidationReport:
     for key, request in sorted(created.items(), key=lambda item: _coordinate(item[1])):
         order = _validate_order(key, request, lifecycle.get(key, []), observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay, recording, key in payouts)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
     opening_terminal_orders = 0
@@ -104,11 +107,13 @@ def validate_orders(recording: Path) -> ValidationReport:
             continue
         order = _validate_order(key, request, lifecycle[key], observed.get(key, []), receipts,
                                 execution_fees, update_topups, opening_positions, position_events,
-                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay)
+                                swaps.get(key, []), payouts.get(key, []), metadata, impact_factors, fee_histories, referral_state, swap_replay.results.get(key, []), accrual_replay, recording, key in payouts)
         results.append(order)
         mismatch_counts.update(order["mismatches"])
         opening_terminal_orders += 1
 
+    execution_fee_summary = apply_execution_fee_proof(recording, results)
+    mismatch_counts = Counter(error for order in results for error in order['mismatches'])
     matched = sum(order["status"] == "matched" for order in results)
     mismatched = sum(order["status"] == "mismatch" for order in results)
     unresolved = sum(order["status"] == "unresolved" for order in results)
@@ -142,6 +147,10 @@ def validate_orders(recording: Path) -> ValidationReport:
         check_counts.get(name) and set(check_counts[name]) == {"matched"}
         for name in configuration_checks
     )
+    if check_counts.get("liquidation_settlement") and set(check_counts["liquidation_settlement"]) == {"matched"}:
+        remaining_checks.remove("liquidation_settlement")
+    if execution_fee_summary["complete"]:
+        remaining_checks.remove("execution_fee_gas_and_transfer_proof")
     if configuration_complete:
         remaining_checks.remove("historical_configuration_factors")
     implemented_checks_pass = not mismatched and not decode_errors and not mismatch_counts.get("accrual_reconstruction_mismatch")
@@ -166,6 +175,7 @@ def validate_orders(recording: Path) -> ValidationReport:
         orders=results,
         historical_configuration_complete=configuration_complete,
         accrual_validation=accrual_summary,
+        execution_fee_validation=execution_fee_summary,
     )
 
 
@@ -509,10 +519,12 @@ def _load_execution_receipt_evidence(
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
     """Decode swap and payout evidence from saved execution receipts."""
     wanted: dict[str, set[str]] = defaultdict(set)
+    terminal_receipts: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for key, entries in lifecycle.items():
         for entry in entries:
             if entry["event_name"] == "OrderExecuted":
                 wanted[entry["transaction_hash"]].add(key)
+                terminal_receipts[entry["transaction_hash"]].append(entry)
     sequences: dict[int, str] = {}
     bundles: set[str] = set()
     with (recording / "raw" / "manifest.jsonl").open(encoding="utf-8") as stream:
@@ -535,8 +547,16 @@ def _load_execution_receipt_evidence(
                 if transaction_hash is None:
                     continue
                 response = json.loads(base64.b64decode(item["body_base64"]))
+                raw_receipt = response.get("result") or {}
+                terminals = terminal_receipts[transaction_hash]
+                if (raw_receipt.get('transactionHash') != transaction_hash
+                        or raw_receipt.get('status') != '0x1'
+                        or not terminals
+                        or any(raw_receipt.get('blockHash') != e.get('block_hash')
+                               or raw_receipt.get('blockNumber') != hex(e['block_number']) for e in terminals)):
+                    continue
                 active_key: str | None = None
-                for log in response.get("result", {}).get("logs", []):
+                for log in raw_receipt.get("logs", []):
                     if log.get("address", "").lower() != emitter:
                         topics = log.get("topics", [])
                         if (active_key is not None and len(topics) == 3
@@ -558,6 +578,7 @@ def _load_execution_receipt_evidence(
                     key = decoded.values.get("orderKey", decoded.values.get("tradeKey"))
                     if name == "PositionDecrease" and key in wanted[transaction_hash]:
                         active_key = key
+                        payouts.setdefault(key, [])
                     elif name == "OrderExecuted":
                         active_key = None
                     elif name == "MultichainTransferIn" and active_key is not None:
@@ -650,6 +671,8 @@ def _validate_order(
     referral_state: ReferralState | None = None,
     modeled_swaps: list[dict[str, Any]] | None = None,
     accrual_replay: AccrualReplay | None = None,
+    recording: Path | None = None,
+    payout_receipt_available: bool = False,
 ) -> dict[str, Any]:
     updates = [entry for entry in lifecycle if entry["event_name"] not in TERMINAL_EVENTS]
     terminals = [entry for entry in lifecycle if entry["event_name"] in TERMINAL_EVENTS]
@@ -784,8 +807,19 @@ def _validate_order(
             "missing_terminal_gas", mismatches,
         )
     compare_swaps(swap_events or [], modeled_swaps or [], checks, mismatches, final_request)
+    liquidation_settlement = None
+    if terminal['event_name'] == 'OrderExecuted' and final_request.get('orderType') == 7:
+        checks['liquidation_settlement'] = 'unavailable'
+        if position is not None and fees is not None:
+            liquidation_settlement = compare_liquidation_settlement(
+                key, final_request, position, fees, swap_events or [], payout_events or [],
+                metadata or {}, accrual_replay, modeled_price_impact, fee_histories or {},
+                referral_state, checks, mismatches, recording, receipt, payout_receipt_available,
+            )
     status = "mismatch" if mismatches else "matched"
     result = _order_result(key, request, final_request, terminal, observed, checks, mismatches, status)
+    if liquidation_settlement is not None:
+        result["modeled_liquidation_settlement"] = liquidation_settlement
     result["observed_execution_fee_events"] = fee_events
     result["observed_swap_events"] = swap_events or []
     result["modeled_swaps"] = modeled_swaps or []
@@ -1531,6 +1565,7 @@ def _event_entry(event: dict[str, Any], decoded: DecodedEventLog) -> dict[str, A
         "transaction_index": event["transaction_index"],
         "log_index": event["log_index"],
         "transaction_hash": log["transactionHash"].lower(),
+        "block_hash": log.get("blockHash"),
     }
 
 
@@ -1542,6 +1577,7 @@ def _event_entry_from_log(log: dict[str, Any], decoded: DecodedEventLog) -> dict
         "transaction_index": int(log["transactionIndex"], 16),
         "log_index": int(log["logIndex"], 16),
         "transaction_hash": log["transactionHash"].lower(),
+        "block_hash": log.get("blockHash"),
     }
 
 

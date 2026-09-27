@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from gmx_crypto_bot.event_decoder import decode_event_log, event_name_from_data
-from gmx_crypto_bot.execution_fees.models import PaymentInput, TraceFrame, walk_trace
+from gmx_crypto_bot.execution_fees.models import PAY_SELECTOR, PaymentInput, TraceFrame, walk_trace
 from gmx_crypto_bot.execution_fees.proof import GasSettings, settings_from_calls, transfer_candidates
 from gmx_crypto_bot.price_impact import keccak256
 
@@ -173,14 +173,31 @@ def _transfer_proof(payment_frame: TraceFrame, payment: PaymentInput,
     return result
 
 
-def verify_trace(trace_path: Path, gas_path: Path | None, orders: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    trace_record = json.loads(trace_path.read_text())
+def verify_trace(trace_path: Path, gas_path: Path | None, orders: dict[str, dict[str, Any]],
+                 *, trace_record: dict[str, Any] | None = None) -> dict[str, Any]:
+    if trace_record is None:
+        trace_record = json.loads(trace_path.read_text())
     receipt = trace_record['receipt']
     if trace_record['transaction_hash'] != receipt['transactionHash']:
         raise ValueError('trace and receipt transaction hashes differ')
     if trace_record['block_hash'] != receipt['blockHash'] or trace_record['block_number'] != int(receipt['blockNumber'], 16):
         raise ValueError('trace and receipt block identity differs')
-    trace_nodes = {node.path: node for node in walk_trace(trace_record['trace'])}
+    transaction = trace_record['transaction']
+    trace = trace_record['trace']
+    if (receipt.get('status') != '0x1' or trace.get('error')
+            or transaction.get('hash') != trace_record['transaction_hash']
+            or transaction.get('blockHash') != trace_record['block_hash']
+            or int(transaction['blockNumber'], 16) != trace_record['block_number']
+            or trace.get('from') != transaction.get('from')
+            or trace.get('to') != transaction.get('to')
+            or trace.get('input') != transaction.get('input')):
+        raise ValueError('execution-fee trace root or transaction identity differs')
+    trace_nodes = {node.path: node for node in walk_trace(trace)}
+    actual_paths = {node.path for node in trace_nodes.values()
+                    if node.committed and node.frame.get('input', '').startswith(PAY_SELECTOR)}
+    recorded_paths = [tuple(item['path']) for item in trace_record['payments']]
+    if len(recorded_paths) != len(set(recorded_paths)) or set(recorded_paths) != actual_paths:
+        raise ValueError('payment index omits or duplicates committed payment calls')
     gas_probe = json.loads(gas_path.read_text()) if gas_path and gas_path.exists() else None
     gas_samples = gas_probe['samples'] if gas_probe else []
     if gas_probe and (gas_probe.get('schema') != 'GmxExecutionFeeGasProbe' or gas_probe.get('version') != 2):
@@ -203,6 +220,8 @@ def verify_trace(trace_path: Path, gas_path: Path | None, orders: dict[str, dict
         if frame is None or not frame.committed:
             raise ValueError('payment call is absent or uncommitted')
         payment = PaymentInput(**item['input'])
+        if PaymentInput.decode(frame.frame['input']) != payment or frame.frame.get('to') != item['library']:
+            raise ValueError('payment inputs or library differ from trace calldata')
         order = orders.get(payment.order_key)
         if order is not None:
             expected_fee = order['final_request'].get('executionFee', 0) + sum(

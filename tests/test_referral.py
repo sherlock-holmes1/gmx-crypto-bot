@@ -137,4 +137,32 @@ class ReferralTests(unittest.TestCase):
             (root/'referral-configuration.json').write_text(json.dumps(result))
             self.assertEqual(ReferralState(root,m,[]).at(A,(10,0,0))['rebate_bps'],2000)
 
+    def test_supplement_snapshot_preferred_and_invalid_supplement_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);m,s=self.fixture(root)
+            (root/'referral-configuration.json').write_text(json.dumps(s))
+            supplemented=copy.deepcopy(s)
+            supplemented['calls'][R+':'+calldata('traderReferralCodes(address)',A)]='0x'+word(0)
+            (root/'liquidation-referral-configuration.json').write_text(json.dumps(supplemented))
+            self.assertEqual(ReferralState(root,m,[]).at(A,(10,0,0))['code'],ZERO_CODE)
+            supplemented['opening_hash']='wrong'
+            (root/'liquidation-referral-configuration.json').write_text(json.dumps(supplemented))
+            with self.assertRaises(ValueError):ReferralState(root,m,[])
+
+    def test_backfill_includes_liquidation_only_account(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);m,s=self.fixture(root)
+            (root/'order-validation.json').write_text(json.dumps({'orders':[
+                {'final_request':{'account':A,'orderType':7},'terminal':{'event_name':'OrderExecuted'}}]}))
+            class Rpc:
+                def call(self,method,params):return []
+                def call_many(self,method,params_list):
+                    if method=='eth_getBlockByNumber':return [{'hash':'0xhash'+str(int(p[0],16))} for p in params_list]
+                    return [s['calls'][p[0]['to']+':'+p[0]['data']] for p in params_list]
+            with patch('gmx_crypto_bot.validator._iter_raw_event_emitter_logs',return_value=[]):
+                result=collect(root,Rpc(),Rpc(),progress=lambda *_:None)
+            self.assertEqual(result['traders'],[A])
+            (root/'liquidation-referral-configuration.json').write_text(json.dumps(result))
+            self.assertEqual(ReferralState(root,m,[]).at(A,(10,0,0))['rebate_bps'],2000)
+
 if __name__=='__main__':unittest.main()
