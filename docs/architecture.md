@@ -1,6 +1,6 @@
-# GMX pipeline architecture — review draft
+# GMX pipeline architecture
 
-**Status:** Proposed architecture for review; implementation has not started.
+**Status:** Implemented in `src/gmx_crypto_bot_v2`; see [operations](v2-operations.md) and [regression evidence](v2-validation.md).
 
 ## 1. Goal and design decisions
 
@@ -63,7 +63,7 @@ flowchart TD
 
 The central correction is to move **discovery of required evidence out of the validator report**.
 
-## 3. Proposed architecture
+## 3. Implemented architecture
 
 Keep this as a single Python application with focused internal modules. No services, workers, or external database are required.
 
@@ -78,7 +78,7 @@ Keep this as a single Python application with focused internal modules. No servi
 | **Economic models** | Pure calculations for fees, funding, borrowing, impact, swaps, settlement, and execution costs. |
 | **Checks and reporting** | Compare predictions with observations, determine coverage and completion, and serialize compatible reports. |
 
-Proposed data flow:
+V2 data flow:
 
 ```mermaid
 flowchart TD
@@ -254,7 +254,7 @@ Legacy backfill entry points become thin compatibility wrappers around the same 
 
 ## 5. Refactoring sequence and acceptance criteria
 
-After architecture review, implement in this order:
+The implementation follows this sequence:
 
 1. Freeze the current reports, replay digest, and supported behaviors as the regression baseline.
 2. Extract shared primitives and evidence access; remove imports back into validator orchestration.
@@ -276,4 +276,34 @@ Acceptance requires:
 - A warm indexed run avoids repeated decompression and decoding of unchanged raw bundles; measure runtime and peak memory against the current implementation.
 - Import-boundary tests enforce the architecture.
 
-The architecture review will also establish the mapping from existing modules to their proposed responsibilities. Refactoring begins after feedback on this architecture.
+## 6. Module map
+
+| Layer | V2 modules |
+|---|---|
+| CLI/application | `application/collection.py`, `application/validation.py`, `application/replay.py` |
+| Collection | `collection/coordinator.py`, `collection/journal.py`, base capture and five historical stages, `collection/traces.py` |
+| Source adapters | `sources/rpc.py`, `sources/http.py`, `sources/resumable.py` |
+| Evidence | `evidence/catalog.py`, `repository.py`, `discovery.py`, `publication.py`, `traces.py`, `snapshots.py` |
+| Shared primitives | `domain/events.py`, `keys.py`, `swap_keys.py`, `accrual.py`, `payments.py`, `evidence.py` |
+| Reconstruction | `reconstruction/orders.py`, `positions.py`, `context.py`, configuration/referral/swap/accrual histories, `observed.py` |
+| Pure models | `models/impact.py`, `accrual.py`, `swaps.py`, `referral.py`, `decrease.py`, `settlement.py`, `execution.py`, `prb.py` |
+| Checks/reporting | `checks/orders.py`, position/fee/swap/accrual/liquidation checks, `checks/trace.py`, `reporting/orders.py` |
+
+Top-level V2 modules retain compatibility import paths. They do not import the
+V1 implementation. The pure models and shared primitives contain no filesystem,
+network, SQLite, or CLI access. Order checks receive `OrderContext` and
+`ValidationContext`; trace checks receive parsed trace evidence through a typed
+source interface.
+
+Collection uses compressed, atomic RPC work units for log ranges, checkpoint and
+archive batches, and traces. An interrupted base stage reconstructs its unpublished
+normalized view from these saved responses; successful bounded source requests
+are reused. A completed base view is published file by file, with its completeness
+report last and its journal entry after publication. This keeps legacy recording
+paths intact while allowing interrupted publication to resume.
+
+The catalog stores acquisition and canonical coordinates, decoded values, source
+paths, and source digests. A changed normalized file is reindexed as one source;
+unchanged raw bundles are not decompressed. Corruption/incompatibility rebuilds
+the disposable projection. Collection progress and exact RPC response bodies
+remain outside SQLite.

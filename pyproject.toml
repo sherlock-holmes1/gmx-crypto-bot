@@ -9,6 +9,6 @@ description = "Read-only GMX perpetuals recording, replay, and simulation resear
 requires-python = ">=3.12"
 
 [project.scripts]
-gmx-collect = "gmx_crypto_bot.collector:main"
-gmx-replay = "gmx_crypto_bot.replay:main"
-gmx-validate = "gmx_crypto_bot.validator:main"
+gmx-collect = "gmx_crypto_bot_v2.collector:main"
+gmx-replay = "gmx_crypto_bot_v2.replay:main"
+gmx-validate = "gmx_crypto_bot_v2.validator:main"
