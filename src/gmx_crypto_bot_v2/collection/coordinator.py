@@ -31,6 +31,7 @@ from gmx_crypto_bot_v2.evidence.publication import (
 )
 from gmx_crypto_bot_v2.evidence.repository import evidence_session
 from gmx_crypto_bot_v2.evidence.snapshots import snapshot_path
+from gmx_crypto_bot_v2.sources.request_store import RequestStore
 from gmx_crypto_bot_v2.sources.resumable import ResumableRpc
 
 SNAPSHOTS = {
@@ -86,6 +87,12 @@ class CollectionCoordinator:
         if existed and not self.resume:
             raise ValueError("recording exists; use --resume to verify and continue it")
         with recording_writer(self.output):
+            # Migrate all roles, including stages already completed before resume.
+            rpc_directory = self.output / ".collection/rpc"
+            if rpc_directory.exists():
+                for directory in sorted(rpc_directory.iterdir()):
+                    if directory.is_dir():
+                        RequestStore(directory)
             selection_files = self._select_window()
             identity = self._identity()
             self.journal = CollectionJournal(self.output, identity)

@@ -562,3 +562,14 @@ Settlement rules: [GMX DecreasePositionCollateralUtils](https://github.com/gmx-i
 6. Evaluate a strategy only after calibration.
 
 Technical references: [GMX architecture](https://docs.gmx.io/docs/api/contracts/architecture/), [fees](https://docs.gmx.io/docs/trading/fees/), and [liquidations](https://docs.gmx.io/docs/trading/liquidations/).
+
+### RPC response storage
+
+Successful RPC responses are stored in `.collection/rpc/requests.sqlite`, keyed
+by source role and request hash. This persistent resume store is separate from
+the rebuildable `.gmx-v2/catalog.sqlite`. Responses retain their original request,
+compressed exact body, and SHA-256 checksum. Raw evidence bundles remain available
+for replay and auditing. Existing per-request `.json.gz` files are migrated on
+resume: each response is committed and read back before its old file is removed.
+Empty legacy role directories are removed. Migration can safely resume after an
+interruption; invalid files are preserved and reported as errors.

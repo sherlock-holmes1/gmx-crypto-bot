@@ -37,7 +37,7 @@ Without installing, use `PYTHONPATH=src python -m gmx_crypto_bot_v2.collector`,
 | Historical snapshots and `execution-fee-traces/` | Block-bound configuration and transaction evidence | No |
 | `v2-<snapshot-name>.json` | Expanded dependencies collected without overwriting older snapshots | No |
 | `.collection/journal.json` | Identity and verified completed artifact digests | No |
-| `.collection/rpc/` | Compressed exact responses for resumable source work units | No |
+| `.collection/rpc/requests.sqlite` | Durable compressed RPC responses for resume, separate from the derived catalog | No |
 | `.collection/base-*/`, `.collection/capture-*/` | Unpublished views and preserved capture diagnostics | Keep while collecting |
 | `.gmx-v2/catalog.sqlite` and its integrity stamp | Rebuildable evidence index | Yes |
 | `evidence-readiness.json` | Collection coverage, missing inputs, and catalog counters | Derived |
@@ -98,3 +98,14 @@ The regression command compares every report field, blocks socket creation, and
 records elapsed time, peak memory, and cache counters. Use a frozen V1 report as
 the baseline. A cold index build and a warm validation are different workloads;
 measure both separately.
+
+### RPC response storage
+
+Successful RPC responses are stored in `.collection/rpc/requests.sqlite`, keyed
+by source role and request hash. This persistent resume store is separate from
+the rebuildable `.gmx-v2/catalog.sqlite`. Responses retain their original request,
+compressed exact body, and SHA-256 checksum. Raw evidence bundles remain available
+for replay and auditing. Existing per-request `.json.gz` files are migrated on
+resume: each response is committed and read back before its old file is removed.
+Empty legacy role directories are removed. Migration can safely resume after an
+interruption; invalid files are preserved and reported as errors.

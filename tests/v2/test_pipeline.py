@@ -234,7 +234,7 @@ class ResumeTests(unittest.TestCase):
             return response
 
         with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
+            directory = Path(temporary) / "rpc" / "test"
             with patch.object(PublicJsonRpc, "_send", send):
                 first = ResumableRpc("https://example.invalid", 1, Sink(), directory)
                 self.assertEqual(
