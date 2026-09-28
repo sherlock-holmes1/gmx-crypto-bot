@@ -11,10 +11,11 @@ one resumable collector, a persistent SQLite evidence catalog, bounded-memory
 replay, and separate economic models and checks. V1 remains available through
 its original `python -m gmx_crypto_bot...` module paths for comparison.
 
-The pinned seven-day recording passes all 3,614 terminal orders, including 103
-liquidation settlements and 3,511 execution-fee proofs. V2 preserves the complete
-V1 validation report and both replay digests. The refactoring is implemented:
-116 original tests and 134 V2 tests pass. Fresh collection and interruption
+The pinned earlier recording passes all 3,614 terminal orders, including 103
+liquidation settlements and 3,511 execution-fee proofs. V2 preserves its complete
+V1 validation report and both replay digests. The September 20–27 recording also
+passes: 2,942 matched terminal orders, no mismatches, no open economic checks. The refactoring is implemented:
+116 original tests and 141 V2 tests pass. Fresh collection and interruption
 recovery have been tested with simulated providers; the existing real recording
 has been validated and replayed offline. **A complete fresh collection against a
 live archive RPC provider has not yet been verified.** A position simulator is
@@ -175,7 +176,12 @@ All evidence and reports in this example remain under
 recordings/eth-usdc-v2-fresh/.gmx-v2/catalog.sqlite
 ```
 
-The database persists between collector, replay, and validator runs. Unchanged
+Transaction traces and gas probes are stored in
+`<recording>/.collection/traces.sqlite`, separate from the rebuildable catalog.
+Existing `execution-fee-traces/*.json` files migrate into it on the next
+`gmx-collect --resume` run; verified files are removed after migration.
+
+The catalog database persists between collector, replay, and validator runs. Unchanged
 sources are reused; it is not rebuilt on every run. A missing, corrupt, or
 incompatible catalog is rebuilt from saved evidence. Allow approximately
 **17 GiB for a seven-day catalog, plus space for raw evidence and reports**.

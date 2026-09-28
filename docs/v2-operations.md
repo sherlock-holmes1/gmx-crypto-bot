@@ -34,7 +34,8 @@ Without installing, use `PYTHONPATH=src python -m gmx_crypto_bot_v2.collector`,
 | Path | Purpose | Disposable? |
 |---|---|---|
 | `metadata.json`, `events.jsonl`, `raw/` | Legacy-compatible identity, normalized observations, exact responses | No |
-| Historical snapshots and `execution-fee-traces/` | Block-bound configuration and transaction evidence | No |
+| Historical snapshot JSON files | Block-bound configuration evidence | No |
+| `.collection/traces.sqlite` | Compressed transaction traces and gas probes | No |
 | `v2-<snapshot-name>.json` | Expanded dependencies collected without overwriting older snapshots | No |
 | `.collection/journal.json` | Identity and verified completed artifact digests | No |
 | `.collection/rpc/requests.sqlite` | Durable compressed RPC responses for resume, separate from the derived catalog | No |
@@ -43,7 +44,13 @@ Without installing, use `PYTHONPATH=src python -m gmx_crypto_bot_v2.collector`,
 | `evidence-readiness.json` | Collection coverage, missing inputs, and catalog counters | Derived |
 | `order-validation.json` | Economic check results | Derived |
 
-The database persists. Normal runs reuse it; they do not rebuild it. Changed
+The trace store `.collection/traces.sqlite` is authoritative saved evidence and
+must not be deleted. It is distinct from the disposable catalog. On resume,
+legacy `execution-fee-traces/*.json` files are migrated under the single-writer
+lock; each committed row is checked before its file is removed. A failed or
+interrupted migration resumes safely.
+
+The catalog database persists. Normal runs reuse it; they do not rebuild it. Changed
 sources invalidate their affected rows. If the database is missing, corrupt, or
 incompatible, the next run recreates it from saved evidence. The seven-day
 recording produces approximately 17 GiB of indexes and decoded evidence, so

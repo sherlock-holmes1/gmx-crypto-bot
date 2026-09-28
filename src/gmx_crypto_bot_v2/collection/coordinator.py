@@ -31,6 +31,7 @@ from gmx_crypto_bot_v2.evidence.publication import (
 )
 from gmx_crypto_bot_v2.evidence.repository import evidence_session
 from gmx_crypto_bot_v2.evidence.snapshots import snapshot_path
+from gmx_crypto_bot_v2.evidence.trace_store import TraceStore
 from gmx_crypto_bot_v2.sources.request_store import RequestStore
 from gmx_crypto_bot_v2.sources.resumable import ResumableRpc
 
@@ -96,6 +97,13 @@ class CollectionCoordinator:
             selection_files = self._select_window()
             identity = self._identity()
             self.journal = CollectionJournal(self.output, identity)
+            trace_directory = self.output / "execution-fee-traces"
+            if trace_directory.exists():
+                migrated = TraceStore(self.output).migrate(self.journal)
+                if migrated:
+                    self.progress(
+                        f"Migrated {migrated} trace evidence files into SQLite"
+                    )
             verified_window = self.journal.completed("window")
             if selection_files and not verified_window:
                 self.journal.complete("window", selection_files)
@@ -476,61 +484,67 @@ class CollectionCoordinator:
 
     def _traces(self, archive, requirements):
         missing = []
-        directory = self.output / "execution-fee-traces"
-        directory.mkdir(exist_ok=True)
+        store = TraceStore(self.output)
         total = len(requirements.traces)
         reused = 0
         for index, requirement in enumerate(requirements.traces, 1):
             transaction = requirement.transaction_hash
-            target = directory / (transaction + ".json")
             unit = "trace:" + transaction
-            if self.journal.completed(unit):
-                reused += 1
-            else:
-                if target.exists():
-                    trace = json.loads(target.read_text())
-                    reused += 1
-                elif archive is not None:
-                    trace = collect_transaction(
-                        archive,
-                        transaction,
-                        requirement.block.number,
-                        requirement.block.hash,
-                    )
-                    atomic_json(target, trace)
-                else:
-                    missing.append("trace:" + transaction)
+            complete = self.journal.completed(unit)
+            trace = store.get("trace", transaction)
+            if trace is None:
+                if complete:
+                    raise ValueError("journaled trace absent from store")
+                if archive is None:
+                    missing.append(unit)
                     continue
+                trace = collect_transaction(
+                    archive,
+                    transaction,
+                    requirement.block.number,
+                    requirement.block.hash,
+                )
                 self._verify_trace_identity(trace, requirement)
-                self.journal.complete(unit, [target])
-            trace = json.loads(target.read_text())
-            self._verify_trace_identity(trace, requirement)
+                trace_digest = store.put("trace", transaction, trace)
+            else:
+                reused += 1
+                self._verify_trace_identity(trace, requirement)
+                trace_digest = None
+            if not complete:
+                if trace_digest is None:
+                    from gmx_crypto_bot_v2.evidence.trace_store import sha256
+
+                    trace_digest = sha256(store.get_bytes("trace", transaction))
+                self.journal.complete_store(unit, "trace", transaction, trace_digest)
             needs_probe = not self._supported_gas_profile(trace)
             if self.gas_probes or needs_probe:
-                gas_target = directory / (transaction + ".gas-v2.json")
                 gas_unit = "gas:" + transaction
-                if not self.journal.completed(gas_unit):
-                    if not gas_target.exists():
-                        if archive is None:
-                            missing.append(gas_unit)
-                            continue
-                        atomic_json(
-                            gas_target,
-                            collect_gas_probe(
-                                archive, transaction, json.loads(target.read_text())
-                            ),
-                        )
-                    gas = json.loads(gas_target.read_text())
-                    if (
-                        gas.get("transaction_hash") != transaction
-                        or gas.get("version") != 2
-                    ):
-                        raise ValueError("gas probe identity mismatch")
-                    self.journal.complete(gas_unit, [gas_target])
-            if (
-                needs_probe
-                and not (directory / (transaction + ".gas-v2.json")).exists()
-            ):
+                gas_complete = self.journal.completed(gas_unit)
+                gas = store.get("gas", transaction)
+                if gas is None:
+                    if gas_complete:
+                        raise ValueError("journaled gas probe absent from store")
+                    if archive is None:
+                        missing.append(gas_unit)
+                        continue
+                    gas = collect_gas_probe(archive, transaction, trace)
+                    gas_digest = store.put("gas", transaction, gas)
+                else:
+                    gas_digest = None
+                if (
+                    gas.get("transaction_hash") != transaction
+                    or gas.get("version") != 2
+                ):
+                    raise ValueError("gas probe identity mismatch")
+                if not gas_complete:
+                    if gas_digest is None:
+                        from gmx_crypto_bot_v2.evidence.trace_store import sha256
+
+                        gas_digest = sha256(store.get_bytes("gas", transaction))
+                    self.journal.complete_store(
+                        gas_unit, "gas", transaction, gas_digest
+                    )
+            if needs_probe and store.get("gas", transaction) is None:
                 missing.append("unsupported_gas_profile:" + transaction)
             if index % 100 == 0 or index == total:
                 self.progress(

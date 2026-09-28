@@ -543,7 +543,7 @@ class PublicationResumeTests(unittest.TestCase):
             ):
                 with patch.object(
                     collector.journal,
-                    "complete",
+                    "complete_store",
                     side_effect=OSError("interrupted journal publication"),
                 ):
                     with self.assertRaises(OSError):

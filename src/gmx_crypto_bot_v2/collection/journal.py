@@ -7,6 +7,7 @@ from pathlib import Path
 
 from gmx_crypto_bot_v2.evidence.catalog import digest
 from gmx_crypto_bot_v2.evidence.publication import atomic_json
+from gmx_crypto_bot_v2.evidence.trace_store import TraceStore, sha256
 
 
 class CollectionJournal:
@@ -29,9 +30,24 @@ class CollectionJournal:
         if not entry:
             return False
         for name, expected in entry["artifacts"].items():
-            path = self.directory / name
-            if not path.exists() or digest(path) != expected:
-                raise ValueError(f"published evidence missing or corrupt: {name}")
+            if name.startswith("@trace-store/"):
+                _, kind, transaction = name.split("/", 2)
+                path = self.directory / ".collection/traces.sqlite"
+                actual = (
+                    None
+                    if not path.exists()
+                    else TraceStore(self.directory, read_only=True).get_bytes(
+                        kind, transaction
+                    )
+                )
+                if actual is None or sha256(actual) != expected:
+                    raise ValueError(
+                        f"stored trace evidence missing or corrupt: {transaction}"
+                    )
+            else:
+                path = self.directory / name
+                if not path.exists() or digest(path) != expected:
+                    raise ValueError(f"published evidence missing or corrupt: {name}")
         return True
 
     def complete(self, unit: str, artifacts: list[Path]):
@@ -40,5 +56,11 @@ class CollectionJournal:
                 str(path.relative_to(self.directory)): digest(path)
                 for path in artifacts
             }
+        }
+        self.save()
+
+    def complete_store(self, unit: str, kind: str, transaction: str, digest_value: str):
+        self.state["units"][unit] = {
+            "artifacts": {f"@trace-store/{kind}/{transaction}": digest_value}
         }
         self.save()

@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from gmx_crypto_bot_v2.evidence.trace_store import TraceStore
+
 
 @dataclass(frozen=True)
 class TraceEvidence:
@@ -21,12 +23,21 @@ class TraceEvidenceSource(Protocol):
 class TraceRepository:
     def __init__(self, directory: Path):
         self.directory = directory / "execution-fee-traces"
+        self.store = (
+            TraceStore(directory, read_only=True)
+            if (directory / ".collection/traces.sqlite").exists()
+            else None
+        )
 
     def get(self, transaction_hash: str) -> TraceEvidence | None:
         if not transaction_hash.startswith("0x") or any(
             c not in "0123456789abcdef" for c in transaction_hash[2:]
         ):
             raise ValueError("invalid trace transaction identifier")
+        if self.store is not None:
+            trace = self.store.get("trace", transaction_hash)
+            if trace is not None:
+                return TraceEvidence(trace, self.store.get("gas", transaction_hash))
         path = self.directory / (transaction_hash + ".json")
         if not path.exists():
             return None

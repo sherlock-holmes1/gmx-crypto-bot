@@ -6,7 +6,7 @@ The rewrite lives in `src/gmx_crypto_bot_v2`; V1 remains available. See
 ## Automated checks
 
 - Original suite: 116 tests passed.
-- V2 suite: 134 tests passed, including collection interruption/resume,
+- V2 suite: 141 tests passed, including collection interruption/resume,
   source integrity, cache corruption/rebuild, offline validation parity,
   and dependency boundaries. Rolling-window tests additionally cover seven-day
   selection, fresh configuration, chain/reorg rejection, and offline frozen resume.
@@ -81,3 +81,15 @@ PYTHONPATH=src python scripts/verify_v2_regression.py \
   --baseline recordings/.v2-verification/gmx-v1-baseline.json \
   --output recordings/.v2-verification/gmx-v2-regression.json
 ```
+
+## September 20–27 rolling recording
+
+The user-collected `recordings/eth-usdc-v2-sep-20-sep-27` has 2,975 created
+orders, 71 opening terminal orders, 2,942 terminal orders matched, zero
+mismatches, 104 boundary-unresolved orders, and no decode errors. Economic
+validation is complete with no open checks. Replay is deterministic with
+386,803 events and no gaps or reorgs.
+
+Transaction trace migration moved 2,647 JSON files (2.24 GiB) into
+`.collection/traces.sqlite` (about 214 MiB). The SQLite rows retain exact
+trace objects and per-row digests, with journal references for resume.

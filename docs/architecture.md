@@ -305,8 +305,9 @@ paths intact while allowing interrupted publication to resume.
 The catalog stores acquisition and canonical coordinates, decoded values, source
 paths, and source digests. A changed normalized file is reindexed as one source;
 unchanged raw bundles are not decompressed. Corruption/incompatibility rebuilds
-the disposable projection. Collection progress and exact RPC response bodies
-remain outside SQLite.
+the disposable projection. Collection progress remains in the journal. Exact RPC responses and transaction
+traces are durable evidence in separate SQLite stores; the catalog is only a
+rebuildable projection.
 
 ### RPC response storage
 
