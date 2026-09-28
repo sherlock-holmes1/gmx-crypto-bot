@@ -214,7 +214,12 @@ def _transfer_proof(
         corroborated = [
             transfer
             for transfer in token_transfers
-            if transfer["amount"] == refund_amount and transfer["to"] == destination
+            if transfer["amount"] == refund_amount
+            and transfer["to"] == destination
+            and transfer["from"] == payment_frame.frame["from"].lower()
+            and keeper_event["log_index"]
+            < transfer["log_index"]
+            < refund_event["log_index"]
         ]
         if len(corroborated) != 1:
             raise ValueError(

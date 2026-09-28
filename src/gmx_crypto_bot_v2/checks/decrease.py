@@ -137,11 +137,16 @@ def _compare_decrease_settlement(
         and event["values"].get("amount", 0) > 0
     ]
     checkpoint_route_unknown = request.get("data_list_unavailable") is True
-    if request.get("srcChainId") or (checkpoint_route_unknown and recorded_multichain):
+    # A recorded multichain credit identifies the payout route even when an
+    # opening order's srcChainId field is zero. Amount and vault transfer still
+    # have to match independently below.
+    inferred_multichain = bool(recorded_multichain and not request.get("srcChainId"))
+    if request.get("srcChainId") or inferred_multichain:
         actual = Counter(
             (event["values"].get("token"), event["values"].get("amount"))
             for event in recorded_multichain
-            if checkpoint_route_unknown
+            if inferred_multichain
+            or checkpoint_route_unknown
             or event["values"].get("srcChainId") == request.get("srcChainId")
         )
         transferred = Counter(

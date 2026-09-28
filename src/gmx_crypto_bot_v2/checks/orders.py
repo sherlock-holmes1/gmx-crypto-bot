@@ -412,6 +412,50 @@ def _reconstruct_terminal_reason(
             "empty_position_cancel_with_active_position",
             mismatches,
         )
+    if reason == "" and isinstance(reason_bytes, str) and len(reason_bytes) == 138:
+        selector = reason_bytes[:10]
+        left, right = int(reason_bytes[10:74], 16), int(reason_bytes[74:138], 16)
+        # GMX Errors.InvalidDecreaseOrderSize(uint256,uint256) and
+        # Errors.InvalidPositionSizeValues(uint256,uint256).
+        if selector == "0x9fbe2cbc":
+            if opening_positions is None or position_events is None:
+                return "unavailable"
+            identity = _request_position_identity(request)
+            state = next(
+                (
+                    position.get("sizeInUsd")
+                    for position in opening_positions.values()
+                    if _position_identity(position) == identity
+                ),
+                None,
+            )
+            for event in position_events:
+                if _coordinate(event) >= _coordinate(terminal):
+                    continue
+                if (
+                    event["event_name"] in {"PositionIncrease", "PositionDecrease"}
+                    and _position_identity(event["values"]) == identity
+                ):
+                    state = event["values"].get("sizeInUsd")
+            if state is None:
+                return "unavailable"
+            return _comparison(
+                request.get("orderType") in DECREASE_ORDER_TYPES
+                and left == request.get("sizeDeltaUsd")
+                and right == state
+                and left > right,
+                "invalid_decrease_size_reason_mismatch",
+                mismatches,
+            )
+        if selector == "0xbff65b3f":
+            return _comparison(
+                request.get("orderType") in INCREASE_ORDER_TYPES
+                and request.get("sizeDeltaUsd") == 0
+                and left == 0
+                and right == 0,
+                "invalid_position_size_reason_mismatch",
+                mismatches,
+            )
     if (
         reason == ""
         and isinstance(reason_bytes, str)
