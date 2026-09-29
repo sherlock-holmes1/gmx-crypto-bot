@@ -1,20 +1,18 @@
 from __future__ import annotations
+
 import json
-from pathlib import Path
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
-from gmx_crypto_bot_v2.historical_configuration import (
-    ConfigHistory,
-    fee_keys,
-    build_fee_histories,
-    compare_historical_fees,
-    ZERO_ADDRESS,
-)
-from gmx_crypto_bot_v2.price_impact import FLOAT_PRECISION as P, predict_current_impact
-from gmx_crypto_bot_v2.fee_config_backfill import fetch_opening_fee_configuration
+from gmx_crypto_bot_v2.checks.fees import compare_historical_fees
+from gmx_crypto_bot_v2.collection.fees import fetch_opening_fee_configuration
+from gmx_crypto_bot_v2.domain.configuration import ZERO_ADDRESS, fee_keys
+from gmx_crypto_bot_v2.models.impact import FLOAT_PRECISION as P
+from gmx_crypto_bot_v2.models.impact import predict_current_impact
+from gmx_crypto_bot_v2.reconstruction.fees import ConfigHistory, build_fee_histories
 
 MARKET = "0x" + "11" * 20
 STORE = "0x" + "22" * 20

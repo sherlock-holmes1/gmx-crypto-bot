@@ -1,23 +1,19 @@
 from gmx_crypto_bot_v2.evidence.traces import TraceRepository
 
 """Liquidation cost ordering, fail-closed evidence, and exact payout regressions."""
-import copy
 import json
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-import unittest
 from unittest.mock import patch
 
-from gmx_crypto_bot_v2.liquidation_settlement import (
-    Cash,
+from gmx_crypto_bot_v2.checks.liquidation import (
     MULTICHAIN_VAULT,
-    ZERO,
     compare_liquidation_settlement,
-    settle,
-    verify_native,
-    verify_payouts,
 )
+from gmx_crypto_bot_v2.checks.payouts import verify_native
+from gmx_crypto_bot_v2.models.settlement import Cash, settle
 
 M, A, T, W = "market", "account", "usdc", "weth"
 
@@ -259,7 +255,7 @@ class NativeProofTests(unittest.TestCase):
 
 class BackfillCoverageTests(unittest.TestCase):
     def test_includes_liquidation_only_trader_without_pending_or_cancelled(self):
-        from gmx_crypto_bot_v2.referral_backfill import executed_traders
+        from gmx_crypto_bot_v2.collection.referral import executed_traders
 
         orders = [
             dict(

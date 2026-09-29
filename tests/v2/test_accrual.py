@@ -1,12 +1,13 @@
 import json
-from pathlib import Path
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
-from gmx_crypto_bot_v2.accrual_configuration import slots, decode, load_snapshot
-from gmx_crypto_bot_v2.accrual_backfill import collect
+from gmx_crypto_bot_v2.collection.accrual import collect
+from gmx_crypto_bot_v2.domain.accrual import decode, slots
+from gmx_crypto_bot_v2.reconstruction.accrual_configuration import load_snapshot
 
 M = "0x" + "11" * 20
 A = "0x" + "22" * 20
@@ -98,15 +99,16 @@ class ArchiveTests(unittest.TestCase):
                 collect(root, RPC())
 
 
-from gmx_crypto_bot_v2.accrual_math import (
+from gmx_crypto_bot_v2.checks.accrual import compare_accrual
+from gmx_crypto_bot_v2.domain.swap_keys import key
+from gmx_crypto_bot_v2.models.accrual import (
     P,
     borrowing_rate,
-    funding_rate,
     funding_deltas,
+    funding_rate,
     liquidation_fee,
 )
-from gmx_crypto_bot_v2.accrual_validation import AccrualReplay, compare_accrual
-from gmx_crypto_bot_v2.swap_math import key
+from gmx_crypto_bot_v2.reconstruction.accrual import AccrualReplay
 
 
 class AccrualMathTests(unittest.TestCase):
@@ -302,7 +304,7 @@ class AccrualReplayTests(unittest.TestCase):
             self.assertEqual(replay.market_value("FUNDING_UPDATED_AT"), 11)
 
     def test_boolean_configuration_changes_apply_at_canonical_coordinate(self):
-        from gmx_crypto_bot_v2.price_impact import config_base_key
+        from gmx_crypto_bot_v2.domain.keys import config_base_key
 
         with tempfile.TemporaryDirectory() as tmp:
             replay = self.setup_replay(Path(tmp))
@@ -359,10 +361,11 @@ class AccrualReplayTests(unittest.TestCase):
                 self.assertIn("unavailable", {r["status"] for r in replay.results})
 
 
-from gmx_crypto_bot_v2.accrual_validation import compare_erased_liquidation
-from gmx_crypto_bot_v2.historical_configuration import ConfigHistory
-from gmx_crypto_bot_v2.referral import ZERO_CODE
 from types import SimpleNamespace
+
+from gmx_crypto_bot_v2.checks.accrual import compare_erased_liquidation
+from gmx_crypto_bot_v2.domain.referral import ZERO_CODE
+from gmx_crypto_bot_v2.reconstruction.fees import ConfigHistory
 
 
 class LiquidationTests(unittest.TestCase):
@@ -495,8 +498,7 @@ class LiquidationTests(unittest.TestCase):
 
 class HeaderTests(unittest.TestCase):
     def test_raw_header_timestamp_is_bound_to_execution_block_hash(self):
-        import gzip, base64
-        from gmx_crypto_bot_v2.accrual_validation import load_timestamps
+        from gmx_crypto_bot_v2.evidence.timestamps import load_timestamps
 
         with tempfile.TemporaryDirectory() as tmp:
             from gmx_crypto_bot_v2.evidence.artifacts import RawArtifactStore

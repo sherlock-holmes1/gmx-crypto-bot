@@ -3,27 +3,27 @@ from types import SimpleNamespace
 """Independent numerical examples and archive/replay failure cases."""
 import copy
 import json
-from pathlib import Path
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
-from gmx_crypto_bot_v2.prb_math import pow_ud60x18, apply_exponent_factor
-from gmx_crypto_bot_v2.swap_math import (
-    P,
+from gmx_crypto_bot_v2.checks.swaps import compare_swaps
+from gmx_crypto_bot_v2.collection.swaps import collect
+from gmx_crypto_bot_v2.domain.keys import config_base_key
+from gmx_crypto_bot_v2.domain.referral import word
+from gmx_crypto_bot_v2.domain.swap_keys import (
+    MARKET_FIELDS,
     ZERO_ID,
     call_data,
     key,
-    market_keys,
-    curve,
-    price_swap,
-    MARKET_FIELDS,
     market_field_key,
+    market_keys,
 )
-from gmx_crypto_bot_v2.swap_backfill import collect
-from gmx_crypto_bot_v2.swap_validation import SwapReplay, CHECKS, compare_swaps
-from gmx_crypto_bot_v2.referral import word, config_base_key
+from gmx_crypto_bot_v2.models.prb import apply_exponent_factor, pow_ud60x18
+from gmx_crypto_bot_v2.models.swaps import P, curve, price_swap
+from gmx_crypto_bot_v2.reconstruction.swaps import SwapReplay
 
 A = "0x" + "11" * 20
 B = "0x" + "22" * 20

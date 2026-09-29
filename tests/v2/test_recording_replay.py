@@ -8,10 +8,10 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from gmx_crypto_bot_v2.recording import JsonlRecorder, load_recording
-from gmx_crypto_bot_v2.replay import canonical_events, replay
-from gmx_crypto_bot_v2.event_decoder import DecodedEventLog
-from gmx_crypto_bot_v2.state import build_state, report_from_state
+from gmx_crypto_bot_v2.application.replay import canonical_events, replay
+from gmx_crypto_bot_v2.domain.events import DecodedEventLog
+from gmx_crypto_bot_v2.evidence.recording import JsonlRecorder, load_recording
+from gmx_crypto_bot_v2.reconstruction.observed import build_state, report_from_state
 
 
 class RecordingReplayTests(unittest.TestCase):
@@ -111,7 +111,7 @@ class RecordingReplayTests(unittest.TestCase):
         self.assertEqual(report["market"]["open_interest_usd"]["long"], 50)
 
     def test_replay_loads_embedded_opening_checkpoint(self) -> None:
-        from gmx_crypto_bot_v2.recording import RecordedEvent
+        from gmx_crypto_bot_v2.evidence.recording import RecordedEvent
 
         metadata = {
             "market": {"market_token_address": "0xmarket"},
@@ -158,7 +158,7 @@ class RecordingReplayTests(unittest.TestCase):
 
     @staticmethod
     def _event(data: str, block_number: int, *, kind: str = "gmx_market_log"):
-        from gmx_crypto_bot_v2.recording import RecordedEvent
+        from gmx_crypto_bot_v2.evidence.recording import RecordedEvent
 
         return RecordedEvent(
             seq=block_number,

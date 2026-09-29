@@ -1,31 +1,30 @@
 from __future__ import annotations
-from types import SimpleNamespace
+
 import copy
 import json
-from pathlib import Path
 import sys
 import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
-from gmx_crypto_bot_v2.referral import (
-    P,
+from gmx_crypto_bot_v2.checks.referral import compare_referral
+from gmx_crypto_bot_v2.collection.referral import collect, collect_referral_ranges
+from gmx_crypto_bot_v2.domain.keys import config_base_key, keccak256
+from gmx_crypto_bot_v2.domain.referral import (
     ZERO,
     ZERO_CODE,
-    SIGNATURES,
-    ReferralState,
+    P,
     calldata,
-    config_base_key,
     datastore_key,
     decode_referral_log,
-    discount_amounts,
-    compare_referral,
-    keccak256,
     word,
 )
-from gmx_crypto_bot_v2.referral_backfill import collect, collect_referral_ranges
-from gmx_crypto_bot_v2.collector import SourceError
+from gmx_crypto_bot_v2.models.referral import discount_amounts
+from gmx_crypto_bot_v2.reconstruction.referral import ReferralState
+from gmx_crypto_bot_v2.sources.rpc import SourceError
 
 A = "0x" + "11" * 20
 B = "0x" + "22" * 20

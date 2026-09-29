@@ -1,51 +1,56 @@
 from __future__ import annotations
 
-import sys
-import tempfile
-import unittest
 import base64
 import gzip
 import json
 import os
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from gmx_crypto_bot_v2.collector import (
-    GmxCollector,
-    PublicJsonRpc,
-    RangeGap,
-    SourceError,
-    adaptive_ranges,
-    event_name,
-    main,
-    redact_rpc_endpoint,
-    target_snapshot,
-)
-from gmx_crypto_bot_v2.artifacts import RawArtifactStore
-from gmx_crypto_bot_v2.checkpoint import (
-    _decode_order,
-    normalize_recorded_order_checkpoint,
-)
-from gmx_crypto_bot_v2.recording import load_recording
-from gmx_crypto_bot_v2.validator import (
-    FLOAT_PRECISION,
-    FUNDING_PRECISION,
-    _attach_pre_position_state,
-    _associate_execution_fees,
-    _compare_execution_fee_events,
+from validation_helper import _validate_order
+
+from gmx_crypto_bot_v2.application.collection import main
+from gmx_crypto_bot_v2.checks.decrease import (
     _compare_collateral_conversion,
     _compare_decrease_settlement,
-    ARBITRUM_MULTICHAIN_VAULT,
-    _compare_execution_price,
-    _compare_fee_math,
-    _compare_position_math,
-    _single_update_topup,
-    _reconstruct_terminal_reason,
-    _validate_order,
 )
-from gmx_crypto_bot_v2.event_decoder import DecodedEventLog
+from gmx_crypto_bot_v2.checks.orders import _reconstruct_terminal_reason
+from gmx_crypto_bot_v2.checks.position import (
+    _compare_execution_price,
+    _compare_position_math,
+)
+from gmx_crypto_bot_v2.checks.position_fees import (
+    _compare_execution_fee_events,
+    _compare_fee_math,
+)
+from gmx_crypto_bot_v2.collection.base import GmxCollector
+from gmx_crypto_bot_v2.collection.checkpoint import _decode_order
+from gmx_crypto_bot_v2.collection.ranges import RangeGap, adaptive_ranges
+from gmx_crypto_bot_v2.domain.checkpoint import normalize_recorded_order_checkpoint
+from gmx_crypto_bot_v2.domain.constants import (
+    ARBITRUM_MULTICHAIN_VAULT,
+    FLOAT_PRECISION,
+    FUNDING_PRECISION,
+)
+from gmx_crypto_bot_v2.domain.events import DecodedEventLog
+from gmx_crypto_bot_v2.domain.filtering import event_name, target_snapshot
+from gmx_crypto_bot_v2.evidence.artifacts import RawArtifactStore
+from gmx_crypto_bot_v2.evidence.recording import load_recording
+from gmx_crypto_bot_v2.reconstruction.orders import (
+    _associate_execution_fees,
+    _single_update_topup,
+)
+from gmx_crypto_bot_v2.reconstruction.positions import _attach_pre_position_state
+from gmx_crypto_bot_v2.sources.rpc import (
+    PublicJsonRpc,
+    SourceError,
+    redact_rpc_endpoint,
+)
 
 
 class RawArtifactStoreTests(unittest.TestCase):

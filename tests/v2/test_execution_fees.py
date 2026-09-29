@@ -1,19 +1,12 @@
 """Execution-fee evidence boundaries and reverted-transfer behavior."""
 
 import sys
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
-from gmx_crypto_bot_v2.execution_fees.models import (
-    PAY_SELECTOR,
-    PaymentInput,
-    walk_trace,
-)
-from gmx_crypto_bot_v2.execution_fees.backfill import (
-    collect_transaction,
-    select_transactions,
-)
+from gmx_crypto_bot_v2.collection.traces import collect_transaction, select_transactions
+from gmx_crypto_bot_v2.domain.payments import PAY_SELECTOR, PaymentInput, walk_trace
 
 A = "0x" + "11" * 20
 B = "0x" + "22" * 20
@@ -114,15 +107,15 @@ class ExecutionFeeTests(unittest.TestCase):
         self.assertEqual(select_transactions(report, 0), [H])
 
 
-from gmx_crypto_bot_v2.execution_fees.models import TraceFrame
-from gmx_crypto_bot_v2.execution_fees.proof import (
-    GasSettings,
-    transfer_candidates,
-    settings_from_calls,
+from gmx_crypto_bot_v2.domain.keys import config_base_key
+from gmx_crypto_bot_v2.domain.payments import TraceFrame
+from gmx_crypto_bot_v2.models.execution import (
     GET_UINT_SELECTOR,
     SETTING_NAMES,
+    GasSettings,
+    settings_from_calls,
+    transfer_candidates,
 )
-from gmx_crypto_bot_v2.price_impact import config_base_key
 
 
 class ExecutionProofTests(unittest.TestCase):

@@ -1,16 +1,24 @@
 """Completion depends on current order coverage and fresh offline trace proofs."""
 
-from copy import deepcopy
-from dataclasses import asdict
 import json
+import unittest
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 from unittest.mock import patch
 
-from gmx_crypto_bot_v2.execution_fees.gate import CHECK, apply_execution_fee_proof
-from gmx_crypto_bot_v2.execution_fees.models import PAY_SELECTOR, PaymentInput
-from gmx_crypto_bot_v2.execution_fees.validate import verify_trace
+from gmx_crypto_bot_v2.checks.execution import CHECK
+from gmx_crypto_bot_v2.checks.execution import (
+    apply_execution_fee_proof as apply_evidence_proof,
+)
+from gmx_crypto_bot_v2.checks.trace import verify_trace_evidence
+from gmx_crypto_bot_v2.domain.payments import PAY_SELECTOR, PaymentInput
+from gmx_crypto_bot_v2.evidence.traces import TraceRepository
+
+
+def apply_execution_fee_proof(recording, orders):
+    return apply_evidence_proof(TraceRepository(recording), orders)
+
 
 A = "0x" + "11" * 20
 B = "0x" + "22" * 20
@@ -200,9 +208,7 @@ class TraceIdentityTests(unittest.TestCase):
         )
 
     def verify(self, data):
-        return verify_trace(
-            Path("unused"), None, {ORDER: order(fee=0)}, trace_record=data
-        )
+        return verify_trace_evidence(data, None, {ORDER: order(fee=0)})
 
     def test_zero_fee_call_and_identity(self):
         result = self.verify(self.fixture())

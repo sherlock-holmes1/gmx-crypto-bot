@@ -250,7 +250,7 @@ gmx-validate <recording> --output <report>
 
 Collection success means **the required evidence is available**. Validation success means **the applicable economic checks pass**. These remain distinct outcomes.
 
-Legacy backfill entry points become thin compatibility wrappers around the same collection stages. Progress output includes stage, completed/total work, reused artifacts, retries, and missing evidence.
+Collection stages run through the unified collector. Progress output includes stage, completed/total work, reused artifacts, retries, and missing evidence.
 
 ## 5. Refactoring sequence and acceptance criteria
 
@@ -261,7 +261,7 @@ The implementation follows this sequence:
 3. Introduce the disposable catalog and report-independent discovery.
 4. Consolidate source access, collection stages, and resumable coordination.
 5. Separate state reconstruction, economic calculations, checks, and report serialization.
-6. Retain compatibility wrappers and update operating documentation.
+6. Keep the three module CLI entry points and update operating documentation.
 
 Acceptance requires:
 
@@ -289,7 +289,7 @@ Acceptance requires:
 | Pure models | `models/impact.py`, `accrual.py`, `swaps.py`, `referral.py`, `decrease.py`, `settlement.py`, `execution.py`, `prb.py` |
 | Checks/reporting | `checks/orders.py`, position/fee/swap/accrual/liquidation checks, `checks/trace.py`, `reporting/orders.py` |
 
-Top-level V2 modules retain compatibility import paths. They do not import the
+Top-level V2 modules provide only the three module CLI entry points. They do not import the
 V1 implementation. The pure models and shared primitives contain no filesystem,
 network, SQLite, or CLI access. Order checks receive `OrderContext` and
 `ValidationContext`; trace checks receive parsed trace evidence through a typed

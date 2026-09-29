@@ -1,30 +1,34 @@
 from __future__ import annotations
 
-import sys
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from gmx_crypto_bot_v2.price_impact import (
-    FLOAT_PRECISION,
-    HistoricalFactor,
-    apply_exponent_factor,
-    balance_impact,
+from gmx_crypto_bot_v2.checks.position import _compare_independent_price_impact
+from gmx_crypto_bot_v2.collection.impact import fetch_opening_impact_factors
+from gmx_crypto_bot_v2.domain.keys import (
     config_base_key,
     config_market_side_data,
     keccak256,
-    load_factor_histories,
+)
+from gmx_crypto_bot_v2.models.impact import (
+    FLOAT_PRECISION,
+    apply_exponent_factor,
+    balance_impact,
     predict_current_impact,
 )
-from gmx_crypto_bot_v2.impact_backfill import fetch_opening_impact_factors
-from gmx_crypto_bot_v2.validator import (
+from gmx_crypto_bot_v2.reconstruction.impact import (
+    HistoricalFactor,
+    load_factor_histories,
+)
+from gmx_crypto_bot_v2.reconstruction.positions import (
     _attach_pre_impact_pool,
     _attach_pre_position_state,
     _attach_pre_virtual_inventory,
-    _compare_independent_price_impact,
 )
 
 

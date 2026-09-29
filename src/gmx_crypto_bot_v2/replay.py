@@ -1,12 +1,6 @@
-"""Compatibility entry point; implementation lives in the layered V2 package."""
+"""Module CLI for the V2 replay."""
 
-from gmx_crypto_bot_v2.application.replay import ReplayReport as ReplayReport
-from gmx_crypto_bot_v2.application.replay import (
-    _replay_with_state as _replay_with_state,
-)
-from gmx_crypto_bot_v2.application.replay import canonical_events as canonical_events
-from gmx_crypto_bot_v2.application.replay import main as main
-from gmx_crypto_bot_v2.application.replay import replay as replay
+from gmx_crypto_bot_v2.application.replay import main
 
 if __name__ == "__main__":
     raise SystemExit(main())
