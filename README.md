@@ -21,6 +21,9 @@ has been validated and replayed offline. **A complete fresh collection against a
 live archive RPC provider has not yet been verified.** A position simulator is
 not implemented yet.
 
+Learn the protocol through the five-lesson [GMX perpetuals course](docs/gmx-perpetuals-course/README.md),
+including recorded long and short orders and 40 unanswered practice questions.
+
 See [architecture](docs/architecture.md), [V2 operations](docs/v2-operations.md),
 [regression results](docs/v2-validation.md), and the
 [V1 reference](docs/v1-collector-and-validation.md).
