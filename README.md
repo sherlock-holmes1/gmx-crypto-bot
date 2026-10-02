@@ -31,19 +31,6 @@ See [architecture](docs/architecture.md), [V2 operations](docs/v2-operations.md)
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.
 
-## Why this is not the Polymarket bot
-
-GMX orders are committed on-chain and subsequently executed by keepers using
-oracle prices. There is no public CLOB queue to join, and a long/short position
-does not merge with a complementary token into a fixed payout.
-
-| Reused framework | GMX-specific replacement |
-|---|---|
-| Raw event recorder | Chain blocks, GMX events, oracle prices, market configuration |
-| Deterministic replay | Canonical block/transaction/log ordering and reorg detection |
-| Assumption grid | Request-to-execution latency, oracle movement, gas, and slippage scenarios |
-| PnL report | Collateral, long/short PnL, fees, funding, borrowing, price impact, liquidation |
-
 ## Run the V2 pipeline
 
 Run these commands from the repository root with Python 3.12+ on Linux. The
