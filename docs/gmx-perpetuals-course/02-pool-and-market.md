@@ -49,10 +49,18 @@ Pool composition matters even when the target trade is a USDC-collateral ETH sho
 ## Questions — answer without an answer key
 
 1. Identify the index token, long pool token, and short pool token for ETH/USD [WETH-USDC].
+    -> long pool token is WETH, short pool token is USDC, index token is ETH
 2. Does every GMX short require a simultaneous matching long order? Explain who backs the position.
+    -> No it does not. GMX liquidity pool backs the position 
 3. If long OI is $60 million and short OI is $40 million, what are gross OI and absolute imbalance?
+    -> Gross OI is $100 mln, and absolute imbalance is $20 mln
 4. In that state, what happens to the absolute imbalance after a $1 million long increase? After a $1 million short increase?
+    -> after a $1 mln long increase the imbalance will increase to $21 mln. after the $1 mln short increase the imbalance will $19 mln
 5. Why can equal long and short OI still consume pool capacity?
+    -> because the pool has the obligation to pay traders. The traders are not trade against each other. The pool is counter party for both sides. And the pool has to pay traders.
 6. Name two mechanisms that can make a trade that worsens imbalance costlier than a trade that improves it.
+    -> GMX uses position fees, funding, and price impact to influence the balance between sides. An order that increase absolute long/short imbalance can have a higher position fee and negative price impact.
 7. Why is a current GMX UI fee or funding rate insufficient to validate an order executed at a historical block?
+    -> Historical configuration and an oracle price are needed to interpret the risk state at the relevant block.
 8. Explain why a trader's initial collateral token and the market's index token are separate concepts.
+    -> Index token is a token whose price will be tracked in the leveraged position, i.e. ETH . Initial collaterial token is a token that will be used as a deposit for collaterial in the position

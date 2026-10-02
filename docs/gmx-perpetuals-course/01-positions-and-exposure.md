@@ -53,5 +53,5 @@ For a simulator, the crucial state is not merely “long” or “short.” It n
 4. A $12,000 position has $1,500 USDC collateral. What is its approximate entry leverage, and which of those two numbers controls the pre-fee PnL slope? -> entry leverage is $12000 / $1500 = 8x . The 12000 position size controls the slope.
 5. Why can leverage increase while the recorded USD position size stays unchanged? -> because the collaterial can incude unrealized PnL.
 6. What extra ETH price exposure exists when a short uses WETH collateral instead of USDC collateral? -> A WETH-backed short can therefore have a short perpetual exposure and a long collateral exposure at the same time.
-7. In the recording, why must `initialCollateralDeltaAmount=308883390` not be read as 308,883,390 USD? -> Because this is a 6 decimals integer, used for high precision calculations. The 6 decimals mean that, there 6 digits after comma 308.883390
+7. In the recording, why must `initialCollateralDeltaAmount=308883390` not be read as 308,883,390 USD? -> Because this is a 6 decimals integer, used for high precision calculations. The 6 decimals mean that, there are 6 digits after comma 308.883390
 8. Name at least four position fields a strategy simulator needs in addition to the side. -> side, size in USD and tokens, collateral amount and token, entry state, accumulated fees.
