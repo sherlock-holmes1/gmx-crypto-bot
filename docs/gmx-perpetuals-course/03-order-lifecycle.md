@@ -59,10 +59,18 @@ The recording can prove an execution occurred through the terminal event and tra
 ## Questions — answer without an answer key
 
 1. What changes on-chain at `OrderCreated`, and what position change has **not** happened yet?
+    -> The GMX creates a record in the OrderStore. It records a unique order key, account, market, side, order type, size delta, collateral fields, receiver, acceptable price, and an execution-fee budget. It does not create a position yet. Order Keeper creates an order later.
 2. Put these in order: `OrderExecuted`, signed oracle price supplied, `OrderCreated`, keeper finds request.
+    -> OrderCreated ->  keeper finds request -> signed oracle price supplied -> `OrderExecuted`
 3. Which oracle bound is used for an open long, close long, open short, and close short?
+    -> Open long: max oracle side, Close long: min oracle side, Open short: min oracle side, Close short: max oracle side. 
 4. Explain the difference between a trigger price and an acceptable price.
+    ->  A trigger price when GMX allowed to try to execute an order; an acceptable price is the price trader can accept to execute an order.
 5. Why can a stop-market order fail to protect a position from liquidation?
+    -> price can jump past the tresholds. 
 6. Why can an order be unresolved at the seven-day boundary without indicating a data gap?
+    -> because oracle won't be providing the suitable price for a position to execute.
 7. Why does canonical replay order need transaction and log indexes in addition to block number?
+    -> because several transactions can sit in one block. log index is needed to determine the order of transactions in one block.
 8. Name three pieces of state that can change between request creation and keeper execution and alter the eventual economics.
+    -> ETH price, min/max spread, OI, etc.
