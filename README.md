@@ -18,11 +18,10 @@ passes: 2,942 matched terminal orders, no mismatches, no open economic checks. T
 116 original tests and 141 V2 tests pass. Fresh collection and interruption
 recovery have been tested with simulated providers; the existing real recording
 has been validated and replayed offline. **A complete fresh collection against a
-live archive RPC provider has not yet been verified.** A position simulator is
-not implemented yet.
+live archive RPC provider has not yet been verified.** Step 4 position simulation is in progress: the pure request scheduler is implemented; the evidence adapter, economics, and risk engine remain open.
 
 Learn the protocol through the five-lesson [GMX perpetuals course](docs/gmx-perpetuals-course/README.md),
-including recorded long and short orders and 40 unanswered practice questions.
+including recorded long and short orders and the completed 40-question assessment.
 
 See [architecture](docs/architecture.md), [V2 operations](docs/v2-operations.md),
 [regression results](docs/v2-validation.md), and the

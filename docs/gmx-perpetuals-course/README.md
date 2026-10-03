@@ -1,6 +1,6 @@
 # GMX perpetuals: a five-lesson course
 
-This course explains GMX V2 on Arbitrum through the recorded ETH/USD [WETH-USDC] market. It teaches the protocol, not the Python package architecture. Read one lesson at a time and answer its eight questions in a separate message. Each lesson ends with questions and contains no answer key.
+This course explains GMX V2 on Arbitrum through the recorded ETH/USD [WETH-USDC] market. It teaches the protocol, not the Python package architecture. Each lesson ends with eight questions. Vasilii's answers are recorded under the questions.
 
 | Lesson | Topic | Main skill |
 |---|---|---|
@@ -12,7 +12,7 @@ This course explains GMX V2 on Arbitrum through the recorded ETH/USD [WETH-USDC]
 
 ## How to use the questions
 
-Answer with lesson number and question numbers, for example `Lesson 2: 1) ... 2) ...`. You can answer one lesson at a time and ask for clarification at any point. I will grade each answer as correct, partly correct, or incorrect, explain corrections, and track the count. A partly correct answer counts as half a point. Task 3.2 stays open until you score at least **32 of 40 points (80%)** across all five lessons. You can revise any answer after feedback; the most recent answer replaces the earlier score. The questions are the assessment, so the lesson files have no answer key or worked solutions to the questions.
+Task 3.2 passed with **32.5 of 40 points (81.25%)**, above the 32-point completion gate. The answers are graded correct, partly correct (half a point), or incorrect. The lesson files retain the original questions and Vasilii's answers.
 
 The recorded examples refer to [`recordings/eth-usdc-v2-sep-20-sep-27/order-validation.json`](../../recordings/eth-usdc-v2-sep-20-sep-27/order-validation.json), which contains 2,942 matched terminal orders, zero mismatches, and 104 boundary-unresolved orders. The report is large; use an order key to locate a particular example. All positions and transactions discussed here are historical, read-only observations.
 
