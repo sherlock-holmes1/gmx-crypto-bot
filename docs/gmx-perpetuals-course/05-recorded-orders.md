@@ -59,10 +59,29 @@ When interpreting any number, ask four questions: **Which asset/unit? Which side
 ## Questions — answer without an answer key
 
 1. Give the long order key and its request and terminal block numbers. How many blocks separate them?
+    - key 0x67a2dac4cde23559c64fd6637bbbc42d93fb852cdb9c429d8524f2f66e9d694c
+    - terminal block number 508316116
+    - request block number 508316103
+    - 13 blocks between
 2. For the long, compute the difference between requested initial USDC collateral and the collateral recorded in `PositionIncrease`. Which event field explains it?
+    - initial collaterial 308.883390 USDC
+    - collaterial after the PositionIncrease 303.960475 USDC
+    - collateralAmount field
 3. Give the short order key and identify its side, collateral token, and approximate USD size.
+    - key 0xe1b95793bdfa6b426787e5e60450076ac6487f6baf38f737f7b80cc90b63df47
+    - side - open short, order side - sell
+    - collaterial token - USDC
+    - appx. USD size - $43,170.53
 4. For the short, compute the difference between initial and recorded USDC collateral. Which recorded fee amount does it match?
+    - **2,995.000000 USDC** initial collateral
+    - **2,977.729915 USDC** recorded collateral
+    - collateralAmount fiels
 5. Why must the ETH execution fee be kept separate from the USDC position fee in both examples?
+    - because it is index token price. Index token is different from the long / short / collaterial tokens 
 6. Why does `OrderExecuted` plus `PositionIncrease` show an opening but not the position's final trading profit?
+    - because the  OrderExecuted and PositionIncrease record enties, not final outcome. The position remains open.
 7. The short's execution price is above its oracle price and `pendingPriceImpactUsd` is positive. Why is a higher entry price favorable for a short, and why must stored impact still be tracked separately?
+    - A short benefits from selling higher and buying back lower.
+    - positive pendingPriceImpactUsd represents a pending benefit, not realized profit.  it is tracked separately to avoid counting the benefit twice—once through the higher execution price and again as stored impact.
 8. If you wanted to verify a fee value without circular reasoning, which historical inputs and which observed output would you compare?
+    - the fee parameters at the historical block and the trade`s position-size change
