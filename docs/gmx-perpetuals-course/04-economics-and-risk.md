@@ -56,10 +56,21 @@ A stop-loss is an order request, not a liquidation shield. If a keeper has not e
 ## Questions — answer without an answer key
 
 1. Distinguish position fee, execution fee, funding, and borrowing in one clause each.
+    - Position fee: GMX’s trading charge for opening, increasing, decreasing, or closing a position.
+    - Execution fee: Payment covering the keeper’s cost of executing your order on-chain.
+    - Funding: Periodic payments from the more crowded side of a market to the less crowded side.
+    - Borrowing: An ongoing charge paid to the liquidity pool for reserving capacity to back your position.
 2. If ETH price is unchanged but borrowing and funding charges accumulate, what happens to position equity and approximate leverage?
+    - Position equity becomes less borrowing and funding charges, appx. leverage increases.
 3. What market state makes a trade eligible for positive rather than negative price impact, in general terms?
+    - A trade is eligible for positive price impact when it reduces the imbalance between long and short open interest; increasing that imbalance generally produces negative price impact.
 4. Why can a favorable impact credit fail to make a trade profitable?
+    - Positive price impact is only one part of your net PnL. Adverse price movement, position fees, execution fees, borrowing, funding and negative impact when closing can outweigh the credit.
 5. Why is `pendingPriceImpactUsd` important when reading a recorded increase?
+    - because it will be settled later in future and can impact increase/ descrease
 6. Which oracle bound is conservative for a long's liquidation PnL? Which for a short's?
+    - GMX uses the unfavorable oracle bound for PnL: min price for a long and max price for a short.
 7. Name three reasons a liquidation price can move while position size stays unchanged.
+    - unrealized losses, accrued fees, and capped negative impact
 8. Why must a validator use historical configuration and pre-order state rather than the event's fee amount as both expected and observed value?
+    - A careful comparison names the exact order size, pre-order OI, historical factors, oracle prices, and fees. The V2 validator independently rebuilds fee and impact factors from historical snapshots rather than trusting the event as its own expected value.
