@@ -55,6 +55,12 @@ cannot substitute for missing hypothetical-order inputs.
 Work locations are relative to `src/gmx_crypto_bot_v2/` unless a repository-root
 path is shown.
 
+The collector now supports a `risk-configuration.json` sidecar with opening and
+closing archive reads and recorded `SetUint` changes. The September recording
+has not been backfilled with this sidecar because no archive RPC endpoint is
+configured in the current environment. The simulator still needs to consume
+and validate the resulting history after collection.
+
 | Gap | Work location | Required work |
 |---|---|---|
 | Historical minimum collateral, maximum PnL, and related risk settings | `src/gmx_crypto_bot_v2/collection/` opening-state backfill; `simulation/evidence.py`, `simulation/risk.py`, `simulation/economics.py` | Capture the values at the recording's opening block and track changes through the window. Values in `gmx-market-spec-v1.json` are not proof of historical state. |

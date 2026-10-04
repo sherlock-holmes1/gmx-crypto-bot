@@ -22,6 +22,7 @@ from gmx_crypto_bot_v2.sources.resumable import ResumableRpc
 from gmx_crypto_bot_v2.sources.rpc import PublicJsonRpc
 
 MARKET = "0x" + "1" * 40
+STORE = "0x" + "7" * 40
 ACCOUNT = "0x" + "2" * 40
 EMITTER = "0x" + "3" * 40
 TX = "0x" + "4" * 64
@@ -32,7 +33,7 @@ BLOCK_HASH = "0x" + "6" * 64
 def make_recording(root):
     metadata = {
         "market": {"market_token_address": MARKET},
-        "contracts": {"event_emitter": EMITTER},
+        "contracts": {"event_emitter": EMITTER, "data_store": STORE},
         "spec_sha256": "fixture",
     }
     recorder = JsonlRecorder(root, metadata)
@@ -310,8 +311,9 @@ class ResumeTests(unittest.TestCase):
                 return {"complete": True}
 
         def snapshot(stage):
-            value = {"schema": SNAPSHOTS[stage][1], "version": 1, "market": MARKET}
-            if stage in {"fees", "accrual"}:
+            value = {"schema": SNAPSHOTS[stage][1], "version": 1,
+                     "market": MARKET, "data_store": STORE}
+            if stage in {"fees", "accrual", "risk"}:
                 value["opening"] = {"block_number": 9, "block_hash": "opening"}
             elif stage == "impact":
                 value.update(block_number=9, block_hash="opening")
@@ -321,6 +323,19 @@ class ResumeTests(unittest.TestCase):
                 value["traders"] = [ACCOUNT]
             if stage == "swaps":
                 value["markets"] = []
+            if stage == "risk":
+                from gmx_crypto_bot_v2.collection.risk import risk_keys
+
+                value["data_store"] = STORE
+                point = value["opening"]
+                point["values"] = {
+                    field: {"storage_key": key.storage_key,
+                            "result": "0x" + f"{1:064x}", "value": 1}
+                    for field, key in risk_keys(MARKET).items()
+                }
+                value["closing"] = {"block_number": 10, "block_hash": BLOCK_HASH,
+                                    "values": point["values"]}
+                value["changes"] = []
             return value
 
         trace = {
@@ -368,6 +383,7 @@ class ResumeTests(unittest.TestCase):
                     ("impact", "fetch_opening_impact_factors"),
                     ("fees", "fetch_opening_fee_configuration"),
                     ("accrual", "collect_accrual"),
+                    ("risk", "collect_risk"),
                     ("referral", "collect_referral"),
                     ("swaps", "collect_swaps"),
                 ]:
@@ -466,6 +482,7 @@ class PublicationResumeTests(unittest.TestCase):
                 "schema": "GmxImpactOpeningConfiguration",
                 "version": 1,
                 "market": MARKET,
+                "data_store": STORE,
                 "block_number": 9,
                 "block_hash": "opening",
             }

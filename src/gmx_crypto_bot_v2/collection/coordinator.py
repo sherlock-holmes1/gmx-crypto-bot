@@ -17,6 +17,8 @@ from gmx_crypto_bot_v2.collection.fees import fetch_opening_fee_configuration
 from gmx_crypto_bot_v2.collection.impact import fetch_opening_impact_factors
 from gmx_crypto_bot_v2.collection.journal import CollectionJournal
 from gmx_crypto_bot_v2.collection.referral import collect as collect_referral
+from gmx_crypto_bot_v2.collection.risk import collect as collect_risk
+from gmx_crypto_bot_v2.collection.risk import verify as verify_risk
 from gmx_crypto_bot_v2.collection.swaps import collect as collect_swaps
 from gmx_crypto_bot_v2.collection.traces import collect_gas_probe, collect_transaction
 from gmx_crypto_bot_v2.collection.window import resolve_window
@@ -39,6 +41,7 @@ SNAPSHOTS = {
     "impact": ("impact-opening-configuration.json", "GmxImpactOpeningConfiguration"),
     "fees": ("fee-opening-configuration.json", "GmxFeeOpeningConfiguration"),
     "accrual": ("accrual-configuration.json", "GmxAccrualConfiguration"),
+    "risk": ("risk-configuration.json", "GmxRiskConfiguration"),
     "referral": ("liquidation-referral-configuration.json", "GmxReferralConfiguration"),
     "swaps": ("swap-opening-state.json", "GmxSwapOpeningState"),
 }
@@ -431,6 +434,7 @@ class CollectionCoordinator:
                     self.output, archive.call
                 ),
                 "accrual": lambda: collect_accrual(self.output, archive),
+                "risk": lambda: collect_risk(self.output, archive),
                 "referral": lambda: collect_referral(
                     self.output,
                     archive,
@@ -453,6 +457,8 @@ class CollectionCoordinator:
         return True
 
     def _verify_snapshot(self, stage, value, schema, requirements, *, coverage=True):
+        if stage == "risk":
+            verify_risk(self.output, value)
         metadata = json.loads((self.output / "metadata.json").read_text())
         if value.get("schema") != schema or value.get("version") != 1:
             raise ValueError(f"incompatible {stage} snapshot")
@@ -464,7 +470,7 @@ class CollectionCoordinator:
         quality = json.loads((self.output / "completeness-report.json").read_text())
         opening = quality["source_block_range"]["from"] - 1
         expected = _recorded_block_hash(self.output, opening)
-        point = value.get("opening", {}) if stage in {"fees", "accrual"} else value
+        point = value.get("opening", {}) if stage in {"fees", "accrual", "risk"} else value
         block = point.get("block_number", point.get("opening_block"))
         block_hash = point.get("block_hash", point.get("opening_hash"))
         if block != opening or block_hash != expected:

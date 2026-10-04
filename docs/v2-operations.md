@@ -44,6 +44,15 @@ Without installing, use `PYTHONPATH=src python -m gmx_crypto_bot_v2.collector`,
 | `evidence-readiness.json` | Collection coverage, missing inputs, and catalog counters | Derived |
 | `order-validation.json` | Economic check results | Derived |
 
+`risk-configuration.json` is a historical snapshot sidecar. It pins the opening
+and closing DataStore values for minimum collateral and position size, opening
+and liquidation leverage thresholds, open-interest multipliers, trader PnL
+caps, liquidation impact and fee factors, and records relevant
+`SetUint` changes from the raw log evidence. Its archive reads are checked
+against the recording's block hashes. An existing complete recording can obtain
+this sidecar with `GMX_ARCHIVE_RPC_URL` configured and `gmx-collect --output
+recordings/<recording> --resume`; the base event window is reused.
+
 The trace store `.collection/traces.sqlite` is authoritative saved evidence and
 must not be deleted. It is distinct from the disposable catalog. On resume,
 legacy `execution-fee-traces/*.json` files are migrated under the single-writer
