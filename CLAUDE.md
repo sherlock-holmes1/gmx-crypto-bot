@@ -19,4 +19,4 @@ fee, collateral, and liquidation mechanics instead.
 - Replay in canonical chain order and make the state digest deterministic.
 - Treat missing blocks and reorgs as data gaps, never as harmless omissions.
 - Version all market configuration by block number.
-
+- For Step 4 simulator work, load `.agents/skills/gmx-step4-orchestrator/SKILL.md` before starting the implementation pipeline.

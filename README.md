@@ -27,6 +27,8 @@ See [architecture](docs/architecture.md), [V2 operations](docs/v2-operations.md)
 [regression results](docs/v2-validation.md), and the
 [V1 reference](docs/v1-collector-and-validation.md).
 
+Step 4 implementation follows the [developer–tester workflow](docs/step4-agentic-flow.md), driven by the [primary agent's orchestrator skill](.agents/skills/gmx-step4-orchestrator/SKILL.md). The [stage status](docs/step4-agentic-status.md) records handoffs and review returns.
+
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.
 
