@@ -125,7 +125,43 @@ class EconomicsTest(unittest.TestCase):
                                     is_liquidation=True)
         result = calculate(state(), liquidation, before, REF)
         self.assertEqual(result.status, "unavailable")
-        self.assertIn("insolvency", result.reason)
+        self.assertIn("liquidation_fee_factor", result.reason)
+
+    def test_insolvent_liquidation_settles_until_first_unpaid_cost(self):
+        adverse = state()
+        adverse.oracle[I] = (P // 2, P // 2)
+        adverse.configuration["risk:liquidation_fee_factor"] = P // 100
+        adverse.configuration["risk:max_position_impact_factor_for_liquidations"] = 0
+        liquidation = EconomicOrder(False, True, 10 * P, 10, S, None, 0,
+                                    is_liquidation=True, execution_fee_wei=0)
+        before = PositionBefore(10 * P, 10, 2, 0, 0)
+        result = calculate(adverse, liquidation, before, REF)
+        self.assertEqual(result.status, "eligible")
+        self.assertEqual(result.settlement["insolvent_step"], "pnl")
+        self.assertEqual(result.settlement["collateral_output"], 0)
+        self.assertEqual([item["step"] for item in result.settlement["payments"]],
+                         ["funding", "pnl"])
+
+    def test_profitable_decrease_with_historical_cap(self):
+        profitable = state()
+        profitable.oracle[I] = (2 * P, 2 * P)
+        profitable.configuration["risk:max_pnl_factor_for_traders_long"] = P
+        before = PositionBefore(10 * P, 10, 100, 0, 0)
+        result = calculate(profitable, order(increase=False), before, REF)
+        self.assertEqual(result.status, "eligible")
+        self.assertEqual(result.settlement["base_pnl_usd"], 10 * P)
+        self.assertEqual(result.settlement["pnl_token_output"], 10)
+        self.assertEqual(result.settlement["collateral_output"], 100)
+        profitable.configuration["risk:max_pnl_factor_for_traders_long"] = P // 100
+        capped = calculate(profitable, order(increase=False), before, REF)
+        self.assertEqual(capped.status, "eligible")
+        self.assertEqual(capped.settlement["base_pnl_usd"], P)
+        self.assertEqual(capped.settlement["pnl_token_output"], 1)
+        profitable.configuration["risk:max_pnl_factor_for_traders_long"] = 0
+        zero_capped = calculate(profitable, order(increase=False), before, REF)
+        self.assertEqual(zero_capped.status, "eligible")
+        self.assertEqual(zero_capped.settlement["base_pnl_usd"], 0)
+        self.assertEqual(zero_capped.settlement["pnl_token_output"], 0)
 
     def test_missing_virtual_or_accrual_is_unavailable(self):
         candidate = order()

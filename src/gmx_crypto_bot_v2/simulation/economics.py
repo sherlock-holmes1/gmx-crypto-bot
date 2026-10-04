@@ -19,6 +19,7 @@ from gmx_crypto_bot_v2.models.accrual import ceil_div
 from gmx_crypto_bot_v2.models.arithmetic import _proportional_pending_impact, _trunc_div
 from gmx_crypto_bot_v2.models.impact import predict_current_impact
 from gmx_crypto_bot_v2.models.referral import discount_amounts
+from gmx_crypto_bot_v2.simulation.pnl_cap import capped_position_pnl
 from gmx_crypto_bot_v2.models.settlement import Cash
 from gmx_crypto_bot_v2.simulation.evidence import EvidenceState, UnavailableEvidence
 
@@ -171,13 +172,18 @@ def _settle_decrease(
     total_pnl = before.size_tokens * (index_min if order.is_long else index_max) - before.size_usd
     if not order.is_long:
         total_pnl = -total_pnl
+    total_pnl = capped_position_pnl(state, order.is_long, total_pnl)
     base = _trunc_div(total_pnl * order.size_delta_tokens, before.size_tokens)
     if base > 0:
-        # GMX caps profitable PnL against market pool/configuration state.
-        # Until those historical cap inputs are modeled independently, a
-        # profitable decrease cannot claim a settled cash amount.
-        raise UnavailableEvidence("profitable PnL cap evidence unavailable")
+        payout = base // pnl_max
+    else:
+        payout = 0
     cash = Cash(before.collateral_amount, 0, 0, collateral_min, pnl_min)
+    if payout:
+        if pnl_token == order.collateral_token:
+            cash.output += payout
+        else:
+            cash.secondary += payout
     if impact > 0:
         amount = impact // pnl_max
         if pnl_token == order.collateral_token:
@@ -185,6 +191,7 @@ def _settle_decrease(
         else:
             cash.secondary += amount
     payments = []
+    insolvent_step = None
     for label, usd in (
         ("funding", funding * collateral_min),
         ("pnl", max(-base, 0)),
@@ -195,7 +202,10 @@ def _settle_decrease(
         paid = cash.pay(usd)
         payments.append({"step": label, **paid})
         if paid["remaining_cost_usd"]:
-            raise UnavailableEvidence(f"insolvent at {label} settlement")
+            if not order.is_liquidation:
+                raise UnavailableEvidence(f"insolvent at {label} settlement")
+            insolvent_step = label
+            break
     full_close = order.size_delta_usd == before.size_usd
     if not full_close:
         if order.withdrawal_amount > cash.collateral:
@@ -213,6 +223,7 @@ def _settle_decrease(
         "pnl_token": pnl_token,
         "payments": payments,
         "full_close": full_close,
+        "insolvent_step": insolvent_step,
     }
 
 
@@ -229,8 +240,10 @@ def calculate(
                 before.size_usd, before.size_tokens, before.collateral_amount) < 0
                 or order.size_delta_usd == 0):
             raise UnavailableEvidence("invalid size or cash input")
-        if order.is_liquidation:
-            raise UnavailableEvidence("liquidation settlement requires insolvency model")
+        if order.is_liquidation and (order.is_increase or
+                order.size_delta_usd != before.size_usd or
+                order.withdrawal_amount or order.execution_fee_wei):
+            raise UnavailableEvidence("liquidation requires full close and zero user execution fee")
         if not order.is_increase and (before.size_usd == 0 or before.size_tokens == 0
                                       or order.size_delta_usd > before.size_usd
                                       or order.size_delta_tokens > before.size_tokens):
@@ -274,11 +287,19 @@ def calculate(
             pending_usd = pending * (index_min if pending > 0 else index_max)
             total += pending_usd
             if total < 0:
-                negative_cap = -(order.size_delta_usd * factors["max_position_impact_factor_negative"] // FLOAT_PRECISION)
+                cap_factor = (state.configuration.get(
+                    "risk:max_position_impact_factor_for_liquidations")
+                    if order.is_liquidation else
+                    factors["max_position_impact_factor_negative"])
+                if type(cap_factor) is not int:
+                    raise UnavailableEvidence("missing liquidation impact cap")
+                negative_cap = -(order.size_delta_usd * cap_factor // FLOAT_PRECISION)
                 if total < negative_cap:
                     diff = negative_cap - total
                     total = negative_cap
             if total > 0:
+                if order.is_liquidation:
+                    total = 0
                 total = min(total, positive_cap)
                 if factors["max_lendable_impact_factor"] or factors["max_lendable_impact_usd"]:
                     raise UnavailableEvidence("lendable positive impact cap unsupported")
@@ -308,9 +329,11 @@ def calculate(
         improved = model["balance_was_improved"]
         factor = _config(state, "fee", "position_fee_positive" if improved else "position_fee_negative")
         position_fee = order.size_delta_usd * factor // FLOAT_PRECISION // collateral_min
-        discount = discount_amounts(position_fee, referral.code, referral.rebate_bps,
-                                    referral.share_bps, referral.minimum,
-                                    referral.pro_tier, referral.pro_factor)["totalDiscountAmount"]
+        referral_amounts = discount_amounts(position_fee, referral.code,
+                                            referral.rebate_bps, referral.share_bps,
+                                            referral.minimum, referral.pro_tier,
+                                            referral.pro_factor)
+        discount = referral_amounts["totalDiscountAmount"]
         market = state.market
         if not market:
             raise UnavailableEvidence("missing market identity")
@@ -330,13 +353,19 @@ def calculate(
                          _config(state, "fee", "max_ui_fee")))
         ui_fee = order.size_delta_usd * ui_factor // FLOAT_PRECISION // collateral_min
         liquidation = 0
+        if order.is_liquidation:
+            liquidation_factor = _config(state, "risk", "liquidation_fee_factor")
+            liquidation = ceil_div(order.size_delta_usd * liquidation_factor // FLOAT_PRECISION,
+                                   collateral_min)
         total_fee = position_fee + borrowing_fee + funding_fee + ui_fee + liquidation - discount
         if total_fee < 0:
             raise UnavailableEvidence("negative net position charge")
         fees = {"position_fee_amount": position_fee, "borrowing_fee_usd": borrowing_usd,
                 "borrowing_fee_amount": borrowing_fee, "funding_fee_amount": funding_fee,
                 "ui_fee_amount": ui_fee, "liquidation_fee_amount": liquidation,
-                "discount_amount": discount, "total_cost_amount": total_fee}
+                "discount_amount": discount, "total_cost_amount": total_fee,
+                "protocol_fee_amount": referral_amounts["protocolFeeAmount"],
+                "affiliate_reward_amount": referral_amounts["referral.affiliateRewardAmount"]}
         settlement = None
         if not order.is_increase and acceptable_met:
             settlement = _settle_decrease(state, order, before, total, diff,

@@ -64,9 +64,7 @@ def fee_only_increase_pool_effect(
     if not order.is_increase or economics.status != "eligible":
         raise UnavailableEvidence("fee-only pool effect needs eligible increase")
     charges = economics.fees
-    if charges.get("discount_amount") != 0:
-        raise UnavailableEvidence("referral pool distribution unavailable")
-    position = charges.get("position_fee_amount")
+    position = charges.get("protocol_fee_amount")
     borrowing = charges.get("borrowing_fee_amount")
     position_receiver = state.configuration.get("fee:position_fee_receiver")
     borrowing_receiver = state.configuration.get("fee:borrowing_fee_receiver")
@@ -85,19 +83,83 @@ def fee_only_increase_pool_effect(
 def fee_only_decrease_pool_effect(
     state: EvidenceState, order: EconomicOrder, economics: EconomicResult
 ) -> PoolEffect:
-    """Derive pool fees for a flat decrease with no PnL or impact transfer."""
+    """Derive decrease pool transfers from independently settled payments.
+
+    Mirrors the pool and impact-pool branches in GMX
+    DecreasePositionCollateralUtils.processCollateral. Claimable balances are
+    outside this market overlay, so secondary-token funding and capped-impact
+    collateral claims remain unavailable.
+    """
     if order.is_increase or economics.status != "eligible" or economics.settlement is None:
         raise UnavailableEvidence("fee-only decrease effect needs settled decrease")
     settlement = economics.settlement
-    if (settlement.get("base_pnl_usd") != 0
-            or settlement.get("pnl_token_output") != 0
-            or economics.impact.get("total_impact_usd") != 0
-            or economics.impact.get("negative_cap_diff_usd") != 0
-            or economics.fees.get("funding_fee_amount") != 0):
-        raise UnavailableEvidence("decrease pool PnL, impact or funding effect unavailable")
+    impact = economics.impact.get("total_impact_usd")
+    if (type(impact) is not int or
+            economics.impact.get("negative_cap_diff_usd") != 0):
+        raise UnavailableEvidence("decrease impact or funding pool effect unavailable")
+    payments = {item["step"]: item for item in settlement["payments"]}
+    funding_payment = payments.get("funding")
+    if (funding_payment is None or funding_payment["paid_in_secondary"] or
+            funding_payment["remaining_cost_usd"] or
+            funding_payment["paid_in_collateral"] !=
+            economics.fees.get("funding_fee_amount")):
+        raise UnavailableEvidence("funding claimable transfer unavailable")
+    index_range = state.oracle.get(state.index_token)
+    if index_range is None or min(index_range) <= 0:
+        raise UnavailableEvidence("decrease impact index price unavailable")
+    impact_pool_delta = 0
+    if impact > 0:
+        impact_pool_delta = -((impact + index_range[0] - 1) // index_range[0])
+        if -impact_pool_delta > state.impact_pool_amount:
+            raise UnavailableEvidence("decrease impact exceeds impact pool")
+    if settlement.get("insolvent_step") is not None:
+        if not order.is_liquidation or settlement["insolvent_step"] != "pnl":
+            raise UnavailableEvidence("insolvent pool distribution unavailable")
+        payment = payments.get("pnl")
+        if payment is None or payment["paid_in_secondary"]:
+            raise UnavailableEvidence("insolvent PnL transfer unavailable")
+        return PoolEffect({order.collateral_token: payment["paid_in_collateral"]},
+                          impact_pool_delta, "independent_insolvent_liquidation_pnl_transfer")
+    fee_payment = payments.get("fees")
+    if (fee_payment is None or fee_payment["remaining_cost_usd"] or
+            fee_payment["paid_in_secondary"]):
+        raise UnavailableEvidence("secondary-token fee pool distribution unavailable")
     equivalent_increase = replace(order, is_increase=True)
     effect = fee_only_increase_pool_effect(state, equivalent_increase, economics)
-    return replace(effect, source="independent_flat_decrease_fee_distribution")
+    pools = dict(effect.pool_amount)
+    base = settlement.get("base_pnl_usd")
+    if type(base) is not int:
+        raise UnavailableEvidence("decrease PnL unavailable")
+    pnl_token = settlement.get("pnl_token")
+    if pnl_token not in state.pool_amount:
+        raise UnavailableEvidence("PnL pool token unavailable")
+    if base < 0:
+        payment = payments.get("pnl")
+        if payment is None or payment["remaining_cost_usd"]:
+            raise UnavailableEvidence("loss pool settlement unavailable")
+        pools[order.collateral_token] = pools.get(order.collateral_token, 0) + payment["paid_in_collateral"]
+        pools[pnl_token] = pools.get(pnl_token, 0) + payment["paid_in_secondary"]
+    elif base > 0:
+        pnl_price = state.oracle[pnl_token][1]
+        payout = base // pnl_price
+        pools[pnl_token] = pools.get(pnl_token, 0) - payout
+    if impact > 0:
+        payout = impact // state.oracle[pnl_token][1]
+        pools[pnl_token] = pools.get(pnl_token, 0) - payout
+    elif impact < 0:
+        payment = payments.get("impact")
+        if payment is None or payment["remaining_cost_usd"]:
+            raise UnavailableEvidence("negative impact settlement unavailable")
+        collateral_paid = payment["paid_in_collateral"]
+        pnl_paid = payment["paid_in_secondary"]
+        pools[order.collateral_token] = pools.get(order.collateral_token, 0) + collateral_paid
+        pools[pnl_token] = pools.get(pnl_token, 0) + pnl_paid
+        impact_pool_delta = (
+            collateral_paid * state.oracle[order.collateral_token][0] // index_range[1]
+            + pnl_paid * state.oracle[pnl_token][0] // index_range[1]
+        )
+    return replace(effect, pool_amount=pools, impact_pool_tokens=impact_pool_delta,
+                   source="independent_decrease_fee_and_pnl_distribution")
 
 
 @dataclass(frozen=True)
@@ -194,8 +256,11 @@ def apply_fill(
         raise UnavailableEvidence("independent pool effect unavailable")
     if order.is_long != ledger.is_long or order.collateral_token != ledger.collateral_token:
         raise UnavailableEvidence("order does not match position ledger")
-    if order.is_liquidation:
-        raise UnavailableEvidence("liquidation ledger unavailable")
+    if order.is_liquidation and (order.is_increase or
+                                 economics.settlement is None or
+                                 not economics.settlement["full_close"] or
+                                 economics.execution_fee_wei):
+        raise UnavailableEvidence("invalid liquidation ledger settlement")
     if min(order.collateral_delta_amount, economics.execution_fee_wei) < 0:
         raise UnavailableEvidence("negative cash movement")
     if economics.execution_fee_wei != order.execution_fee_wei:
@@ -212,6 +277,10 @@ def apply_fill(
     charges = economics.fees.get("total_cost_amount")
     if type(charges) is not int or charges < 0:
         raise UnavailableEvidence("position charges unavailable")
+    if order.is_liquidation and economics.settlement.get("insolvent_step") == "pnl":
+        # Funding is zero in the independently derived pool path; later fees
+        # were never reached by ordered settlement.
+        charges = 0
     if order.is_increase:
         if economics.settlement is not None:
             raise UnavailableEvidence("increase cannot have decrease settlement")

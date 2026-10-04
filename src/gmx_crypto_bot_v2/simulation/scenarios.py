@@ -314,9 +314,12 @@ def run_scenario(
                 # Check the open position before a pending stop or decrease can
                 # execute. Missing coverage prevents a hypothetical fill.
                 if ledger.size_usd:
-                    point = assess(state, ledger, risk_configuration.get(coordinate),
-                                   virtual_inventory_tokens=risk_virtual_inventory.get(coordinate),
-                                   referral=risk_referral.get(coordinate))
+                    # The keeper terminal follows the position log used as
+                    # the economic pre-state. Risk evidence must cover that
+                    # earlier coordinate, not begin at the terminal log.
+                    point = assess(state, ledger, risk_configuration.get(state.coordinate),
+                                   virtual_inventory_tokens=risk_virtual_inventory.get(state.coordinate),
+                                   referral=risk_referral.get(state.coordinate))
                     if point.status == "unavailable":
                         raise UnavailableEvidence(point.reason or "risk unavailable")
                     if point.liquidatable:
@@ -327,7 +330,8 @@ def run_scenario(
                 order = replace(plan.economics,
                                 acceptable_price=selected_acceptable,
                                 execution_fee_wei=scenario.execution_fee_wei,
-                                virtual_inventory_tokens=risk_virtual_inventory.get(coordinate))
+                                virtual_inventory_tokens=risk_virtual_inventory.get(state.coordinate,
+                                                                                     risk_virtual_inventory.get(coordinate)))
                 modeled = calculate(state, order, ledger.before(), plan.referral)
                 if modeled.status == "unavailable":
                     raise UnavailableEvidence(modeled.reason or "economics unavailable")
@@ -377,8 +381,31 @@ def run_scenario(
                     reasons.append(point.reason or "risk point unavailable")
                     halted = ledger.size_usd > 0
                 elif point.liquidatable:
-                    reasons.append("liquidation settlement unavailable")
-                    halted = True
+                    try:
+                        virtual = risk_virtual_inventory.get(coordinate)
+                        referral = risk_referral.get(coordinate)
+                        if referral is None:
+                            raise UnavailableEvidence("liquidation referral unavailable")
+                        liquidation = EconomicOrder(
+                            False, ledger.is_long, ledger.size_usd,
+                            ledger.size_tokens, ledger.collateral_token, None,
+                            virtual, is_liquidation=True,
+                        )
+                        modeled = calculate(state, liquidation, ledger.before(),
+                                            referral.terms)
+                        if modeled.status != "eligible":
+                            raise UnavailableEvidence(modeled.reason or
+                                                      "liquidation economics unavailable")
+                        effect = fee_only_decrease_pool_effect(state, liquidation,
+                                                               modeled)
+                        transition = apply_fill(ledger, market, raw, liquidation,
+                                                modeled, effect)
+                        ledger, market = transition.ledger, transition.market
+                        risk[-1] = replace(risk[-1], point=replace(
+                            point, liquidation_settlement="settled"))
+                    except (UnavailableEvidence, KeyError, ValueError) as error:
+                        reasons.append("liquidation settlement unavailable: " + str(error))
+                        halted = True
             except (UnavailableEvidence, KeyError, ValueError) as error:
                 reason = str(error)
                 reasons.append(reason)

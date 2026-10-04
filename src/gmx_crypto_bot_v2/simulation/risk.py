@@ -16,6 +16,7 @@ from gmx_crypto_bot_v2.models.referral import discount_amounts
 from gmx_crypto_bot_v2.simulation.economics import ReferralTerms
 from gmx_crypto_bot_v2.simulation.evidence import EvidenceState, UnavailableEvidence
 from gmx_crypto_bot_v2.simulation.ledger import PositionLedger
+from gmx_crypto_bot_v2.simulation.pnl_cap import capped_position_pnl
 
 P = 10**30
 Coordinate = tuple[int, int, int]
@@ -132,8 +133,7 @@ def assess(
         pnl = position.size_tokens * index - position.size_usd
         if not position.is_long:
             pnl = -pnl
-        if pnl > 0:
-            raise UnavailableEvidence("historical max-PnL cap unavailable")
+        pnl = capped_position_pnl(state, position.is_long, pnl)
         market = state.market
         borrowing_now = state.accrual.get(key("CUMULATIVE_BORROWING_FACTOR",
                                               market, position.is_long))

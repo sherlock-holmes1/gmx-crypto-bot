@@ -11,7 +11,7 @@ from gmx_crypto_bot_v2.simulation.risk import RiskConfiguration, RiskReferralEvi
 from gmx_crypto_bot_v2.simulation.scenarios import (
     PlannedOrder, Scenario, run_grid, run_scenario, scenario_grid,
 )
-from tests.v2.test_simulation_economics import P, S
+from tests.v2.test_simulation_economics import I, P, S
 from tests.v2.test_simulation_ledger import observed
 
 
@@ -65,6 +65,24 @@ def risk_inputs():
 
 
 class ScenarioTest(unittest.TestCase):
+    def test_insolvent_liquidation_settles_at_risk_coordinate(self):
+        evidence = FakeEvidence()
+        adverse = replace(evidence.risk)
+        adverse.oracle[I] = (P // 2, P // 2)
+        adverse.configuration["risk:liquidation_fee_factor"] = P // 100
+        adverse.configuration["risk:max_position_impact_factor_for_liquidations"] = 0
+        evidence.risk = adverse
+        inputs = risk_inputs()
+        cfg = RiskConfiguration((11, 0, 0), 12, 0, 0, 0,
+                                "pinned test config", 0, 0)
+        inputs["risk_configuration"] = {c: cfg for c in inputs["risk_coordinates"]}
+        initial = PositionLedger(True, S, 0, 0, size_usd=10 * P,
+                                 size_tokens=10, collateral_usdc=2)
+        report = run_scenario(evidence, (), scenario(), initial, **inputs)
+        self.assertEqual(report.risk[0].point.liquidation_settlement, "settled")
+        self.assertEqual(report.metrics["liquidation_count"], 1)
+        self.assertEqual(report.status, "complete", report.unavailable_reasons)
+
     def test_later_candidate_fills_with_evidence_costs_and_balanced_cash(self):
         report = run_scenario(FakeEvidence(), (plan(),), scenario(),
             PositionLedger(True, S, 100, 20), **risk_inputs())

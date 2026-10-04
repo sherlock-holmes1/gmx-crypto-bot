@@ -46,6 +46,64 @@ def prices():
 
 
 class EvidenceAdapterTest(unittest.TestCase):
+    def test_virtual_inventory_anchor_and_continuity(self):
+        rows = [event("VirtualPositionInventoryUpdated", 1,
+                      {"virtualTokenId": I, "delta": 2, "nextValue": 12}),
+                event("VirtualPositionInventoryUpdated", 2,
+                      {"virtualTokenId": I, "delta": -3, "nextValue": 9})]
+        adapter = fixture(rows)
+        adapter.virtual_token_id = I
+        # Constructor indexes the market's virtual token ID, so use the
+        # explicit ID when constructing a covered adapter.
+        adapter = EvidenceAdapter(start=10, end=12, market=M, index_token=I,
+            long_token=L, short_token=S, opening=adapter.opening, events=rows,
+            impact_histories=adapter.impact_histories,
+            fee_histories=adapter.fee_histories, virtual_token_id=I)
+        self.assertEqual(adapter.virtual_inventory_at((10, 0, 1)), 10)
+        self.assertEqual(adapter.virtual_inventory_at((10, 0, 2)), 12)
+        self.assertEqual(adapter.virtual_inventory_at((10, 0, 3)), 9)
+        rows[1] = event("VirtualPositionInventoryUpdated", 2,
+                        {"virtualTokenId": I, "delta": -3, "nextValue": 8})
+        with self.assertRaisesRegex(UnavailableEvidence, "continuity"):
+            EvidenceAdapter(start=10, end=12, market=M, index_token=I,
+                long_token=L, short_token=S, opening=adapter.opening, events=rows,
+                impact_histories=adapter.impact_histories,
+                fee_histories=adapter.fee_histories, virtual_token_id=I)
+
+    def test_risk_coordinate_waits_for_complete_transaction_oracle(self):
+        rows = prices() + [event("PositionImpactPoolAmountUpdated", 3,
+            dict(market=M, delta=0, nextValue=50)),
+            event("OrderExecuted", 4, {})]
+        adapter = fixture(rows)
+        self.assertEqual(adapter.required_risk_coordinates(), ((10, 0, 3),))
+        self.assertEqual(len(adapter.at((10, 0, 3)).oracle), 3)
+        adapter = fixture(prices())
+        self.assertEqual(adapter.required_risk_coordinates(), ((10, 0, 2),))
+        with self.assertRaisesRegex(UnavailableEvidence, "same-transaction oracle"):
+            adapter.at((10, 0, 2))
+
+    def test_risk_snapshot_is_versioned_before_change_log(self):
+        rows = prices() + [event("PositionImpactPoolAmountUpdated", 3,
+            dict(market=M, delta=0, nextValue=50)),
+            event("SetUint", 4, {}), event("OrderExecuted", 5, {})]
+        adapter = fixture(rows)
+        fields = {
+            "min_collateral_usd": 3,
+            "min_collateral_factor_for_liquidation": 4,
+            "max_position_impact_factor_for_liquidations": 5,
+        }
+        adapter.risk_snapshot = {
+            "opening": {"values": {name: {"value": value}
+                                   for name, value in fields.items()}},
+            "changes": [{"coordinate": [10, 0, 4], "field": "min_collateral_usd",
+                         "value": 9}],
+        }
+        self.assertEqual(adapter.risk_values_at((10, 0, 4))["min_collateral_usd"], 3)
+        self.assertEqual(adapter.risk_values_at((10, 0, 5))["min_collateral_usd"], 9)
+        self.assertEqual(adapter.risk_configuration_at((10, 0, 5)).min_collateral_usd, 9)
+        with self.assertRaisesRegex(UnavailableEvidence, "outside recording"):
+            adapter.risk_values_at((13, 0, 0))
+
     def test_ui_receiver_comes_from_observed_fee_event(self):
         rows = [event("PositionFeesCollected", 1,
                       {"uiFeeReceiver": "0xABC"}),
@@ -114,6 +172,22 @@ class EvidenceAdapterTest(unittest.TestCase):
         ]
         state = fixture(rows).at((10, 0, 6))
         self.assertEqual(state.open_interest_usd["long"], 20)
+        self.assertEqual(state.pool_amount[L], 100)
+
+    def test_unique_order_reverses_multiple_pool_updates(self):
+        rows = prices() + [
+            event("PositionImpactPoolAmountUpdated", 3,
+                  dict(market=M, delta=0, nextValue=50)),
+            event("PoolAmountUpdated", 4,
+                  dict(market=M, token=L, delta=-2, nextValue=98)),
+            event("PoolAmountUpdated", 5,
+                  dict(market=M, token=L, delta=3, nextValue=101)),
+            event("PositionDecrease", 6,
+                  dict(market=M, collateralToken=S, isLong=True,
+                       sizeDeltaInTokens=0, sizeDeltaUsd=0, orderKey="0xone")),
+            event("OrderExecuted", 7, dict(key="0xone")),
+        ]
+        state = fixture(rows).at((10, 0, 6))
         self.assertEqual(state.pool_amount[L], 100)
 
     def test_missing_config_and_broken_continuity_unavailable(self):
