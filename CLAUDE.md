@@ -8,9 +8,7 @@ collect public data, replay recordings, and simulate historical execution.
 Do not add wallet access, private-key handling, order signing, order submission,
 or live-capital logic without an explicit user decision and a separate runbook.
 
-GMX is not a CLOB. Do not import Polymarket assumptions about bid/ask queues,
-maker rebates, or complementary pair merging. Model GMX request, keeper, oracle,
-fee, collateral, and liquidation mechanics instead.
+Model GMX request, keeper, oracle, fee, collateral, and liquidation mechanics.
 
 ## Engineering rules
 
