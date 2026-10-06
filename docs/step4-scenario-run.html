@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GMX Step 4 · Scenario run</title>
+  <style>
+    :root{--bg:#0b1018;--panel:#131b27;--panel2:#192433;--line:#2b3a4c;--text:#eaf0f6;--muted:#a9b8c8;--cyan:#65dbe0;--blue:#86a9ff;--green:#8ee0ad;--amber:#f5c576;--red:#fb9494;--radius:18px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 82% 2%,#172d3f 0,transparent 35%),var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}button,select{font:inherit}button{cursor:pointer}a{color:var(--cyan)}a:hover{color:#adf5f7}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+    .wrap{max-width:1240px;margin:auto;padding:36px 24px 64px}.topline{display:flex;justify-content:space-between;gap:20px;align-items:center;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);font-weight:750}.topline a{text-transform:none;letter-spacing:0;font-weight:600}.hero{max-width:860px;margin:52px 0 34px}.eyebrow{color:var(--cyan);font-size:.85rem;text-transform:uppercase;letter-spacing:.16em;font-weight:750}h1{font-size:clamp(2.6rem,6vw,5.3rem);line-height:1.04;letter-spacing:-.055em;margin:14px 0 18px}h2{font-size:1.55rem;line-height:1.2;letter-spacing:-.025em;margin:0 0 12px}h3{font-size:1rem;margin:0 0 8px}.lede{color:#c5d2dd;font-size:1.16rem;max-width:710px;margin:0}.notice{display:inline-flex;gap:9px;align-items:center;border:1px solid #395268;border-radius:999px;color:#bdcfdd;background:#142330;padding:7px 13px;font-size:.81rem;margin-top:24px}.notice:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:20px;align-items:start}.main{min-width:0}.panel{border:1px solid var(--line);background:linear-gradient(150deg,rgba(25,36,51,.97),rgba(17,25,36,.98));border-radius:var(--radius);box-shadow:0 16px 42px #0003}.control{padding:23px 26px;margin-bottom:18px;display:flex;gap:22px;align-items:end;justify-content:space-between;flex-wrap:wrap}.control label{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:750;margin-bottom:8px}.control select{min-width:min(100%,340px);padding:11px 38px 11px 14px;border:1px solid #426078;border-radius:10px;background:#111e2b;color:var(--text)}.control .hint{max-width:330px;color:var(--muted);font-size:.86rem;margin:0}.stage{padding:26px}.stage-head{display:flex;align-items:flex-start;gap:18px;margin-bottom:21px}.step-number{flex:none;display:grid;place-items:center;width:45px;height:45px;border-radius:13px;background:#23414a;color:var(--cyan);font-weight:800}.stage-kicker{text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-size:.74rem;font-weight:750;margin:0 0 5px}.stage-title{font-size:clamp(1.55rem,3vw,2.1rem);letter-spacing:-.03em;line-height:1.15;margin:0}.stage-summary{font-size:1.04rem;color:#d6e1e9;margin:0 0 23px;max-width:680px}.trace{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 24px}.trace-card{border:1px solid #35485c;background:#111c29;border-radius:12px;padding:13px;min-height:91px}.trace-label{display:block;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:.68rem;font-weight:800;margin-bottom:6px}.trace-value{font-size:.87rem;font-weight:650;overflow-wrap:anywhere}.trace-card.active{border-color:var(--cyan);background:#142e36}.trace-card.done{border-color:#47765e}.detail{padding:18px 20px;background:#0f1925;border-left:3px solid var(--blue);border-radius:0 10px 10px 0;color:#c9d7e2;margin-bottom:22px}.detail strong{color:#e7eff9}.detail p{margin:5px 0 0}.controls-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.buttons{display:flex;gap:8px}.nav{background:#233449;border:1px solid #39526c;color:var(--text);padding:10px 16px;border-radius:9px;font-weight:700}.nav.primary{background:var(--cyan);border-color:var(--cyan);color:#092028}.nav:disabled{opacity:.45;cursor:not-allowed}.progress-label{color:var(--muted);font-size:.84rem}.dots{display:flex;gap:7px;align-items:center;margin-top:21px}.dot{border:0;border-radius:99px;width:24px;height:7px;padding:0;background:#425267;transition:width .2s,background .2s}.dot.current{width:42px;background:var(--cyan)}.dot.visited{background:var(--green)}
+    .sidebar{padding:23px;position:sticky;top:20px}.side-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}.side-title h2{font-size:1.1rem;margin:0}.status{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:850;padding:5px 9px;border-radius:99px;border:1px solid}.status.complete{color:var(--green);border-color:#47765e;background:#1d382b}.status.unavailable{color:var(--amber);border-color:#806340;background:#352819}.status.rejected{color:var(--red);border-color:#8b5050;background:#3a2429}.state-row{display:flex;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:13px 0;font-size:.87rem}.state-row span:first-child{color:var(--muted)}.state-row strong{text-align:right;overflow-wrap:anywhere}.side-note{border-top:1px solid var(--line);padding-top:17px;margin-top:9px;color:var(--muted);font-size:.83rem}.side-note p{margin:0 0 9px}.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:8px;height:8px;border-radius:50%;background:var(--cyan);display:inline-block}.legend span:nth-child(2) i{background:var(--green)}
+    .sequence{margin-top:19px;padding:25px}.sequence h2{font-size:1.15rem}.sequence p{color:var(--muted);margin:0 0 16px}.sequence-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.sequence-item{border:1px solid var(--line);background:#111b28;color:var(--muted);border-radius:11px;text-align:left;padding:11px 12px;min-height:76px}.sequence-item span{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}.sequence-item strong{color:var(--text);font-size:.83rem;line-height:1.3;display:block}.sequence-item.current{border-color:var(--cyan);background:#15313a}.sequence-item.past{border-color:#47765e}.footer{display:flex;gap:20px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:32px;padding-top:19px;color:var(--muted);font-size:.83rem}.footer a{font-weight:650}
+    @media(max-width:950px){.workspace{grid-template-columns:1fr}.sidebar{position:static}.sequence-list{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.wrap{padding:22px 15px 40px}.hero{margin:36px 0 25px}.stage,.control,.sidebar,.sequence{padding:19px}.trace{grid-template-columns:1fr}.trace-card{min-height:auto}.sequence-list{grid-template-columns:1fr 1fr}.topline{align-items:flex-start}.stage-head{gap:12px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.dot{transition:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topline"><span>GMX / Step 4 simulator</span><a href="step4-simulator-architecture.md">Read the architecture guide ↗</a></div>
+    <header class="hero">
+      <div class="eyebrow">Interactive walkthrough</div>
+      <h1>Follow one scenario run.</h1>
+      <p class="lede">Move through the recorded evidence, order scheduler, economics, ledger, and risk checks. Change the path to see why a candidate can fill, fail a price check, or become unavailable.</p>
+      <div class="notice">Conceptual walkthrough · no orders sent · no numerical backtest</div>
+    </header>
+
+    <div class="workspace">
+      <main class="main">
+        <section class="panel control" aria-label="Walkthrough settings">
+          <div><label for="path">Choose a path</label><select id="path">
+            <option value="complete">Complete evidence · illustrative fill</option>
+            <option value="price">Acceptable price rejects order</option>
+            <option value="oracle">Missing oracle · recorded September gap</option>
+            <option value="liquidation">Risk check finds liquidation</option>
+          </select></div>
+          <p class="hint" id="path-hint"></p>
+        </section>
+
+        <section class="panel stage" aria-live="polite" aria-atomic="true">
+          <div class="stage-head"><div class="step-number" id="step-number">01</div><div><p class="stage-kicker" id="stage-kicker"></p><h2 class="stage-title" id="stage-title"></h2></div></div>
+          <p class="stage-summary" id="stage-summary"></p>
+          <div class="trace" aria-label="State at this step">
+            <div class="trace-card" id="evidence-card"><span class="trace-label">Recorded evidence</span><div class="trace-value" id="evidence-value"></div></div>
+            <div class="trace-card" id="order-card"><span class="trace-label">Planned order</span><div class="trace-value" id="order-value"></div></div>
+            <div class="trace-card" id="ledger-card"><span class="trace-label">Simulated ledger</span><div class="trace-value" id="ledger-value"></div></div>
+          </div>
+          <div class="detail"><strong id="detail-label"></strong><p id="detail-text"></p></div>
+          <div class="controls-row"><div class="buttons"><button type="button" class="nav" id="previous">← Previous</button><button type="button" class="nav primary" id="next">Next →</button></div><span class="progress-label" id="progress-label"></span></div>
+          <div class="dots" id="dots" aria-label="Steps"></div>
+        </section>
+      </main>
+
+      <aside class="panel sidebar" aria-label="Run state">
+        <div class="side-title"><h2>Run state</h2><span class="status" id="run-status"></span></div>
+        <div class="state-row"><span>Evidence</span><strong id="side-evidence"></strong></div>
+        <div class="state-row"><span>Order</span><strong id="side-order"></strong></div>
+        <div class="state-row"><span>Position</span><strong id="side-position"></strong></div>
+        <div class="state-row"><span>Report</span><strong id="side-report"></strong></div>
+        <div class="side-note"><p>The runner reads recorded state at each coordinate. The ledger holds only simulated position and cash changes.</p><div class="legend"><span><i></i> Current step</span><span><i></i> Passed step</span></div></div>
+      </aside>
+    </div>
+
+    <section class="panel sequence"><h2>Run order</h2><p>Select any step. The runner places keeper candidates and required risk checks in coordinate order.</p><div class="sequence-list" id="sequence"></div></section>
+    <footer class="footer"><span>Based on the Step 4 simulator implementation.</span><a href="step4-final-integration-evidence.md">Recorded evidence and limits ↗</a><a href="../src/gmx_crypto_bot_v2/simulation/scenarios.py">Scenario runner source ↗</a></footer>
+  </div>
+
+  <script>
+    const shared = [
+      {name:'Read evidence',kind:'Evidence adapter',summary:'The adapter loads the recorded market period and checks its required inputs.',detail:'A coordinate identifies the point before a recorded log. Oracle prices must come from the same transaction. Missing or inconsistent inputs return UnavailableEvidence.',evidence:'Recording and configuration checked',order:'Request has not been scheduled',ledger:'Initial position and cash',focus:'evidence',side:['Ready','Planned','Initial','Pending']},
+      {name:'Schedule request',kind:'Order scheduler',summary:'The scheduler applies inclusion delay, keeper delay, triggers, and cancellation timing.',detail:'It selects a keeper opportunity after the request. A candidate is a possible execution point. It is not a fill.',evidence:'Keeper opportunities available',order:'Candidate opportunity selected',ledger:'No fill posted',focus:'order',side:['Ready','Candidate','Initial','Pending']},
+      {name:'Check risk coverage',kind:'Scenario runner',summary:'The runner checks that declared risk coordinates match recorded state changes.',detail:'It combines candidate actions and required risk checks in coordinate order. A missing risk coordinate makes the report unavailable.',evidence:'Risk coordinate list checked',order:'Candidate remains pending',ledger:'No fill posted',focus:'evidence',side:['Covered','Candidate','Initial','Pending']},
+      {name:'Build pre-fill state',kind:'Evidence + market book',summary:'The runner reads the recorded state before the candidate position log.',detail:'CounterfactualBook applies earlier simulated market changes to a fresh recorded state. Recorded trades do not become the simulated position.',evidence:'Pre-log state loaded',order:'Candidate ready for checks',ledger:'Prior simulated changes applied',focus:'ledger',side:['Loaded','Candidate','Before fill','Pending']}
+    ];
+    const paths = {
+      complete:{hint:'Shows the normal control flow when all required inputs are present. This is an illustrative path.',status:'complete',steps:[
+        {name:'Check open-position risk',kind:'Risk gate',summary:'If a position is already open, the runner checks it before the pending order.',detail:'A stop or close request cannot protect a position before it executes. The check uses adverse oracle bounds and full close costs.',evidence:'Risk inputs available',order:'Candidate still pending',ledger:'Open position safe to continue',focus:'ledger',side:['Covered','Candidate','Open / safe','Pending']},
+        {name:'Calculate economics',kind:'Economics',summary:'The calculator tests execution price, impact, fees, funding, borrowing, and the acceptable price.',detail:'The candidate is eligible in this example. The calculator also uses historical configuration and the position state.',evidence:'Historical settings loaded',order:'Eligible for a fill',ledger:'No fill posted yet',focus:'order',side:['Covered','Eligible','Before fill','Pending']},
+        {name:'Post the fill',kind:'Position + market ledger',summary:'The runner posts the eligible fill to the simulated position and market book.',detail:'apply_fill() changes position, USDC cash, ETH fee cash, market open interest, and pool state as supported. The economic result is tied to the state used for this fill.',evidence:'Recorded state stays fixed',order:'Filled estimate',ledger:'Position and cash updated',focus:'ledger',side:['Covered','Filled estimate','Updated','Pending']},
+        {name:'Check the risk path',kind:'Risk checks',summary:'The runner checks the position at every required recorded risk coordinate.',detail:'Each check uses the fresh recorded state plus simulated market changes. It tests collateral, leverage, and liquidation risk.',evidence:'All required points covered',order:'Fill retained',ledger:'Position monitored',focus:'evidence',side:['Covered','Filled estimate','Monitored','Pending']},
+        {name:'Build the report',kind:'Scenario report',summary:'The runner returns order records, risk records, reasons, and final metrics.',detail:'Metrics are available only when the complete path has the needed timestamps and oracle values. This page does not calculate those metrics.',evidence:'Complete path',order:'Filled estimate',ledger:'Final simulated state',focus:'ledger',side:['Complete','Filled estimate','Final','Metrics available']}
+      ]},
+      price:{hint:'Shows a candidate that fails the acceptable price test. No fill enters the ledger.',status:'complete',steps:[
+        {name:'Check open-position risk',kind:'Risk gate',summary:'The runner checks an open position before it tries the candidate order.',detail:'This gate runs before a pending stop or decrease can execute. It can block the candidate if risk evidence is unavailable.',evidence:'Risk inputs available',order:'Candidate still pending',ledger:'No new fill',focus:'ledger',side:['Covered','Candidate','Before fill','Pending']},
+        {name:'Calculate economics',kind:'Economics',summary:'The modeled execution price fails the order’s acceptable price limit.',detail:'The economics result is not eligible. The scheduler candidate does not become a fill.',evidence:'Price and settings loaded',order:'Rejected by price limit',ledger:'No new fill',focus:'order',side:['Covered','Rejected','Unchanged','Pending']},
+        {name:'Continue risk checks',kind:'Risk checks',summary:'The runner continues through the declared risk path for any position that remains open.',detail:'A rejected candidate changes neither the simulated position nor the market book.',evidence:'Required points checked',order:'Rejected',ledger:'Unchanged by candidate',focus:'evidence',side:['Covered','Rejected','Unchanged','Pending']},
+        {name:'Build the report',kind:'Scenario report',summary:'The order record shows the rejection. The report reflects the full risk path.',detail:'A price rejection alone does not imply missing evidence. Final metrics still require complete risk and valuation coverage.',evidence:'Full path required',order:'Rejected',ledger:'No candidate fill',focus:'order',side:['Complete','Rejected','Unchanged','Coverage dependent']}
+      ]},
+      oracle:{hint:'Uses the recorded September long-path gap at coordinate (507378205, 2, 9).',status:'unavailable',steps:[
+        {name:'Post an earlier fill',kind:'Economics + ledger',summary:'An earlier eligible order opens the simulated position.',detail:'This step represents a prior fill in the selected recorded lifecycle. The runner must still check every later risk coordinate.',evidence:'Opening state covered',order:'Earlier fill estimated',ledger:'Position open',focus:'ledger',side:['Covered','Earlier fill','Open','Pending']},
+        {name:'Reach a risk coordinate',kind:'Recorded risk path',summary:'The runner reaches coordinate (507378205, 2, 9) with the position open.',detail:'The risk path includes this recorded state change. A later pending close cannot run before this check.',evidence:'Risk coordinate reached',order:'Close still pending',ledger:'Position open',focus:'evidence',side:['Checking','Close pending','Open','Pending']},
+        {name:'Find missing oracle evidence',kind:'Evidence adapter',summary:'This transaction lacks a complete oracle price set for the risk check.',detail:'The adapter cannot take a price from a different transaction. It reports unavailable evidence at this coordinate.',evidence:'Same-transaction oracle incomplete',order:'Close cannot run',ledger:'No close posted',focus:'evidence',side:['Unavailable','Close withheld','Open','Unavailable']},
+        {name:'Build the report',kind:'Scenario report',summary:'The report is unavailable. The pending close is not reported as filled.',detail:'The report records the missing evidence. Final cash and risk metrics remain empty because this path is incomplete.',evidence:'Gap recorded',order:'Close withheld',ledger:'No later fill',focus:'order',side:['Unavailable','Unavailable','Open at gap','Metrics empty']}
+      ]},
+      liquidation:{hint:'Shows a supported liquidation settlement after a covered risk check.',status:'complete',steps:[
+        {name:'Post an earlier fill',kind:'Economics + ledger',summary:'An earlier eligible order opens the simulated position.',detail:'The ledger carries the position into later recorded market states. The market book carries its simulated effects.',evidence:'Opening state covered',order:'Earlier fill estimated',ledger:'Position open',focus:'ledger',side:['Covered','Earlier fill','Open','Pending']},
+        {name:'Check liquidation risk',kind:'Risk check',summary:'A required risk point makes the open position liquidatable.',detail:'The check uses adverse oracle bounds, capped PnL, fees, funding, borrowing, and full close impact. A pending stop does not bypass this result.',evidence:'Risk inputs available',order:'Pending order not yet run',ledger:'Liquidatable position',focus:'ledger',side:['Covered','Pending','Liquidatable','Pending']},
+        {name:'Settle liquidation',kind:'Economics + ledger',summary:'The runner calculates and posts liquidation when this accounting shape is supported.',detail:'If settlement needs unsupported evidence or accounting, the runner marks it unavailable and stops later fills. This path shows a supported settlement.',evidence:'Settlement inputs covered',order:'Liquidation estimated',ledger:'Position settled',focus:'ledger',side:['Covered','Liquidation','Settled','Pending']},
+        {name:'Build the report',kind:'Scenario report',summary:'The report records the liquidation point and settlement state.',detail:'Complete metrics still require every later required risk point, timestamp, and oracle value. This is a control-flow example, not a numerical result.',evidence:'Full path required',order:'Liquidation recorded',ledger:'Settled',focus:'evidence',side:['Complete','Liquidation','Settled','Coverage dependent']}
+      ]}
+    };
+    const byId = id => document.getElementById(id);
+    const pathSelect = byId('path');
+    let index = 0;
+    function render(){
+      const path = paths[pathSelect.value];
+      const steps = shared.concat(path.steps);
+      const step = steps[index];
+      byId('path-hint').textContent = path.hint;
+      byId('step-number').textContent = String(index + 1).padStart(2,'0');
+      byId('stage-kicker').textContent = step.kind;
+      byId('stage-title').textContent = step.name;
+      byId('stage-summary').textContent = step.summary;
+      byId('detail-label').textContent = 'What the runner does';
+      byId('detail-text').textContent = step.detail;
+      for(const key of ['evidence','order','ledger']){
+        byId(key+'-value').textContent = step[key];
+        byId(key+'-card').className = 'trace-card'+(step.focus===key?' active':'');
+      }
+      const side = step.side;
+      ['evidence','order','position','report'].forEach((key,i)=>byId('side-'+key).textContent=side[i]);
+      const status = byId('run-status');
+      const currentStatus = index===steps.length-1 ? path.status : 'in progress';
+      status.textContent=currentStatus;
+      status.className='status '+(currentStatus==='in progress'?'unavailable':currentStatus);
+      byId('previous').disabled=index===0;
+      byId('next').disabled=index===steps.length-1;
+      byId('progress-label').textContent=`Step ${index+1} of ${steps.length}`;
+      const dots=byId('dots'); dots.replaceChildren();
+      const sequence=byId('sequence'); sequence.replaceChildren();
+      steps.forEach((item,i)=>{
+        const dot=document.createElement('button');dot.type='button';dot.className='dot '+(i===index?'current':i<index?'visited':'');dot.setAttribute('aria-label',`Go to step ${i+1}: ${item.name}`);dot.setAttribute('aria-current',i===index?'step':'false');dot.addEventListener('click',()=>{index=i;render()});dots.append(dot);
+        const card=document.createElement('button');card.type='button';card.className='sequence-item '+(i===index?'current':i<index?'past':'');card.setAttribute('aria-current',i===index?'step':'false');const number=document.createElement('span');number.textContent=`${String(i+1).padStart(2,'0')} / ${item.kind}`;const name=document.createElement('strong');name.textContent=item.name;card.append(number,name);card.addEventListener('click',()=>{index=i;render();byId('stage-title').scrollIntoView({block:'center',behavior:'smooth'})});sequence.append(card);
+      });
+    }
+    pathSelect.addEventListener('change',()=>{index=0;render()});
+    byId('previous').addEventListener('click',()=>{if(index>0){index--;render()}});
+    byId('next').addEventListener('click',()=>{if(index<shared.length+paths[pathSelect.value].steps.length-1){index++;render()}});
+    document.addEventListener('keydown',event=>{if(event.target===pathSelect)return;if(event.key==='ArrowRight'&&!byId('next').disabled){index++;render()}if(event.key==='ArrowLeft'&&!byId('previous').disabled){index--;render()}});
+    render();
+  </script>
+</body>
+</html>

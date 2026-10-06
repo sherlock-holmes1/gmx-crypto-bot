@@ -14,11 +14,12 @@ its original `python -m gmx_crypto_bot...` module paths for comparison.
 The pinned earlier recording passes all 3,614 terminal orders, including 103
 liquidation settlements and 3,511 execution-fee proofs. V2 preserves its complete
 V1 validation report and both replay digests. The September 20–27 recording also
-passes: 2,942 matched terminal orders, no mismatches, no open economic checks. The refactoring is implemented:
-116 original tests and 141 V2 tests pass. Fresh collection and interruption
-recovery have been tested with simulated providers; the existing real recording
-has been validated and replayed offline. **A complete fresh collection against a
-live archive RPC provider has not yet been verified.** Step 4 position simulation is in progress: the pure request scheduler is implemented; the evidence adapter, economics, and risk engine remain open.
+passes: 2,942 matched terminal orders, no mismatches, no open economic checks.
+Fresh collection and interruption recovery have been tested with simulated
+providers; the existing real recording has been validated and replayed offline.
+**A complete fresh collection against a live archive RPC provider has not yet
+been verified.** The Step 4 simulator runs offline and reports missing evidence
+as `unavailable`; see the [integration evidence audit](docs/step4-final-integration-evidence.md).
 
 Learn the protocol through the five-lesson [GMX perpetuals course](docs/gmx-perpetuals-course/README.md),
 including recorded long and short orders and the completed 40-question assessment.
@@ -53,6 +54,7 @@ change.
 | `gmx_crypto_bot_v2.collector` | `gmx-collect` | Collect and resume all evidence stages |
 | `gmx_crypto_bot_v2.replay` | `gmx-replay` | Reconstruct state and verify deterministic replay |
 | `gmx_crypto_bot_v2.validator` | `gmx-validate` | Check historical order execution and economics |
+| `gmx_crypto_bot_v2.simulator` | `gmx-simulate` | Run one offline position scenario |
 
 ### 1. Configure the archive provider
 
@@ -158,6 +160,53 @@ unset GMX_ARCHIVE_RPC_URL
 To replay or validate an existing recording, substitute its directory in steps
 4 and 5. There is no need to collect it again.
 
+### 6. Run a Step 4 scenario
+
+The simulator needs a complete, validated recording and a JSON plan. The plan
+sets the account, planned orders, starting cash, execution assumptions, and risk
+window. If you installed this project before `gmx-simulate` was added, run
+`python -m pip install -e .` again. Then run the checked-in example:
+
+```bash
+gmx-simulate \
+  --recording recordings/eth-usdc-v2-sep-20-sep-27 \
+  --plan examples/step4-scenario.json \
+  --output /tmp/step4-scenario-report.json
+```
+
+The command prints a short status and writes the full `ScenarioReport` JSON.
+Omit `--output` to print JSON to stdout. It needs no RPC URL. Exit code `0`
+means the run produced a report; check its `status` for `complete` or
+`unavailable`. An unavailable path has reasons and no final metrics. A bad plan
+or missing recording returns exit code `2`.
+
+Copy [the example plan](examples/step4-scenario.json) to test your own orders.
+Its required fields are:
+
+| Field | Meaning |
+|---|---|
+| `account` | Recorded account used for historical referral terms. |
+| `risk_window.from`, `risk_window.through` | Inclusive `[block, transaction_index, log_index]` bounds. The runner checks all recorded risk changes in this window and adds the final coordinate as a risk mark. |
+| `initial` | Position side, USDC collateral token, USDC cash, and ETH cash. The command starts with a flat position. |
+| `scenario` | Name, inclusion and keeper delays in blocks, execution fee in wei, acceptable price override or `null`, and liquidation buffer in raw USD units. |
+| `orders` | One or more requests. Each has a request coordinate, kind, USD size delta, token size delta, and optional price, collateral, receiver, trigger, and cancellation fields. |
+
+Use raw GMX integers in the plan. USD values use 30 decimals. USDC amounts use
+6 decimals. ETH amounts use wei. Token sizes use the token's native decimals.
+Large numbers can be JSON decimal strings to preserve their exact value.
+Accepted kinds are `market_increase`, `market_decrease`, `stop_loss`, and
+`take_profit`. Conditional orders also need `trigger_price`. The current
+recording adapter does not supply independent trigger observations, so a
+conditional request returns `unavailable`. The account must have referral
+evidence in the recording. The CLI currently supports USDC collateral in the
+market short token.
+
+The example uses one recorded keeper opportunity and one final risk mark. It
+models an **additional hypothetical position** at that opportunity. Its
+`complete` result covers only that declared window; it is not a full
+open-to-close performance result. A longer window can report `unavailable` at
+a missing same-transaction oracle mark. The simulator does not submit orders.
+
 ### Persistent database and disk space
 
 All evidence and reports in this example remain under
@@ -199,6 +248,7 @@ its module invocation and keep the same arguments:
 gmx-collect  → PYTHONPATH=src python -m gmx_crypto_bot_v2.collector
 gmx-replay   → PYTHONPATH=src python -m gmx_crypto_bot_v2.replay
 gmx-validate → PYTHONPATH=src python -m gmx_crypto_bot_v2.validator
+gmx-simulate → PYTHONPATH=src python -m gmx_crypto_bot_v2.simulator
 ```
 
 For tests without installation, also prefix `python -m unittest` with
