@@ -114,6 +114,7 @@ class EvidenceAdapter:
         if len(set(coordinates)) != len(coordinates):
             raise UnavailableEvidence("duplicate canonical log coordinate")
         self.events_by_coordinate = {self.coordinate(entry): entry for entry in self.events}
+        self._replay_cursor = None
         if any(not start <= c[0] <= end for c in coordinates):
             raise UnavailableEvidence("log outside complete recording range")
         self._virtual_coordinates: list[Coordinate] = []
@@ -291,14 +292,23 @@ class EvidenceAdapter:
         if not self.start <= coordinate[0] <= self.end:
             raise UnavailableEvidence("coordinate outside recording")
         market, (_, long_token, short_token) = self.market, self.tokens
-        state = dict(self.opening)
-        oracle: dict[str, tuple[int, int]] = {}
-        tx: str | None = None
-        impact_pool = self.initial_impact_pool
-        last_oi: dict[str, dict] = {}
-        last_impact: dict | None = None
-        market_updates: dict[str, list[dict]] = {}
-        for event in self.events:
+        cached = self._replay_cursor
+        if cached is not None and cached[0] <= coordinate:
+            _, start_index, state, oracle, tx, impact_pool, last_oi, last_impact, market_updates = cached
+            state, oracle = dict(state), dict(oracle)
+            last_oi = dict(last_oi)
+            market_updates = {k: list(v) for k, v in market_updates.items()}
+        else:
+            start_index = 0
+            state = dict(self.opening)
+            oracle = {}
+            tx = None
+            impact_pool = self.initial_impact_pool
+            last_oi = {}
+            last_impact = None
+            market_updates = {}
+        for index in range(start_index, len(self.events)):
+            event = self.events[index]
             c = self.coordinate(event)
             if c >= coordinate:
                 break
@@ -365,6 +375,11 @@ class EvidenceAdapter:
                     raise UnavailableEvidence("missing funding timestamp")
                 state[key("SAVED_FUNDING_FACTOR_PER_SECOND", market)] = values["fundingFactorPerSecond"]
                 state[key("FUNDING_UPDATED_AT", market)] = timestamp
+        else:
+            index = len(self.events)
+        self._replay_cursor = (coordinate, index, dict(state), dict(oracle), tx,
+                               impact_pool, dict(last_oi), last_impact,
+                               {k: list(v) for k, v in market_updates.items()})
         target = self.events_by_coordinate.get(coordinate)
         if target is None:
             raise UnavailableEvidence("no recorded log at coordinate")

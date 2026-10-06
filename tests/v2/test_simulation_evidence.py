@@ -46,6 +46,23 @@ def prices():
 
 
 class EvidenceAdapterTest(unittest.TestCase):
+    def test_sequential_replay_cache_preserves_forward_and_backward_states(self):
+        rows = prices() + [event("PositionImpactPoolAmountUpdated", 3,
+            dict(market=M, delta=2, nextValue=52)), event("OrderExecuted", 4, {})]
+        rows += [event("OraclePriceUpdate", n,
+                       dict(token=t, minPrice=120, maxPrice=130),
+                       tx="0xbbb", block=11)
+                 for n, t in enumerate((I, L, S))]
+        rows.append(event("OrderExecuted", 3, {}, tx="0xbbb", block=11))
+        adapter = fixture(rows)
+        first, second = (10, 0, 4), (11, 0, 3)
+        expected_first = fixture(rows).at(first)
+        expected_second = fixture(rows).at(second)
+        self.assertEqual(adapter.at(first), expected_first)
+        self.assertEqual(adapter.at(second), expected_second)
+        self.assertEqual(adapter.at(first), expected_first)
+        self.assertEqual(adapter.at(second), expected_second)
+
     def test_virtual_inventory_anchor_and_continuity(self):
         rows = [event("VirtualPositionInventoryUpdated", 1,
                       {"virtualTokenId": I, "delta": 2, "nextValue": 12}),

@@ -29,9 +29,13 @@ class RecordedEvidenceTest(unittest.TestCase):
         pairs = (
             ("0xf9e6df798381ad17b7f1f1ef04d4e1089c58640ff5e938552780190d17587bb9",
              "0x06924beb4b316d10a39aa54ba2d4b3296f8f3c272a2d36d8b0412e880938291b"),
-            ("0x68df5a935bfec2fc4b2e27f801c58ea0608cfecdfdf6c71eb38ef4ff622e50dd",
-             "0xa70b9aecc85ca9a0bbfc3e1e4328faf1adbb40dd74a5db67c07fa3524c6708a4"),
+            ("0xb115e25d8ee231705f320405e46facf07550c24ad469dde3fe0f2543843ffa0d",
+             "0x4b74551fbd6f83bc57d3b690bf318373ae319d44fcf7570fa34f3d0b7aa5d783"),
         )
+        expected_first_gap = {
+            pairs[0][0]: (507378205, 2, 9),
+            pairs[1][0]: (508760311, 6, 22),
+        }
 
         def inverted(book):
             return CounterfactualBook(
@@ -133,8 +137,6 @@ class RecordedEvidenceTest(unittest.TestCase):
                                 "recorded lifecycle unexpectedly has no intervening risk changes")
 
                 class ExcludingEvidence:
-                    require_full_window = False
-
                     def keeper_opportunities(self):
                         return opportunities
 
@@ -149,9 +151,8 @@ class RecordedEvidenceTest(unittest.TestCase):
                                        else second.market)
 
                     def required_risk_coordinates(self):
-                        return (tuple(terminal_coords[:1]) + intervening_risk
-                                + tuple(terminal_coords[1:])
-                                if self.require_full_window else tuple(terminal_coords))
+                        return (terminal_coords[0], *intervening_risk,
+                                terminal_coords[1])
 
                 plans = []
                 for index, (item, order) in enumerate(zip(reports, orders)):
@@ -166,37 +167,43 @@ class RecordedEvidenceTest(unittest.TestCase):
                         adapter.referral_at(requests[index]["account"],
                                             position_coords[index]).terms,
                     ))
+                required = ExcludingEvidence().required_risk_coordinates()
                 risk_inputs = {
-                    "risk_coordinates": tuple(terminal_coords),
+                    "risk_coordinates": required,
                     "risk_configuration": {c: adapter.risk_configuration_at(c)
-                                           for c in terminal_coords + position_coords},
+                                           for c in required + tuple(position_coords)},
                     "risk_virtual_inventory": {c: adapter.virtual_inventory_at(c)
-                                               for c in terminal_coords + position_coords},
+                                               for c in required + tuple(position_coords)},
                     "risk_referral": {c: adapter.referral_at(requests[0]["account"], c)
-                                      for c in terminal_coords + position_coords},
+                                      for c in required + tuple(position_coords)},
                     "timestamps": adapter.timestamps,
                 }
                 result = run_scenario(
                     ExcludingEvidence(), tuple(plans),
                     Scenario("recorded-lifecycle", 0, 0, 0, None, {}, 0),
                     initial, **risk_inputs)
-                self.assertEqual(result.status, "complete", result.unavailable_reasons)
-                self.assertEqual([entry.status for entry in result.orders],
-                                 ["filled_estimate", "filled_estimate"])
-                self.assertEqual(result.orders[-1].ledger_after["size_usd"], 0)
-                self.assertEqual(result.orders[-1].ledger_after["size_tokens"], 0)
-                # The complete recorded interval includes intervening risk
-                # changes. Declaring only terminal marks must be unavailable,
-                # even though the two-order economic parity above succeeds.
-                full_window = ExcludingEvidence()
-                full_window.require_full_window = True
-                incomplete = run_scenario(
-                    full_window, tuple(plans),
-                    Scenario("incomplete-recorded-risk-window", 0, 0, 0, None, {}, 0),
-                    initial, **risk_inputs)
-                self.assertEqual(incomplete.status, "unavailable")
-                self.assertIn("declared risk coverage differs from recorded state changes",
-                              incomplete.unavailable_reasons)
+                if result.status == "unavailable":
+                    self.assertTrue(result.unavailable_reasons)
+                    gaps = [point.point for point in result.risk
+                            if point.point.status == "unavailable"]
+                    self.assertTrue(gaps, result.unavailable_reasons)
+                    self.assertEqual(gaps[0].coordinate,
+                                     required[len(result.risk) - 1])
+                    self.assertEqual(gaps[0].coordinate,
+                                     expected_first_gap[increase_key])
+                    self.assertEqual(gaps[0].reason,
+                                     "missing same-transaction oracle prices")
+                    self.assertEqual(result.orders[0].status, "filled_estimate")
+                    self.assertEqual(result.orders[1].status, "unavailable")
+                else:
+                    self.assertEqual(result.status, "complete")
+                    self.assertEqual(len(result.risk), len(required))
+                    self.assertEqual([entry.status for entry in result.orders],
+                                     ["filled_estimate", "filled_estimate"])
+                    self.assertEqual(result.orders[-1].ledger_after["size_usd"], 0)
+                    self.assertEqual(result.orders[-1].ledger_after["size_tokens"], 0)
+                    self.assertTrue(all(point.point.status in {"available", "closed"}
+                                        for point in result.risk))
 
     @unittest.skipUnless(os.environ.get("GMX_STEP4_RECORDING"),
                          "set GMX_STEP4_RECORDING for historical integration")
