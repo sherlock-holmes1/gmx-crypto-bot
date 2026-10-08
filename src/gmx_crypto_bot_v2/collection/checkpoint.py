@@ -397,6 +397,7 @@ def _decode_order(payload: str) -> dict[str, Any]:
         break
     if flags < 0:
         raise ValueError("invalid Reader.getOrder flags or data-list offset")
+    number_count = flags - numbers
     data_list_length = _uint(words[data_list_base])
     if data_list_base + 1 + data_list_length > len(words):
         raise ValueError("truncated Reader.getOrder data list")
@@ -404,7 +405,7 @@ def _decode_order(payload: str) -> dict[str, Any]:
         "0x" + word.lower()
         for word in words[data_list_base + 1 : data_list_base + 1 + data_list_length]
     ]
-    return {
+    result = {
         "account": _address(words[addresses_base]),
         "receiver": _address(words[addresses_base + 1]),
         "cancellationReceiver": _address(words[addresses_base + 2]),
@@ -422,12 +423,15 @@ def _decode_order(payload: str) -> dict[str, Any]:
         "executionFee": _uint(words[numbers + 6]),
         "callbackGasLimit": _uint(words[numbers + 7]),
         "minOutputAmount": _uint(words[numbers + 8]),
-        "updatedAtTime": _uint(words[numbers + 9]),
-        "validFromTime": _uint(words[numbers + 10]),
-        "srcChainId": _uint(words[numbers + 11]),
+        "updatedAtTime": _uint(words[numbers + (10 if number_count == 13 else 9)]),
+        "validFromTime": _uint(words[numbers + (11 if number_count == 13 else 10)]),
+        "srcChainId": _uint(words[numbers + (12 if number_count == 13 else 11)]),
         "isLong": bool(_uint(words[flags])),
         "shouldUnwrapNativeToken": bool(_uint(words[flags + 1])),
         "isFrozen": bool(_uint(words[flags + 2])),
         "autoCancel": bool(_uint(words[flags + 3])),
         "dataList": data_list,
     }
+    if number_count == 13:
+        result["uiFeeFactor"] = _uint(words[numbers + 9])
+    return result

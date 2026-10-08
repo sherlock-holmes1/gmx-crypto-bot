@@ -68,7 +68,7 @@ class ArchivedOrderPosition:
     reader_code_hash: str
     order: dict[str, Any]
     position: dict[str, Any]
-    reader_timestamp_layout: str = "current_order_struct"
+    reader_timestamp_layout: str = "unverified_order_struct"
 
 
 @dataclass(frozen=True)
@@ -328,21 +328,8 @@ class PinnedArchiveStateReader:
         order = _decode_order(fetch("getOrder(address,bytes32)", order_key))
         if not isinstance(expected_request, dict) or set(order) != set(expected_request):
             raise ValueError("incomplete expected Reader order")
-        # The pinned Reader response for the September 2026 deployment places
-        # validFromTime before updatedAtTime, opposite the current Order.sol
-        # layout used by the shared decoder. Accept that layout only when the
-        # two independently read DataStore fields identify it uniquely. Any
-        # other mismatch still fails below. Keep the inferred layout visible.
-        layout = "current_order_struct"
-        if "updatedAtTime" in order and "validFromTime" in order:
-            updated = expected_request["updatedAtTime"]
-            valid = expected_request["validFromTime"]
-            if updated != valid and order["updatedAtTime"] == valid and order["validFromTime"] == updated:
-                order["updatedAtTime"], order["validFromTime"] = (
-                    order["validFromTime"], order["updatedAtTime"])
-                layout = "valid_before_updated_in_reader_payload_inferred_from_datastore"
-            elif updated == valid:
-                layout = "timestamp_order_ambiguous_equal_values"
+        layout = ("order_numbers_13_with_ui_fee_factor" if "uiFeeFactor" in order
+                  else "order_numbers_12_without_ui_fee_factor")
         if any((actual.lower() != expected_request[name].lower() if isinstance(actual, str)
                 else actual != expected_request[name]) for name, actual in order.items()):
             raise ValueError("Reader order differs from preflight request")

@@ -62,6 +62,6 @@
   "pin_block": 507206345,
   "pin_hash": "0x3641e2a0ddbf4e620a1cd6b7323e8cbed3aad6e39602ee8779c2f6604be3856f",
   "schema": "GmxStep41HistoricalSourceManifest",
-  "sidecar_sha256": "0x1138668f51ec5dacbc1ab8d0421c183a10746ebd3c08eb5bea395fb76cda04b6",
+  "sidecar_sha256": "0xbd0920603eba67d3a876b710ab62e387dea8ae7c8dd396c21b64976599f7e588",
   "version": 1
 }

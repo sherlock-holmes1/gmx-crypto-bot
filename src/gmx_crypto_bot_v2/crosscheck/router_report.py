@@ -28,7 +28,8 @@ def compare(preflight: dict[str, Any], reconstruction: dict[str, Any] | None) ->
 
 def build_report(candidates: list[dict[str, Any]], preflight: RouterPreflight | None,
                  oracles: dict[str, OracleInput], reconstructions: dict[str, dict[str, Any]] | None = None,
-                 *, source: str = "historical", recording: str = "", rule_adapter: Any = None) -> dict[str, Any]:
+                 *, source: str = "historical", recording: str = "", rule_adapter: Any = None,
+                 decision_adapter: Any = None) -> dict[str, Any]:
     reconstructions = reconstructions or {}
     rows: list[dict[str, Any]] = []
     for candidate in sorted(candidates, key=lambda c: (
@@ -46,13 +47,19 @@ def build_report(candidates: list[dict[str, Any]], preflight: RouterPreflight | 
             call = {"order_key": key, "outcome": "evidence_failure",
                     "reason": "watch_oracle_price_provenance_missing" if source == "watch"
                     else "verified_oracle_input_missing"}
+            if candidate.get("oracle_evidence_failure"):
+                call["reason"] = "watch_oracle_evidence_rejected"
+                call["oracle_evidence_failure"] = candidate["oracle_evidence_failure"]
         else:
             call = preflight.run(candidate, oracle)
-        comparison = compare(call, reconstructions.get(str(key).lower()))
+        comparison = (decision_adapter.evaluate(call) if decision_adapter is not None and
+                      str(key).lower() == decision_adapter.oracle.get("order_key") else
+                      compare(call, reconstructions.get(str(key).lower())))
         rule_result = (rule_adapter.evaluate(call) if rule_adapter is not None else
                        {"status": "unavailable", "reason": "pinned_economics_reader_unavailable"})
         rows.append({"source": source, "category": candidate.get("category"),
                      "order_key": key, "creation": candidate.get("creation"),
+                     "oracle_evidence_failure": candidate.get("oracle_evidence_failure"),
                      "terminal": candidate.get("terminal"), "proposed_pin_block": candidate.get("proposed_pin_block"),
                      "preflight": call, "comparison": comparison, "rule_comparison": rule_result})
     coverage: dict[str, Any] = {}

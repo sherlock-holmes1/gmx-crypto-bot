@@ -278,6 +278,7 @@
     "srcChainId": 0,
     "swapPath": [],
     "triggerPrice": 0,
+    "uiFeeFactor": 0,
     "uiFeeReceiver": "0xff00000000000000000000000000000000000001",
     "updatedAtTime": 1789932722,
     "validFromTime": 0
@@ -301,7 +302,7 @@
       "sizeInUsd": 199199145611028315780000000000000
     }
   },
-  "reader_timestamp_layout": "valid_before_updated_in_reader_payload_inferred_from_datastore",
+  "reader_timestamp_layout": "order_numbers_13_with_ui_fee_factor",
   "ready_for_comparison": false,
   "referral": {
     "account": "0xad8c5f877453ab2079cc89ead80978083b64098c",
@@ -728,6 +729,22 @@
       "params": [
         {
           "data": "0xbd02d0f5702d7672d16247cae53fcbb1992075ebbdd204a9665fd5aa4812df1ee7c9665c",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ac9"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "response_sha256": "0x03eeba832ea35e4ad5f8f6f5ee499c42ca9440322d561dfea607806e95cb508f"
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f51fa5889177da6fa842ff2cc20822794731a47653d69535a825aac7ca19ddd743",
           "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
         },
         "0x1e3b5ac9"
@@ -2353,7 +2370,7 @@
       "response_sha256": "0xcd31763c708c5ada22066d1ee7b246f2ba422e63bf15de1b2ae1d402849bc198"
     }
   ],
-  "rpc_transcript_sha256": "0x8aff5c0e80903f653c77e273785dc76593cca3679156b31864aab7f0532542d4",
+  "rpc_transcript_sha256": "0xaa96dab267c4d4c791c0420deb8e7a8caffd6570ae67006620518f68c9e0a03a",
   "schema": "GmxStep41ArchiveSidecar",
   "selection_skip_reasons": [],
   "source": {

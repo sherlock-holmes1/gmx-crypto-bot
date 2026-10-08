@@ -141,7 +141,7 @@ def collect_increase_sidecar(
         missing_core = [name for name in core if name not in request]
         if missing_core:
             raise ValueError("missing core recorded request fields: " + ",".join(missing_core))
-        supported_fields = {name for name, _ in _FIELDS} | {"key", "uiFeeFactor"}
+        supported_fields = {name for name, _ in _FIELDS} | {"key"}
         unknown_fields = sorted(set(request) - supported_fields)
         if unknown_fields:
             raise ValueError("unmapped recorded request fields: " + ",".join(unknown_fields))
@@ -194,10 +194,6 @@ def collect_increase_sidecar(
         sidecar["reader_timestamp_layout"] = subset.order_position.reader_timestamp_layout
         sidecar["fixed_cells"] = [vars(cell) for cell in subset.snapshot.cells]
         sidecar["fixed_values"] = subset.snapshot.values
-        if "uiFeeFactor" in request:
-            actual_ui_fee = subset.snapshot.values["configuration"].get("ui_fee", 0)
-            if request["uiFeeFactor"] != actual_ui_fee:
-                raise ValueError("recorded uiFeeFactor differs from pinned value")
         sidecar["virtual_inventory"] = {
             "token_id": subset.virtual_token_id,
             "tokens": subset.virtual_inventory_tokens,

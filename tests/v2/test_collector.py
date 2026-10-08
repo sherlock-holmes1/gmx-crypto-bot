@@ -94,8 +94,10 @@ class OrderValidationTests(unittest.TestCase):
         words[0] = 32
         words[1] = 19 * 32  # addresses offset from tuple root
         words[2] = 6  # order type
-        words[13] = 0  # source chain
-        words[14] = 0  # extra deployed numeric slot
+        words[11] = 17  # per-order UI fee factor, before timestamps
+        words[12] = 1789932722  # updatedAtTime
+        words[13] = 0  # validFromTime
+        words[14] = 0  # srcChainId
         words[15:19] = [1, 0, 0, 1]  # long, unwrap, frozen, auto-cancel
         words[19] = 28 * 32  # actual data-list offset
         words[27] = 8 * 32  # swap-path offset from addresses base
@@ -106,6 +108,10 @@ class OrderValidationTests(unittest.TestCase):
         self.assertTrue(order["isLong"])
         self.assertTrue(order["autoCancel"])
         self.assertFalse(order["shouldUnwrapNativeToken"])
+        self.assertEqual(order["uiFeeFactor"], 17)
+        self.assertEqual(order["updatedAtTime"], 1789932722)
+        self.assertEqual(order["validFromTime"], 0)
+        self.assertEqual(order["srcChainId"], 0)
         self.assertEqual(order["dataList"], [])
 
     def test_order_decoder_accepts_twelve_number_slots(self) -> None:
@@ -122,6 +128,7 @@ class OrderValidationTests(unittest.TestCase):
 
         self.assertTrue(order["isLong"])
         self.assertEqual(order["orderType"], 2)
+        self.assertNotIn("uiFeeFactor", order)
         self.assertEqual(order["dataList"], [])
 
     def test_legacy_checkpoint_flags_are_corrected_without_losing_raw_words(

@@ -53,9 +53,9 @@ When the deployment file includes `referral_storage`, the sidecar verifies the h
 
 `partial_archive_snapshot` means that the fixed subset was read. `ineligible_latest_request` means the order was not both pending and latest at that block. `unavailable` means a required proof or read failed. All statuses keep `ready_for_comparison: false`. The sidecar lists missing historical key-layout proof, referral terms, oracle ranges and timestamps, final token delta, and equivalent execution context. A block-boundary read does not prove intra-block pre-execution state. If no archive URL or verified deployment is available, the command exits without claiming collection.
 
-## September Reader timestamp layout
+## September Reader order layout
 
-The selected September order's pinned DataStore fields and `OrderCreated` event identify `updatedAtTime` as `1789932722` and `validFromTime` as `0`. The archived `Reader.getOrder` return places `0` in the first timestamp slot and `1789932722` in the next slot. [Current GMX `Order.sol`](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/order/Order.sol) lists `updatedAtTime` before `validFromTime`, while [GMX `OrderStoreUtils.sol`](https://github.com/gmx-io/gmx-synthetics/blob/main/contracts/order/OrderStoreUtils.sol) reads both DataStore keys by name. The current source is not proof of the September deployment's tuple layout. For the pinned Reader comparison, the archive reader accepts the reversed slots only when they match the independently read DataStore values exactly and no other field differs. It records `reader_timestamp_layout` as an inference. Any other mismatch remains an evidence failure.
+The earlier sidecar labels its Reader timestamp layout as an inferred swap. **That label is wrong.** A [Sourcify exact-match record for the pinned Reader](https://sourcify.dev/server/v2/contract/42161/0xfA26cBb46e2614609406de08CA1Dc7f70a684184?fields=all) contains the historical `Order.sol` source and `getOrder` ABI. Its `Order.Numbers` has 13 fields: `uiFeeFactor` at index 9, `updatedAtTime` at 10, `validFromTime` at 11, and `srcChainId` at 12. The old decoder skipped `uiFeeFactor`, shifting all three later fields. The corrected decoder returns `uiFeeFactor: 0`, `updatedAtTime: 1789932722`, `validFromTime: 0`, and `srcChainId: 0` from the saved raw Reader result. These values match the recorded order. A new sidecar run is needed to replace its stale layout label and read the per-order `UI_FEE_FACTOR` DataStore field.
 
 ## Historical source manifest
 
@@ -79,3 +79,16 @@ PYTHONPATH=src .venv/bin/python -m gmx_crypto_bot_v2.application.source_manifest
 ```
 
 The verifier checks that each metadata file hashes to the CID in the pinned code, that its compiler version matches the code footer, and that every referenced source file matches its metadata Keccak-256 hash. It rejects a missing contract, missing source, or changed byte. Even a passing content check does not claim that the compiled runtime was rebuilt or that key semantics were reviewed. Those remain separate proof steps.
+
+## Public Sourcify source proof
+
+The saved public Sourcify V2 responses under `evidence/step4-1/sourcify-v2/` report `exact_match` for the five pinned contracts. The local verifier checks each reported on-chain runtime code against the pinned code hash and SHA-256 in the source manifest. It also checks every supplied source file against Sourcify's declared Keccak-256 hash and compares the ABI with the returned compiler metadata. Run it offline:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m gmx_crypto_bot_v2.application.sourcify_proof \
+  --manifest evidence/step4-1/historical-source-manifest.json \
+  --records evidence/step4-1/sourcify-v2 \
+  --output evidence/step4-1/sourcify-source-proof.json
+```
+
+The [proof report](../evidence/step4-1/sourcify-source-proof.json) includes the five response digests, match IDs, source hashes, and Reader number-field order. The raw compiler metadata bytes that hash to each embedded CID were not available from this response, and we did not perform an independent compiler rebuild. The report keeps those two checks false.

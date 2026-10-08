@@ -154,15 +154,15 @@ def test_initial_and_final_block_number_mismatch_fail_closed():
     assert "post-read block hash unavailable" in final["failure"]["reason"]
 
 
-def test_reader_timestamp_layout_is_inferred_only_from_exact_swap():
+def test_reader_timestamp_fields_require_exact_match_after_ui_fee_decode():
     from unittest.mock import patch
     import gmx_crypto_bot_v2.crosscheck.archive_state as state
 
     expected = {"account": ROUTER, "market": STORE,
                 "initialCollateralToken": STORE, "isLong": True,
                 "orderType": 2, "updatedAtTime": 1789932722,
-                "validFromTime": 0, "sizeDeltaUsd": 100}
-    decoded = {**expected, "updatedAtTime": 0, "validFromTime": 1789932722}
+                "validFromTime": 0, "uiFeeFactor": 17, "sizeDeltaUsd": 100}
+    decoded = expected.copy()
     empty = {"sizeInUsd": 0, "sizeInTokens": 0, "collateralAmount": 0,
              "pendingImpactAmount": 0, "borrowingFactor": 0,
              "fundingFeeAmountPerSize": 0}
@@ -182,8 +182,9 @@ def test_reader_timestamp_layout_is_inferred_only_from_exact_swap():
             reader_code_hash=CODE_HASH)
     assert order_position.order["updatedAtTime"] == 1789932722
     assert order_position.order["validFromTime"] == 0
-    assert order_position.reader_timestamp_layout.startswith("valid_before_updated")
-    with patch.object(state, "_decode_order", return_value={**decoded, "sizeDeltaUsd": 101}), \
+    assert order_position.reader_timestamp_layout == "order_numbers_13_with_ui_fee_factor"
+    with patch.object(state, "_decode_order", return_value={**decoded, "updatedAtTime": 0,
+                                                            "validFromTime": 1789932722}), \
             patch.object(state, "_decode_position", return_value=empty):
         try:
             PinnedArchiveStateReader(ReaderRpc(), deployment()).read_order_position(
@@ -193,4 +194,4 @@ def test_reader_timestamp_layout_is_inferred_only_from_exact_swap():
         except ValueError as error:
             assert "differs" in str(error)
         else:
-            raise AssertionError("non-timestamp mismatch must fail closed")
+            raise AssertionError("timestamp mismatch must fail closed")

@@ -1,0 +1,60 @@
+{
+  "age_valid_without_config_read": false,
+  "age_within_historical_max": true,
+  "block_hash": "0xddd659c204cc34e968cb82fd78338dbc8a9716e0cba8100d416bc4fd6b4016bf",
+  "coordinates": [
+    {
+      "block_number": 507206358,
+      "log_index": 2,
+      "transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+      "transaction_index": 1
+    },
+    {
+      "block_number": 507206358,
+      "log_index": 3,
+      "transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+      "transaction_index": 1
+    }
+  ],
+  "historical_source_proof": {
+    "event_price_mapping_proved": true,
+    "historical_max_price_age_rule_proved": true,
+    "max_oracle_price_age_seconds": 300,
+    "oracle_record_sha256": "0x42222156a0774010d21261091bf79e2b1b4318466eeb78929cf84e0e50fc0937",
+    "oracle_source_keccak256": "0x4c0aeac08d8491a06ebeb9b5853169d63dd5d559617ff0acae4039b205532f77",
+    "pinned_code_proof_sha256": "0x218186e68e4cdfddd8de26bef07ca1812c7c58e51baf6f74331408134f30e7d3",
+    "raw_pinned_rpc_transcript_available": true
+  },
+  "max_oracle_price_age_seconds": 300,
+  "max_price_age_seconds_at_pin": 1,
+  "max_timestamp": 1789932724,
+  "min_timestamp": 1789932724,
+  "oracle_transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+  "order_event_name": "OrderExecuted",
+  "order_key": "0xfd65a4c31638d78c68c9986e0bb21c002790d0a897aaa31d4109b9cd2f0bff90",
+  "order_transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+  "pin_block_timestamp": 1789932725,
+  "prices": [
+    [
+      2631796557018883,
+      2631796557018883
+    ],
+    [
+      999913061406316750000000,
+      999913061406316750000000
+    ]
+  ],
+  "provenance": "recorded_OraclePriceUpdate_events",
+  "ready_for_observed_execution_comparison": false,
+  "recording_events_sha256": "0x75ddbc6e66b71bb1d35874e29449b4d725d93df52f8b75863f11ee4bdbe60ef1",
+  "relationship": "observed_execution_transaction_prices_preceding_order_executed",
+  "router_calldata": "0x983fa3920000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000006ab034b4000000000000000000000000000000000000000000000000000000006ab034b4000000000000000000000000000000000000000000000000000000000000000200000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e583100000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000009599ae2e6f7030000000000000000000000000000000000000000000000000009599ae2e6f70300000000000000000000000000000000000000000000d3bd654ade97fedd4f8000000000000000000000000000000000000000000000d3bd654ade97fedd4f80",
+  "scale_proof": "historical_Oracle_primary_price_raw_integer",
+  "schema": "GmxStep41RecordedOracleEvidence",
+  "source_and_scale_verified": true,
+  "tokens": [
+    "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+    "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+  ],
+  "version": 1
+}
