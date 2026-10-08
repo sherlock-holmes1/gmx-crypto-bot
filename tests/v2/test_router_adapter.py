@@ -3,12 +3,12 @@
 import unittest
 from dataclasses import replace
 
-from gmx_crypto_bot_v2.simulation.router_adapter import (
+from gmx_crypto_bot_v2.crosscheck.router_adapter import (
     EconomicsAcceptablePriceAdapter, PinnedEconomicPoint,
 )
 from tests.v2.test_simulation_economics import P, M, I, L, S, REF, order, state
 from gmx_crypto_bot_v2.simulation.economics import PositionBefore
-from gmx_crypto_bot_v2.simulation.router_report import build_report
+from gmx_crypto_bot_v2.crosscheck.router_report import build_report
 
 
 class Reader:

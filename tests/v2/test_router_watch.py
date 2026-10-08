@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from gmx_crypto_bot_v2.simulation.router_watch import watch_order_creations
+from gmx_crypto_bot_v2.crosscheck.router_watch import watch_order_creations
 from gmx_crypto_bot_v2.domain.entries import decoded_log
 
 

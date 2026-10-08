@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from gmx_crypto_bot_v2.simulation.router_candidates import select_router_candidates
+from gmx_crypto_bot_v2.crosscheck.router_candidates import select_router_candidates
 
 
 RECORDING = Path(__file__).resolve().parents[2] / "recordings/eth-usdc-v2-sep-20-sep-27"

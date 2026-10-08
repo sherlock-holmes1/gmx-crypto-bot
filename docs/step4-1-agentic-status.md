@@ -16,3 +16,10 @@ Flow: [Step 4.1 agentic flow](step4-1-agentic-flow.md). The primary agent owns t
 | 5. Integration and user acceptance | Implementor | Critic | Pending | 0 | Depends on Stages 1–4. |
 
 No Step 4.1 contract comparison or complete long/short lifecycle has been accepted yet.
+
+The cross-check package refactor was independently accepted. The router, watcher,
+candidate, report, adapter, and archive-reader modules now live in
+`src/gmx_crypto_bot_v2/crosscheck/`; the CLI remains in `application/`.
+Stage 3a remains unaccepted. The package move passed 22 runnable focused tests,
+CLI smoke, compilation, and whitespace checks. The pytest-only archive-state
+test could not run because pytest is not installed.

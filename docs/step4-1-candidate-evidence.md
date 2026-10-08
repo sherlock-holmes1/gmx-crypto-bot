@@ -19,7 +19,7 @@ To reproduce this selection from the recording:
 PYTHONPATH=src .venv/bin/python - <<'PY'
 from pathlib import Path
 from collections import Counter
-from gmx_crypto_bot_v2.simulation.router_candidates import select_router_candidates
+from gmx_crypto_bot_v2.crosscheck.router_candidates import select_router_candidates
 
 rows = select_router_candidates(Path('recordings/eth-usdc-v2-sep-20-sep-27'))
 print(len(rows), Counter(row['category'] for row in rows))

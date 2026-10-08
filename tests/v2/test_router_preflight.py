@@ -3,7 +3,7 @@
 import unittest
 
 from gmx_crypto_bot_v2.domain.keys import keccak256
-from gmx_crypto_bot_v2.simulation.router_preflight import (
+from gmx_crypto_bot_v2.crosscheck.router_preflight import (
     Deployment, OracleInput, RouterPreflight, _FIELDS, _field_key, _key,
     _selector, _word, decode_revert, encode_simulation, latest_key,
 )

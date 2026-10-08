@@ -2,7 +2,7 @@
 
 import unittest
 
-from gmx_crypto_bot_v2.simulation.router_report import REQUEST_FIELDS, build_report, compare
+from gmx_crypto_bot_v2.crosscheck.router_report import REQUEST_FIELDS, build_report, compare
 
 
 class RouterReportTests(unittest.TestCase):

@@ -13,7 +13,7 @@ from gmx_crypto_bot_v2.domain.keys import keccak256
 from gmx_crypto_bot_v2.domain.swap_keys import key as storage_key, market_field_key
 from gmx_crypto_bot_v2.collection.checkpoint import _decode_order, _decode_position
 from gmx_crypto_bot_v2.domain.constants import INCREASE_ORDER_TYPES, DECREASE_ORDER_TYPES
-from gmx_crypto_bot_v2.simulation.router_preflight import (
+from gmx_crypto_bot_v2.crosscheck.router_preflight import (
     Deployment, RawRpc, _hex_bytes, _selector,
 )
 

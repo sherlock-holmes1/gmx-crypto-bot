@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from gmx_crypto_bot_v2.simulation.router_preflight import OracleInput, RouterPreflight
+from gmx_crypto_bot_v2.crosscheck.router_preflight import OracleInput, RouterPreflight
 
 TARGET_CATEGORIES = ("long_increase", "short_increase", "long_decrease", "short_decrease")
 REQUEST_FIELDS = ("account", "market", "orderType", "isLong", "initialCollateralToken",

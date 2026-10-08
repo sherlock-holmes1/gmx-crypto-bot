@@ -3,10 +3,10 @@ from dataclasses import dataclass
 import pytest
 
 from gmx_crypto_bot_v2.domain.keys import keccak256
-from gmx_crypto_bot_v2.simulation.archive_state import (
+from gmx_crypto_bot_v2.crosscheck.archive_state import (
     Cell, PinnedArchiveStateReader, _decode, market_cell, named_cell, position_key,
 )
-from gmx_crypto_bot_v2.simulation.router_preflight import Deployment
+from gmx_crypto_bot_v2.crosscheck.router_preflight import Deployment
 
 
 ADDRESS = "0x" + "11" * 20
@@ -97,7 +97,7 @@ def test_wrong_chain_or_historical_code_fails_closed():
 
 
 def test_reader_struct_pin_and_empty_open_position(monkeypatch):
-    import gmx_crypto_bot_v2.simulation.archive_state as module
+    import gmx_crypto_bot_v2.crosscheck.archive_state as module
     order = {"account": ADDRESS, "market": ROUTER,
              "initialCollateralToken": ADDRESS, "isLong": True,
              "orderType": 2, "sizeDeltaUsd": 100}
