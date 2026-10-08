@@ -14,7 +14,8 @@ Step 4.1 asks GMX's `SimulationRouter` to run those checks for an existing order
 
 ```mermaid
 flowchart LR
-    A[Saved orders or new OrderCreated events] --> B[gmx-router-check]
+    A[Saved orders or new OrderCreated events] --> T[Classify order type and long or short side]
+    T --> B[gmx-router-check]
     P[Recorded or current oracle prices] --> B
     B --> C[Archive RPC: pinned block and order state]
     C --> B
@@ -22,7 +23,7 @@ flowchart LR
     D --> E[GMX contract code: order execution checks]
     E --> F[Revert: pass marker or validation error]
     F --> B
-    A --> G[Our Simulator: reconstructed execution]
+    T --> G[Our Simulator: reconstructed execution]
     P --> G
     B --> H[Cross-check report]
     G --> H
@@ -35,6 +36,21 @@ The **`gmx-router-check` command** selects an existing GMX order. It checks that
 The **GMX `SimulationRouter`** runs GMX's contract checks against the state at that block. It simulates whether that order can pass execution validation with those prices. The call always reverts. `EndOfOracleSimulation` means that the preflight passed; a different revert can show a validation error. The call does not change chain state.
 
 The **cross-check report** puts the GMX preflight result beside the Simulator result. It states if the two results used equivalent state. A GMX pass checks execution eligibility only. It does not check the Simulator's fees, PnL, or full position lifecycle.
+
+### Order types and current support
+
+An order has two separate attributes. Its **type** says what the order does and when a keeper can execute it. Its **side** is long or short. For example, a market increase can open either a long or a short. The four coverage categories in this plan (long/short × increase/decrease) combine several different GMX order types; they are not four GMX contract types.
+
+| GMX position order type | What it does | Cross-check status |
+|---|---|---|
+| `MarketIncrease` (code 2) | Opens or adds to a position at the current oracle price. | Candidate selection includes it. Stage 3a targets an ETH/USD increase with USDC collateral first. |
+| `LimitIncrease` (3) | Opens or adds when its limit trigger is met. | Candidate selection includes it; independent trigger and state proof remain open. |
+| `StopIncrease` (8) | Opens or adds when its stop trigger is met. | Candidate selection includes it; independent trigger and state proof remain open. |
+| `MarketDecrease` (4) | Reduces or closes a position at the current oracle price. | Candidate selection includes it; independent decrease-state proof remains open. |
+| `LimitDecrease` (5) | Reduces or closes when its limit trigger is met; a take-profit uses this type. | Candidate selection includes it; independent trigger and decrease-state proof remain open. |
+| `StopLossDecrease` (6) | Reduces or closes when its stop-loss trigger is met. | Candidate selection includes it; independent trigger and decrease-state proof remain open. |
+
+The selector excludes swap orders and protocol liquidations from the Step 4.1 position-order comparison. GMX can still use these as global requests, so the latest-request proof cannot infer global status from the market's position-order logs alone. Current code uses the numeric mappings above; the historical deployment and ABI must still be verified before a real contract comparison. See GMX's [order type reference](https://docs.gmx.io/docs/api/contracts/exchange-router/#ordertype) and [trading order guide](https://docs.gmx.io/docs/trading/order-types/).
 
 ## Order source and comparison gate
 

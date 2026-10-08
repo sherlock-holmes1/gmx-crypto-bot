@@ -5,6 +5,9 @@ import pytest
 from gmx_crypto_bot_v2.domain.keys import keccak256
 from gmx_crypto_bot_v2.crosscheck.archive_state import (
     Cell, PinnedArchiveStateReader, _decode, market_cell, named_cell, position_key,
+    fixed_eth_usdc_increase_cells, virtual_token_id_cell,
+    virtual_inventory_tokens_cell, execute_order_feature_cell,
+    base_increase_size_tokens, aggregate_open_interest_tokens, ArchiveSnapshot,
 )
 from gmx_crypto_bot_v2.crosscheck.router_preflight import Deployment
 
@@ -46,6 +49,61 @@ def reader(rpc):
 
 def inventory():
     return (named_cell("accrual", "CUMULATIVE_BORROWING_FACTOR", "Uint", ADDRESS, True),)
+
+
+def test_fixed_increase_inventory_rejects_unsupported_and_is_not_complete():
+    eth = "0x" + "33" * 20
+    usdc = "0x" + "44" * 20
+    order = {"market": ADDRESS, "initialCollateralToken": usdc,
+             "uiFeeReceiver": "0x" + "00" * 20, "orderType": 2, "isLong": True}
+    cells = fixed_eth_usdc_increase_cells(order, index_token=eth,
+                                          long_token=eth, short_token=usdc)
+    assert len({(cell.group, cell.name) for cell in cells}) == len(cells)
+    assert len({cell.storage_key for cell in cells}) == len(cells)
+    assert {"position_impact_factor_positive", "position_impact_factor_negative",
+            "impact_pool"} <= {cell.name for cell in cells}
+    assert sum(cell.group == "open_interest" for cell in cells) == 4
+    assert not any(cell.group == "referral" for cell in cells)
+    with pytest.raises(ValueError, match="supported"):
+        fixed_eth_usdc_increase_cells({**order, "orderType": 4},
+                                      index_token=eth, long_token=eth, short_token=usdc)
+    with pytest.raises(ValueError, match="USDC"):
+        fixed_eth_usdc_increase_cells({**order, "initialCollateralToken": eth},
+                                      index_token=eth, long_token=eth, short_token=usdc)
+
+
+def test_source_defined_dynamic_keys_and_base_size_rounding():
+    from gmx_crypto_bot_v2.domain.swap_keys import key
+    token_id = "0x" + "ab" * 32
+    assert virtual_token_id_cell(ADDRESS).storage_key == key("VIRTUAL_TOKEN_ID", ADDRESS)
+    assert virtual_inventory_tokens_cell(token_id).storage_key == key(
+        "VIRTUAL_INVENTORY_FOR_POSITIONS_IN_TOKENS", token_id)
+    assert execute_order_feature_cell(ROUTER, 2).storage_key == key(
+        "EXECUTE_ORDER_FEATURE_DISABLED", ROUTER, 2)
+    assert base_increase_size_tokens(101, 9, 10, True) == 10
+    assert base_increase_size_tokens(101, 9, 10, False) == 12
+    assert base_increase_size_tokens(0, 9, 10, True) == 0
+    assert base_increase_size_tokens(0, 9, 10, False) == 0
+    with pytest.raises(ValueError, match="invalid increase"):
+        base_increase_size_tokens(-1, 9, 10, True)
+    with pytest.raises(ValueError, match="zero virtual"):
+        virtual_inventory_tokens_cell("0x" + "00" * 32)
+    with pytest.raises(ValueError, match="unsupported"):
+        execute_order_feature_cell(ROUTER, 3)
+
+
+def test_open_interest_aggregation_requires_all_collateral_buckets():
+    long_token, short_token = "0x" + "33" * 20, "0x" + "44" * 20
+    values = {"open_interest": {
+        f"long:{long_token}": 5, f"long:{short_token}": 7,
+        f"short:{long_token}": 11, f"short:{short_token}": 13}}
+    snapshot = ArchiveSnapshot(1, 100, HASH, ADDRESS, CODE_HASH, (), values)
+    assert aggregate_open_interest_tokens(snapshot, long_token=long_token,
+                                          short_token=short_token) == {"long": 12, "short": 24}
+    del values["open_interest"][f"short:{short_token}"]
+    with pytest.raises(ValueError, match="missing open interest"):
+        aggregate_open_interest_tokens(snapshot, long_token=long_token,
+                                       short_token=short_token)
 
 
 def test_key_derivation_and_decode():
@@ -124,3 +182,65 @@ def test_reader_struct_pin_and_empty_open_position(monkeypatch):
         reader(FakeRpc()).read_order_position(
             block=100, expected_hash=HASH, order_key="0x" + "33" * 32,
             expected_request=order, reader_address=ROUTER, reader_code_hash=CODE_HASH)
+
+
+def test_combined_fixed_increase_reads_virtual_and_rejects_late_reorg(monkeypatch):
+    import gmx_crypto_bot_v2.crosscheck.archive_state as module
+    from gmx_crypto_bot_v2.domain.swap_keys import market_field_key
+    eth, usdc, market = ("0x" + "33" * 20, "0x" + "44" * 20,
+                         "0x" + "55" * 20)
+    virtual_id = "0x" + "66" * 32
+    order = {"account": ADDRESS, "market": market, "initialCollateralToken": usdc,
+             "uiFeeReceiver": "0x" + "00" * 20, "isLong": True,
+             "orderType": 2, "sizeDeltaUsd": 100}
+    empty = {"account": "0x" + "00" * 20, "market": "0x" + "00" * 20,
+             "collateralToken": "0x" + "00" * 20, "isLong": False,
+             "sizeInUsd": 0, "sizeInTokens": 0, "collateralAmount": 0,
+             "pendingImpactAmount": 0, "borrowingFactor": 0,
+             "fundingFeeAmountPerSize": 0}
+    monkeypatch.setattr(module, "_decode_order", lambda _: order)
+    monkeypatch.setattr(module, "_decode_position", lambda _: empty)
+    addresses = {market_field_key(market, name).lower(): value for name, value in
+                 (("MARKET_TOKEN", market), ("INDEX_TOKEN", eth),
+                  ("LONG_TOKEN", eth), ("SHORT_TOKEN", usdc))}
+    id_key = virtual_token_id_cell(eth).storage_key.lower()
+    inventory_key = virtual_inventory_tokens_cell(virtual_id).storage_key.lower()
+
+    class CombinedRpc(FakeRpc):
+        missing_inventory = False
+        late_reorg = False
+
+        def request(self, method, params):
+            if method == "eth_getBlockByNumber" and self.late_reorg and self.calls >= 7:
+                return {"result": {"number": "0x64", "hash": "0x" + "bb" * 32}}
+            if method == "eth_call" and params[0]["to"] == ROUTER:
+                return {"result": "0x" + "00" * 32}
+            if method == "eth_call" and params[0]["to"] == ADDRESS:
+                storage_key = "0x" + params[0]["data"][-64:]
+                key_lower = storage_key.lower()
+                if key_lower in addresses:
+                    return {"result": "0x" + "00" * 12 + addresses[key_lower][2:]}
+                if key_lower == id_key:
+                    return {"result": virtual_id}
+                if key_lower == inventory_key:
+                    return {"result": "0x" if self.missing_inventory else "0x" + "ff" * 32}
+                return {"result": "0x" + "00" * 31 + "01"}
+            return super().request(method, params)
+
+    kwargs = dict(block=100, expected_hash=HASH, order_key="0x" + "77" * 32,
+                  expected_request=order, reader_address=ROUTER,
+                  reader_code_hash=CODE_HASH, index_token=eth,
+                  long_token=eth, short_token=usdc)
+    result = reader(CombinedRpc()).read_fixed_increase_subset(**kwargs)
+    assert result.virtual_token_id == virtual_id
+    assert result.virtual_inventory_tokens == -1
+    assert result.open_interest_tokens == {"long": 2, "short": 2}
+    assert result.complete_for_comparison is False
+    missing = CombinedRpc()
+    missing.missing_inventory = True
+    with pytest.raises(ValueError, match="32-byte"):
+        reader(missing).read_fixed_increase_subset(**kwargs)
+    reorg = CombinedRpc()
+    reorg.late_reorg = True
+    with pytest.raises(ValueError, match="changed|mismatch"):
+        reader(reorg).read_fixed_increase_subset(**kwargs)

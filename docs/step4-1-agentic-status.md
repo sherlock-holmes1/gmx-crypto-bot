@@ -8,7 +8,7 @@ Flow: [Step 4.1 agentic flow](step4-1-agentic-flow.md). The primary agent owns t
 | 1. Candidate and evidence selection | Developer | Tester | Accepted | 3 | Final tester accepted real-schema decoding, ordered updates, coordinate-scoped gaps, and 9 focused tests. September scan: 2,975 creations; 2,910 target-category candidates remain unverified by RPC. |
 | 2. GMX contract preflight | Developer | Tester | Accepted | 1 | Tester accepted pinned DataStore request proof, archive-only field labels, timeout classification, and 8 focused tests. No verified historical call: deployment, price units, and archive access remain gaps. |
 | Former 3. Same-order comparison and report | Developer | Tester | Unaccepted; replaced by proposed 3a–3d | 3 + 2 extra cycles | Review history retained. Rule-diagnostic safety correction accepted; 22 focused router tests pass. No concrete pinned reader, CLI adapter wiring, or verified full same-order comparison. |
-| 3a. Pinned archive-state reader | Developer | Tester | Human decision required | 3 | Final tester review rejected Stage 3a. Position key, side, opening-position handling, and pinned Reader checks improved; snapshot remains incomplete. Caller-selected cell inventory, missing config/OI/liquidity/impact/accrual/referral/virtual/feature mapping, absent adapter point, and weak independent Reader tests block acceptance. Return limit exhausted. |
+| 3a. Pinned archive-state reader | Developer | Tester | Partial capture accepted; stage open | 3 + 2 earlier extra cycles; 3 new developer–tester loops, with 1 final correction | Tester accepted the bounded Reader timestamp correction, pinned referral capture, and five-contract source manifest. Real archive capture proves the selected long increase was pending and globally latest at block 507206345, and records its fixed state cells. Historical source/ABI/key-layout proof is still missing; the sidecar remains `ready_for_comparison: false`. |
 | 3b. Oracle evidence capture | Developer | Tester | Pending | 0 | Depends on 3a; no verified historical or watched oracle input source yet. |
 | 3c. Independent decision adapter and CLI | Developer | Tester | Pending | 0 | Depends on 3a–3b; existing narrow rule adapter is not a full execution decision and is not wired to CLI. |
 | 3d. Reproducible contract comparison | Implementor | Critic | Pending | 0 | Depends on 3a–3c and real archive/oracle access; no verified same-order result. |
@@ -23,3 +23,10 @@ candidate, report, adapter, and archive-reader modules now live in
 Stage 3a remains unaccepted. The package move passed 22 runnable focused tests,
 CLI smoke, compilation, and whitespace checks. The pytest-only archive-state
 test could not run because pytest is not installed.
+
+The three user-authorized additional Stage 3a loops are complete. The real
+capture is [long-increase-archive-sidecar.json](../evidence/step4-1/long-increase-archive-sidecar.json).
+Its [source manifest](../evidence/step4-1/historical-source-manifest.json) binds
+five observed runtime code hashes to Solidity metadata CIDs but does not verify
+the historical source or ABI. Stage 3a cannot be marked accepted until that
+proof and the remaining required state mapping are independently reviewed.

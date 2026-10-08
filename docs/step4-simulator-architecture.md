@@ -6,6 +6,19 @@ The simulator tests planned GMX position orders against a recorded market period
 
 A scenario is one set of order requests and execution assumptions. The simulator gives each scenario its own position ledger and market changes. Recorded orders remain evidence. They do not become the simulated trader's orders.
 
+## Order scope
+
+Each position order has an **action** (increase or decrease), a **side** (long or short), and a GMX **order type**. These are separate choices. For example, a market increase can open a long or a short. An increase opens or adds size; a decrease reduces or closes size.
+
+| Scenario request kind | GMX position order type | Current simulator behavior |
+|---|---|---|
+| `market_increase` | `MarketIncrease` | Models a long or short opening or increase when the required execution evidence is complete. |
+| `market_decrease` | `MarketDecrease` | Models a long or short reduction or close for supported settlement shapes and complete evidence. |
+| `take_profit` | `LimitDecrease` | Requires independent trigger evidence. The current recording adapter does not supply it, so this request returns `unavailable`. |
+| `stop_loss` | `StopLossDecrease` | Requires independent trigger evidence. The current recording adapter does not supply it, so this request returns `unavailable`. |
+
+The scenario runner does not currently accept `LimitIncrease` or `StopIncrease` as planned request kinds. It also does not model swaps or protocol liquidation as user orders. The [Step 4.1 cross-check plan](step4-1-simulation-router-crosscheck-plan.md#order-types-and-current-support) lists the wider set of recorded GMX order types that its candidate selector can identify. Candidate selection alone does not mean that the Simulator can reconstruct that type.
+
 ## Data flow
 
 ```mermaid
