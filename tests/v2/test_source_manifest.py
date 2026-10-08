@@ -3,9 +3,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from gmx_crypto_bot_v2.crosscheck.source_manifest import (
-    build_source_manifest, extract_solidity_metadata,
+    _cid_v0, build_source_manifest, extract_solidity_metadata,
+    verify_local_source_bundle,
 )
 from gmx_crypto_bot_v2.domain.keys import keccak256
+from hashlib import sha256
+import shutil
 
 
 def code():
@@ -69,3 +72,97 @@ def test_manifest_requires_every_pinned_address_and_code_hash():
                 assert "missing" in str(error) and "deployment" in str(error)
             else:
                 raise AssertionError(f"missing {missing} was silently omitted")
+
+
+def test_local_compiler_bundle_requires_cid_and_all_source_hashes():
+    source = b"pragma solidity ^0.8.29; contract X {}\n"
+    metadata = json.dumps({"compiler": {"version": "0.8.29+commit.example"},
+                           "sources": {"contracts/X.sol": {
+                               "keccak256": "0x" + keccak256(source).hex()}},
+                           "output": {"abi": []}}, separators=(",", ":")).encode()
+    cid = _cid_v0(b"\x12\x20" + sha256(metadata).digest())
+    roles = ("router", "datastore", "reader", "order_handler", "referral_storage")
+    manifest = {"schema": "GmxStep41HistoricalSourceManifest", "version": 1,
+                "sidecar_sha256": "0x" + "aa" * 32,
+                "chain_id": 42161, "pin_block": 100,
+                "pin_hash": "0x" + "bb" * 32,
+                "contracts": {role: {"ipfs_cid_v0": cid,
+                                     "compiler_version": "0.8.29",
+                                     "address": "0x" + "11" * 20,
+                                     "runtime_code_hash": "0x" + "cc" * 32,
+                                     "runtime_code_sha256": "0x" + "dd" * 32}
+                              for role in roles}}
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        for role in roles:
+            destination = root / role / "sources" / "contracts"
+            destination.mkdir(parents=True)
+            (destination / "X.sol").write_bytes(source)
+            (root / role / "metadata.json").write_bytes(metadata)
+        report = verify_local_source_bundle(manifest, root)
+        assert report["content_hashes_verified"] is True
+        assert report["runtime_rebuild_verified"] is False
+        assert report["sidecar_sha256"] == manifest["sidecar_sha256"]
+        assert report["pin_block"] == 100 and report["pin_hash"] == manifest["pin_hash"]
+        assert report["contracts"]["reader"]["runtime_code_hash"] == "0x" + "cc" * 32
+        assert report["input_manifest_sha256"] == "0x" + sha256(json.dumps(
+            manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        (root / "reader" / "sources" / "contracts" / "X.sol").write_bytes(source + b"// tampered")
+        try:
+            verify_local_source_bundle(manifest, root)
+        except ValueError as error:
+            assert "reader source hash mismatch" in str(error)
+        else:
+            raise AssertionError("tampered source accepted")
+        (root / "reader" / "sources" / "contracts" / "X.sol").write_bytes(source)
+        (root / "reader" / "metadata.json").write_bytes(metadata + b" ")
+        try:
+            verify_local_source_bundle(manifest, root)
+        except ValueError as error:
+            assert "reader metadata CID hash mismatch" in str(error)
+        else:
+            raise AssertionError("tampered metadata accepted")
+
+
+def test_bundle_role_symlink_cannot_escape_bundle_root():
+    source = b"pragma solidity ^0.8.29; contract X {}\n"
+    metadata = json.dumps({"compiler": {"version": "0.8.29"},
+                           "sources": {"X.sol": {"keccak256": "0x" + keccak256(source).hex()}},
+                           "output": {"abi": []}}).encode()
+    cid = _cid_v0(b"\x12\x20" + sha256(metadata).digest())
+    roles = ("router", "datastore", "reader", "order_handler", "referral_storage")
+    manifest = {"schema": "GmxStep41HistoricalSourceManifest", "version": 1,
+                "sidecar_sha256": "0x" + "aa" * 32, "chain_id": 1,
+                "pin_block": 100, "pin_hash": "0x" + "bb" * 32,
+                "contracts": {role: {"ipfs_cid_v0": cid,
+                                     "compiler_version": "0.8.29",
+                                     "address": "0x" + "11" * 20,
+                                     "runtime_code_hash": "0x" + "cc" * 32,
+                                     "runtime_code_sha256": "0x" + "dd" * 32}
+                              for role in roles}}
+    with TemporaryDirectory() as bundle, TemporaryDirectory() as outside:
+        root = Path(bundle)
+        for role in roles:
+            target = root / role
+            (target / "sources").mkdir(parents=True)
+            (target / "metadata.json").write_bytes(metadata)
+            (target / "sources" / "X.sol").write_bytes(source)
+        shutil.rmtree(root / "reader")
+        (root / "reader").symlink_to(outside, target_is_directory=True)
+        try:
+            verify_local_source_bundle(manifest, root)
+        except ValueError as error:
+            assert "reader role path escapes bundle" in str(error)
+        else:
+            raise AssertionError("role symlink escape accepted")
+        (root / "reader").unlink()
+        (root / "reader").mkdir()
+        (root / "reader" / "metadata.json").write_bytes(metadata)
+        (Path(outside) / "X.sol").write_bytes(source)
+        (root / "reader" / "sources").symlink_to(outside, target_is_directory=True)
+        try:
+            verify_local_source_bundle(manifest, root)
+        except ValueError as error:
+            assert "reader sources directory escapes role" in str(error)
+        else:
+            raise AssertionError("sources directory symlink escape accepted")

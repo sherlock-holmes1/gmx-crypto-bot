@@ -68,3 +68,14 @@ PYTHONPATH=src .venv/bin/python -m gmx_crypto_bot_v2.application.source_manifest
 ```
 
 The installed script name is `gmx-source-manifest`. It checks every saved runtime code hash against the sidecar deployment and records the IPFS metadata CID and compiler version in the code footer. The manifest does **not** mark historical source, ABI, or key layout as proved. Retrieve and verify the content-addressed metadata and source before making that claim. See [Sourcify's verified-contract API](https://docs.sourcify.dev/docs/api/) for a possible independent source lookup.
+
+If you obtain compiler metadata and source files, put each contract's files under `<bundle>/<role>/metadata.json` and `<bundle>/<role>/sources/<path in metadata>`. The roles are `router`, `datastore`, `reader`, `order_handler`, and `referral_storage`. Then run:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m gmx_crypto_bot_v2.application.source_manifest \
+  --sidecar evidence/step4-1/long-increase-archive-sidecar.json \
+  --verify-bundle path/to/historical-source-bundle \
+  --output evidence/step4-1/source-bundle-verification.json
+```
+
+The verifier checks that each metadata file hashes to the CID in the pinned code, that its compiler version matches the code footer, and that every referenced source file matches its metadata Keccak-256 hash. It rejects a missing contract, missing source, or changed byte. Even a passing content check does not claim that the compiled runtime was rebuilt or that key semantics were reviewed. Those remain separate proof steps.

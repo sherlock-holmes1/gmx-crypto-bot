@@ -1,0 +1,10 @@
+{
+  "schema": "GmxStep41PublicSourceFetchAttempt",
+  "version": 1,
+  "contract": "reader",
+  "metadata_cid": "QmdZfR8A2dcJX5m1HjpHjWHJPF98YUFvGgZkPG2RdZmhLz",
+  "url": "https://ipfs.io/ipfs/QmdZfR8A2dcJX5m1HjpHjWHJPF98YUFvGgZkPG2RdZmhLz",
+  "result": "HTTP 403 Forbidden",
+  "metadata_saved": false,
+  "historical_source_abi_key_layout_proved": false
+}

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from gmx_crypto_bot_v2.domain.keys import keccak256
+from gmx_crypto_bot_v2.crosscheck.router_preflight import _hex_bytes
 
 _ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 _PREFIX = bytes.fromhex("a2646970667358221220")
@@ -23,6 +24,20 @@ def _cid_v0(multihash: bytes) -> str:
         integer, digit = divmod(integer, 58)
         encoded = _ALPHABET[digit] + encoded
     return encoded
+
+
+def _cid_digest(cid: str) -> bytes:
+    if not isinstance(cid, str) or not cid.startswith("Qm"):
+        raise ValueError("invalid CIDv0")
+    value = 0
+    for character in cid:
+        if character not in _ALPHABET:
+            raise ValueError("invalid CIDv0 alphabet")
+        value = value * 58 + _ALPHABET.index(character)
+    raw = value.to_bytes((value.bit_length() + 7) // 8, "big")
+    if len(raw) != 34 or raw[:2] != b"\x12\x20" or _cid_v0(raw) != cid:
+        raise ValueError("invalid CIDv0 SHA-256 multihash")
+    return raw[2:]
 
 
 def extract_solidity_metadata(code_hex: str) -> dict[str, Any]:
@@ -97,3 +112,79 @@ def build_source_manifest(sidecar_path: Path) -> dict[str, Any]:
             "contracts": contracts,
             "historical_source_abi_key_layout_proved": False,
             "next_proof": "fetch each content-addressed metadata and source, verify hashes and compiler output against pinned runtime code"}
+
+
+def verify_local_source_bundle(manifest: dict[str, Any], bundle_root: Path) -> dict[str, Any]:
+    """Hash-check downloaded compiler metadata and every referenced source file.
+
+    Files belong under `<root>/<role>/metadata.json` and
+    `<root>/<role>/sources/<source path>`. This verifies content references,
+    not the compiled runtime or historical key semantics.
+    """
+    if manifest.get("schema") != "GmxStep41HistoricalSourceManifest" or manifest.get("version") != 1:
+        raise ValueError("unsupported source manifest")
+    expected_roles = {"router", "datastore", "reader", "order_handler", "referral_storage"}
+    if set(manifest.get("contracts", {})) != expected_roles:
+        raise ValueError("incomplete source manifest contracts")
+    _hex_bytes(manifest.get("sidecar_sha256"), 32)
+    _hex_bytes(manifest.get("pin_hash"), 32)
+    if type(manifest.get("chain_id")) is not int or manifest["chain_id"] <= 0 or \
+            type(manifest.get("pin_block")) is not int or manifest["pin_block"] < 0:
+        raise ValueError("missing source manifest chain or pin identity")
+    for role, contract in manifest["contracts"].items():
+        _hex_bytes(contract.get("address"), 20)
+        _hex_bytes(contract.get("runtime_code_hash"), 32)
+        _hex_bytes(contract.get("runtime_code_sha256"), 32)
+    manifest_digest = "0x" + hashlib.sha256(json.dumps(
+        manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    resolved_bundle = bundle_root.resolve()
+    reports: dict[str, Any] = {}
+    for role, contract in manifest["contracts"].items():
+        role_root = (resolved_bundle / role).resolve()
+        if not role_root.is_relative_to(resolved_bundle):
+            raise ValueError(f"{role} role path escapes bundle")
+        metadata_path = role_root / "metadata.json"
+        if not metadata_path.resolve().is_relative_to(role_root):
+            raise ValueError(f"{role} metadata path escapes role")
+        raw = metadata_path.read_bytes()
+        if hashlib.sha256(raw).digest() != _cid_digest(contract["ipfs_cid_v0"]):
+            raise ValueError(f"{role} metadata CID hash mismatch")
+        metadata = json.loads(raw)
+        version = metadata.get("compiler", {}).get("version", "").split("+")[0]
+        if version != contract["compiler_version"]:
+            raise ValueError(f"{role} compiler version mismatch")
+        sources = metadata.get("sources")
+        if not isinstance(sources, dict) or not sources:
+            raise ValueError(f"{role} metadata has no source hashes")
+        if not isinstance(metadata.get("output", {}).get("abi"), list):
+            raise ValueError(f"{role} metadata ABI missing")
+        source_hashes = {}
+        sources_root = (role_root / "sources").resolve()
+        if not sources_root.is_relative_to(role_root):
+            raise ValueError(f"{role} sources directory escapes role")
+        for source_path, source_meta in sources.items():
+            source = (sources_root / source_path).resolve()
+            if not source.is_relative_to(sources_root):
+                raise ValueError(f"{role} source path escapes bundle")
+            content = source.read_bytes()
+            actual = "0x" + keccak256(content).hex()
+            if actual != source_meta.get("keccak256", "").lower():
+                raise ValueError(f"{role} source hash mismatch: {source_path}")
+            source_hashes[source_path] = actual
+        reports[role] = {"address": contract.get("address"),
+                         "runtime_code_hash": contract.get("runtime_code_hash"),
+                         "runtime_code_sha256": contract.get("runtime_code_sha256"),
+                         "metadata_cid": contract["ipfs_cid_v0"],
+                         "metadata_sha256": "0x" + hashlib.sha256(raw).hexdigest(),
+                         "compiler_version": version, "source_keccak256": source_hashes,
+                         "abi_entries": len(metadata["output"]["abi"])}
+    return {"schema": "GmxStep41SourceBundleVerification", "version": 1,
+            "input_manifest_sha256": manifest_digest,
+            "sidecar_sha256": manifest.get("sidecar_sha256"),
+            "chain_id": manifest.get("chain_id"),
+            "pin_block": manifest.get("pin_block"),
+            "pin_hash": manifest.get("pin_hash"),
+            "content_hashes_verified": True,
+            "runtime_rebuild_verified": False,
+            "historical_key_layout_reviewed": False,
+            "contracts": reports}
