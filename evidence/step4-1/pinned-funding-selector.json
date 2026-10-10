@@ -1,0 +1,122 @@
+{
+  "block_hash": "0x3641e2a0ddbf4e620a1cd6b7323e8cbed3aad6e39602ee8779c2f6604be3856f",
+  "block_number": 507206345,
+  "chain_id": 42161,
+  "datastore": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8",
+  "funding_increase_factor_per_second": 769658382805074444,
+  "key": "0x9c70d42f70b74c1c8d3f33ff727d8248faaec0d6ee9fe03173dbb4160ed8180a",
+  "rpc_transcript": [
+    {
+      "method": "eth_chainId",
+      "params": [],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0xa4b1"
+      }
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x1e3b5ac9",
+        false
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "baseFeePerGas": "0x1334810",
+          "difficulty": "0x1",
+          "extraData": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "gasLimit": "0x4000000000000",
+          "gasUsed": "0x35d8f6",
+          "hash": "0x3641e2a0ddbf4e620a1cd6b7323e8cbed3aad6e39602ee8779c2f6604be3856f",
+          "l1BlockNumber": "0x18d0be2",
+          "logsBloom": "0x00000000000000500000000080000012080840000400220000400000880420a0040a10040004100890064001000448008010400100200000050002000934000100aa180100402020420000180004200100008020000400000004000000600005090004424a400100400000064000090000011000002000000100201000000440002102000000001010000900008004411041100001000400080000000900200011000000000000000040810000010100001000010000a2084000028004001c400000a2020802002010010000000000080000000200020824000040204040601410000000110040000e2340000000a0001208200c002000800010002100822020",
+          "miner": "0xa4b000000000000000000073657175656e636572",
+          "mixHash": "0x00000000000288d600000000018d0be2000000000000003d0000000000000000",
+          "nonce": "0x0000000000273a47",
+          "number": "0x1e3b5ac9",
+          "parentHash": "0x830cabbc8b416c67b3fd14359a544d795512cd9dccba69d9b8bbae7de04545e9",
+          "receiptsRoot": "0x15f5248cc343a61afb6af13ac55aa0762a089e5bb84082cd41f891fe3e5dd3fa",
+          "sendCount": "0x288d6",
+          "sendRoot": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+          "size": "0x21d8",
+          "stateRoot": "0xef9193fedc7ca72e7e70cccd2b2d994a34306a5df39c4ee35930e174125cc96a",
+          "timestamp": "0x6ab034b2",
+          "transactions": [
+            "0x26fc46bf5b614f4e8ddd59f55cc3f04ff5cf59337770e9fe52835333ce9280cb",
+            "0xed08122a98a684ee722bcd55d998248811a5228eaef2cf759b8e9f2acc714960",
+            "0xac5153f889493d4da056a3f569eb3d0d26f75bb80e757aa6dd05284675b067c0",
+            "0x03eb0240822e70f554a2feaf5a59004d2fd48e9ce79ac70a16c0cc9f54062e8a",
+            "0x7f3ba26d2918049c61bff1c838f468cf1dd41a92a0e6a0e1dc095e7c6cd1093b",
+            "0xdf3cc9aa730330084f6330388b7d7b2a6b64f90e44a55f419d08b9fd80c14c87"
+          ],
+          "transactionsRoot": "0x26e14f8961779fee79e3eb275337e5730e63576573084ae0f2055638fd27bb77",
+          "uncles": []
+        }
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f59c70d42f70b74c1c8d3f33ff727d8248faaec0d6ee9fe03173dbb4160ed8180a",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ac9"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x0000000000000000000000000000000000000000000000000aae6038a97f820c"
+      }
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x1e3b5ac9",
+        false
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "baseFeePerGas": "0x1334810",
+          "difficulty": "0x1",
+          "extraData": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "gasLimit": "0x4000000000000",
+          "gasUsed": "0x35d8f6",
+          "hash": "0x3641e2a0ddbf4e620a1cd6b7323e8cbed3aad6e39602ee8779c2f6604be3856f",
+          "l1BlockNumber": "0x18d0be2",
+          "logsBloom": "0x00000000000000500000000080000012080840000400220000400000880420a0040a10040004100890064001000448008010400100200000050002000934000100aa180100402020420000180004200100008020000400000004000000600005090004424a400100400000064000090000011000002000000100201000000440002102000000001010000900008004411041100001000400080000000900200011000000000000000040810000010100001000010000a2084000028004001c400000a2020802002010010000000000080000000200020824000040204040601410000000110040000e2340000000a0001208200c002000800010002100822020",
+          "miner": "0xa4b000000000000000000073657175656e636572",
+          "mixHash": "0x00000000000288d600000000018d0be2000000000000003d0000000000000000",
+          "nonce": "0x0000000000273a47",
+          "number": "0x1e3b5ac9",
+          "parentHash": "0x830cabbc8b416c67b3fd14359a544d795512cd9dccba69d9b8bbae7de04545e9",
+          "receiptsRoot": "0x15f5248cc343a61afb6af13ac55aa0762a089e5bb84082cd41f891fe3e5dd3fa",
+          "sendCount": "0x288d6",
+          "sendRoot": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+          "size": "0x21d8",
+          "stateRoot": "0xef9193fedc7ca72e7e70cccd2b2d994a34306a5df39c4ee35930e174125cc96a",
+          "timestamp": "0x6ab034b2",
+          "transactions": [
+            "0x26fc46bf5b614f4e8ddd59f55cc3f04ff5cf59337770e9fe52835333ce9280cb",
+            "0xed08122a98a684ee722bcd55d998248811a5228eaef2cf759b8e9f2acc714960",
+            "0xac5153f889493d4da056a3f569eb3d0d26f75bb80e757aa6dd05284675b067c0",
+            "0x03eb0240822e70f554a2feaf5a59004d2fd48e9ce79ac70a16c0cc9f54062e8a",
+            "0x7f3ba26d2918049c61bff1c838f468cf1dd41a92a0e6a0e1dc095e7c6cd1093b",
+            "0xdf3cc9aa730330084f6330388b7d7b2a6b64f90e44a55f419d08b9fd80c14c87"
+          ],
+          "transactionsRoot": "0x26e14f8961779fee79e3eb275337e5730e63576573084ae0f2055638fd27bb77",
+          "uncles": []
+        }
+      }
+    }
+  ],
+  "schema": "GmxStep41PinnedFundingSelector",
+  "version": 1
+}

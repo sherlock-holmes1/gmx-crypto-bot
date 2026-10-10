@@ -114,6 +114,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="pinned swap handler pointer and code transcript")
     parser.add_argument("--swap-handler-source", type=Path,
                         help="exact-match Sourcify source for swap handler")
+    parser.add_argument("--decision-config", type=Path,
+                        help="pinned DataStore request expiration and market-disabled transcript")
+    parser.add_argument("--risk-cells", type=Path,
+                        help="pinned minimum, open-interest and reserve DataStore transcript")
+    parser.add_argument("--balance-inputs", type=Path,
+                        help="pinned open-interest balance-mode and short USD OI transcript")
+    parser.add_argument("--fee-clocks", type=Path,
+                        help="pinned funding and long borrowing update clocks")
+    parser.add_argument("--borrowing-skip", type=Path,
+                        help="pinned smaller-side borrowing switch")
+    parser.add_argument("--funding-selector", type=Path,
+                        help="pinned adaptive funding branch selector")
     parser.add_argument("--watch-oracle-source", type=Path,
                         help="saved Sourcify exact-match Oracle record for watched creation prices")
     parser.add_argument("--watch-oracle-address", help="Oracle deployment address to verify at each watched block")
@@ -134,6 +146,18 @@ def main(argv: list[str] | None = None) -> int:
                       args.swap_handler_proof, args.swap_handler_source)
     if any(decision_paths) and not (all(decision_paths) and args.oracle_evidence):
         parser.error("independent decision gate requires sidecar, source proof, manifest, and oracle evidence")
+    if args.decision_config and not all(decision_paths):
+        parser.error("decision config requires the independent decision gate and executor source")
+    if args.risk_cells and not all(decision_paths):
+        parser.error("risk cells require the independent decision gate and executor source")
+    if args.balance_inputs and not all(decision_paths):
+        parser.error("balance inputs require the independent decision gate and executor source")
+    if args.fee_clocks and not all(decision_paths):
+        parser.error("fee clocks require the independent decision gate and executor source")
+    if args.borrowing_skip and not all(decision_paths):
+        parser.error("borrowing skip requires the independent decision gate and executor source")
+    if args.funding_selector and not all(decision_paths):
+        parser.error("funding selector requires the independent decision gate and executor source")
     if any((args.watch_oracle_source, args.watch_oracle_address, args.watch_oracle_token)) and \
             not (args.watch_oracle_source and args.watch_oracle_address and
                  len(args.watch_oracle_token) == 2 and args.watch_start_block is not None):
@@ -186,7 +210,9 @@ def main(argv: list[str] | None = None) -> int:
         decision_adapter = (SelectedIncreaseDecisionAdapter(
             args.archive_sidecar, args.source_proof, args.source_manifest, args.oracle_evidence,
             args.increase_executor_proof, args.increase_executor_source,
-            args.swap_handler_proof, args.swap_handler_source)
+            args.swap_handler_proof, args.swap_handler_source, args.decision_config,
+            args.risk_cells, args.balance_inputs, args.fee_clocks, args.borrowing_skip,
+            args.funding_selector)
                             if all(decision_paths) else None)
         report = build_report(candidates, preflight, oracle, source=source,
                               recording=str(args.recording), decision_adapter=decision_adapter)
