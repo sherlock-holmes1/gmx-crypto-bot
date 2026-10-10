@@ -1,0 +1,264 @@
+{
+  "block_hash": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+  "block_number": 507206357,
+  "chain_id": 42161,
+  "datastore": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8",
+  "keys": {
+    "long_oi_usd_usdc_collateral": "0x81fd350222849df2df97529b003ab475f1bb887e8bc0efd91bd68cec68ab7671",
+    "long_oi_usd_weth_collateral": "0x39b1ba9baf45e2c11e202da432a2c21fa5d136cc112015896e024c20c339a6ea",
+    "max_open_interest_long": "0x4c8ff2fed94b668a66292ecb4056bb24b1de2ac1eaea0f8b38e6d815a3fe21de",
+    "min_collateral_factor": "0xcf1cefe1a11576531900922002113a6cf623823d2c813a4534c5d181976450ae",
+    "min_collateral_factor_for_oi_multiplier_long": "0xbcf38cdb77fa9cb02787c89b5b616dc4d91337a400795d617a2580ae49a6e209",
+    "min_collateral_usd": "0x6497f0f2c47edc68f06ede1c06d3475f939eb1a8341362460277bcd8ee7419f4",
+    "min_position_size_usd": "0x48faddd525cc6e216bc2c62a7053b940a842e3c102782fb4da69ebeb8f7bd724",
+    "open_interest_reserve_factor_long": "0x75f7ae4e1510eb1220300b6e25ffb4c58ba622674d0930d0fd71432e28e585f5",
+    "reserve_factor_long": "0x337e24e6d04ed216d312a36582f1e09658323e4e976607339857bf38abb48a35"
+  },
+  "rpc_transcript": [
+    {
+      "method": "eth_chainId",
+      "params": [],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0xa4b1"
+      }
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x1e3b5ad5",
+        false
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "baseFeePerGas": "0x132f220",
+          "difficulty": "0x1",
+          "extraData": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "gasLimit": "0x4000000000000",
+          "gasUsed": "0x119a4b",
+          "hash": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+          "l1BlockNumber": "0x18d0be2",
+          "logsBloom": "0x042200000000000000100002000000200004000000004002000010000000000500000800000000400000000008804000000050010400a001000004000004000000002001020020080100100b000000000040000000040020200000000000000000000000020000002000000410000a00000000000020000000000012000800000080000010000000000000400020000000000400002000000000000000000000080000000000000000200100000000000000800201000000000000000000000040002002000000280400000004000000000004000400001000000100000060000000000000202000004000000000200000000001008000004000000000000008",
+          "miner": "0xa4b000000000000000000073657175656e636572",
+          "mixHash": "0x00000000000288d600000000018d0be2000000000000003d0000000000000000",
+          "nonce": "0x0000000000273a47",
+          "number": "0x1e3b5ad5",
+          "parentHash": "0xb111e4c6547e9299b4dd1a7af7fcd2c8bfe9aab27e2bf6a26fa86f68aebd4157",
+          "receiptsRoot": "0x90fbadb415d1e9eb7240c0f4c29728d048f92a20dcd138be5974d3ac43755e43",
+          "sendCount": "0x288d6",
+          "sendRoot": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+          "size": "0xcbb",
+          "stateRoot": "0x9f109ad5bc93878fb734f6c87741551badd34a1ebb80f8403188e1dbc4549bd6",
+          "timestamp": "0x6ab034b5",
+          "transactions": [
+            "0x55eafc133b8a276bb2d1ca4d1f1127aa96f62834b20b3b20dc56542f58dfbea1",
+            "0xb58d3a60ff82742c8e72a10d501ec7e96801d50c4ba5dc2932cb0e35c95ec7ae",
+            "0x86e05c15635267958b62b429d64ee103804a8194667b69efc3b79bb11a21eaae",
+            "0x5360d8e805d4fe037d2e09b3cf110b1ebd3712756523cbb9ae554b550664e48d",
+            "0x93d69544d3d16422410cff477c681e578b80c7f83253b29e68d6008f4aae3c80",
+            "0xa668724a7060347585109ea7e6f59e06a0072cdb3bd1e0a3a4aedf71f125a428",
+            "0x286d5285b15bcfa55f16ad615e7cbbf82963e771df168d778a1348df64aef527"
+          ],
+          "transactionsRoot": "0x04dfd5e7380a86df46b7a701dda60f981e7372bf6c58bc55fdde3690366e1013",
+          "uncles": []
+        }
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f548faddd525cc6e216bc2c62a7053b940a842e3c102782fb4da69ebeb8f7bd724",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x000000000000000000000000000000000000000c9f2c9cd04674edea40000000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f5337e24e6d04ed216d312a36582f1e09658323e4e976607339857bf38abb48a35",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x0000000000000000000000000000000000000022b5baaf3cc1c18e4430000000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f575f7ae4e1510eb1220300b6e25ffb4c58ba622674d0930d0fd71432e28e585f5",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x0000000000000000000000000000000000000022142ba7658b08825ee0000000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f539b1ba9baf45e2c11e202da432a2c21fa5d136cc112015896e024c20c339a6ea",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x000000000000000000000000000000000078061da9d24b7e9f4a0f30cc0081c4"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f581fd350222849df2df97529b003ab475f1bb887e8bc0efd91bd68cec68ab7671",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x0000000000000000000000000000000002f21e09512a5e2ab3038306283ea2d8"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f56497f0f2c47edc68f06ede1c06d3475f939eb1a8341362460277bcd8ee7419f4",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x000000000000000000000000000000000000000c9f2c9cd04674edea40000000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f5cf1cefe1a11576531900922002113a6cf623823d2c813a4534c5d181976450ae",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x00000000000000000000000000000000000000001027e72f1f12813088000000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f5bcf38cdb77fa9cb02787c89b5b616dc4d91337a400795d617a2580ae49a6e209",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x00000000000000000000000000000000000000000000000340aad21b3b700000"
+      }
+    },
+    {
+      "method": "eth_call",
+      "params": [
+        {
+          "data": "0xbd02d0f54c8ff2fed94b668a66292ecb4056bb24b1de2ac1eaea0f8b38e6d815a3fe21de",
+          "to": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8"
+        },
+        "0x1e3b5ad5"
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": "0x000000000000000000000000000000004670acb6ab0088000000000000000000"
+      }
+    },
+    {
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x1e3b5ad5",
+        false
+      ],
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "baseFeePerGas": "0x132f220",
+          "difficulty": "0x1",
+          "extraData": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "gasLimit": "0x4000000000000",
+          "gasUsed": "0x119a4b",
+          "hash": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+          "l1BlockNumber": "0x18d0be2",
+          "logsBloom": "0x042200000000000000100002000000200004000000004002000010000000000500000800000000400000000008804000000050010400a001000004000004000000002001020020080100100b000000000040000000040020200000000000000000000000020000002000000410000a00000000000020000000000012000800000080000010000000000000400020000000000400002000000000000000000000080000000000000000200100000000000000800201000000000000000000000040002002000000280400000004000000000004000400001000000100000060000000000000202000004000000000200000000001008000004000000000000008",
+          "miner": "0xa4b000000000000000000073657175656e636572",
+          "mixHash": "0x00000000000288d600000000018d0be2000000000000003d0000000000000000",
+          "nonce": "0x0000000000273a47",
+          "number": "0x1e3b5ad5",
+          "parentHash": "0xb111e4c6547e9299b4dd1a7af7fcd2c8bfe9aab27e2bf6a26fa86f68aebd4157",
+          "receiptsRoot": "0x90fbadb415d1e9eb7240c0f4c29728d048f92a20dcd138be5974d3ac43755e43",
+          "sendCount": "0x288d6",
+          "sendRoot": "0x45cc82beb5cf2a1feb90d74bd593455d12a5fc16f056648ea766311cef8d1922",
+          "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+          "size": "0xcbb",
+          "stateRoot": "0x9f109ad5bc93878fb734f6c87741551badd34a1ebb80f8403188e1dbc4549bd6",
+          "timestamp": "0x6ab034b5",
+          "transactions": [
+            "0x55eafc133b8a276bb2d1ca4d1f1127aa96f62834b20b3b20dc56542f58dfbea1",
+            "0xb58d3a60ff82742c8e72a10d501ec7e96801d50c4ba5dc2932cb0e35c95ec7ae",
+            "0x86e05c15635267958b62b429d64ee103804a8194667b69efc3b79bb11a21eaae",
+            "0x5360d8e805d4fe037d2e09b3cf110b1ebd3712756523cbb9ae554b550664e48d",
+            "0x93d69544d3d16422410cff477c681e578b80c7f83253b29e68d6008f4aae3c80",
+            "0xa668724a7060347585109ea7e6f59e06a0072cdb3bd1e0a3a4aedf71f125a428",
+            "0x286d5285b15bcfa55f16ad615e7cbbf82963e771df168d778a1348df64aef527"
+          ],
+          "transactionsRoot": "0x04dfd5e7380a86df46b7a701dda60f981e7372bf6c58bc55fdde3690366e1013",
+          "uncles": []
+        }
+      }
+    }
+  ],
+  "schema": "GmxStep41PinnedRiskCells",
+  "values": {
+    "long_oi_usd_usdc_collateral": 3915601041796337580468454646349734616,
+    "long_oi_usd_weth_collateral": 623199667655711734292354010322076100,
+    "max_open_interest_long": 93630999999999996402375947784403550208,
+    "min_collateral_factor": 5000000000000000000000000000,
+    "min_collateral_factor_for_oi_multiplier_long": 60000000000000000000,
+    "min_collateral_usd": 1000000000000000000000000000000,
+    "min_position_size_usd": 1000000000000000000000000000000,
+    "open_interest_reserve_factor_long": 2700000000000000000000000000000,
+    "reserve_factor_long": 2750000000000000000000000000000
+  },
+  "version": 1
+}

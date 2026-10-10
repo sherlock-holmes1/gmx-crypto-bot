@@ -9,14 +9,23 @@ from gmx_crypto_bot_v2.crosscheck.archive_state import (
     virtual_inventory_tokens_cell, execute_order_feature_cell,
     base_increase_size_tokens, aggregate_open_interest_tokens, ArchiveSnapshot,
 )
-from gmx_crypto_bot_v2.crosscheck.router_preflight import Deployment
+from gmx_crypto_bot_v2.crosscheck.router_preflight import Deployment, _selector
 
 
 ADDRESS = "0x" + "11" * 20
 ROUTER = "0x" + "22" * 20
+READER = "0x" + "99" * 20
 HASH = "0x" + "aa" * 32
 CODE = "0x6000"
 CODE_HASH = "0x" + keccak256(bytes.fromhex(CODE[2:])).hex()
+
+# DataStore cells are read from the DataStore itself; GMX Reader structs are
+# read from the Reader contract, which takes the DataStore as its first
+# argument. Routing either call at the wrong contract must stay a test failure.
+DATASTORE_SELECTORS = {"0x" + _selector(f"get{kind}(bytes32)").hex()
+                       for kind in ("Uint", "Int", "Bool", "Address", "Bytes32")}
+READER_SELECTORS = {"0x" + _selector(f"get{struct}(address,bytes32)").hex()
+                    for struct in ("Order", "Position")}
 
 
 @dataclass
@@ -24,6 +33,19 @@ class FakeRpc:
     calls: int = 0
     reorg: bool = False
     value: str = "0x" + "00" * 31 + "01"
+
+    def check_eth_call(self, params):
+        """Assert the exact target and calldata shape expected per call type."""
+        assert params[1] == "0x64", "archive call is not pinned to the block"
+        selector = params[0]["data"][:10]
+        if selector in READER_SELECTORS:
+            assert params[0]["to"] == READER
+            assert params[0]["data"][10:74] == "00" * 12 + ADDRESS[2:]
+            assert len(params[0]["data"]) == 2 + 8 + 128
+        else:
+            assert selector in DATASTORE_SELECTORS, f"unknown selector {selector}"
+            assert params[0]["to"] == ADDRESS
+            assert len(params[0]["data"]) == 2 + 8 + 64
 
     def request(self, method, params):
         if method == "eth_chainId":
@@ -35,8 +57,7 @@ class FakeRpc:
         if method == "eth_getCode":
             return {"result": CODE}
         if method == "eth_call":
-            assert params[1] == "0x64"
-            assert params[0]["to"] == ADDRESS
+            self.check_eth_call(params)
             return {"result": self.value}
         raise AssertionError(method)
 
@@ -167,21 +188,33 @@ def test_reader_struct_pin_and_empty_open_position(monkeypatch):
     monkeypatch.setattr(module, "_decode_order", lambda _: order)
     monkeypatch.setattr(module, "_decode_position", lambda _: empty)
     rpc = FakeRpc()
-    snapshot = reader(rpc).read_order_position(
-        block=100, expected_hash=HASH, order_key="0x" + "33" * 32,
-        expected_request=order, reader_address=ROUTER, reader_code_hash=CODE_HASH)
+    kwargs = dict(block=100, expected_hash=HASH, order_key="0x" + "33" * 32,
+                  reader_address=READER, reader_code_hash=CODE_HASH)
+    snapshot = reader(rpc).read_order_position(expected_request=order, **kwargs)
+    # The Reader structs were read from the Reader, pinned to the same block
+    # hash the DataStore reads are bound to (FakeRpc.check_eth_call asserts the
+    # target contract and the pinned block for every eth_call).
+    assert snapshot.reader == READER and snapshot.reader_code_hash == CODE_HASH.lower()
+    assert (snapshot.block_number, snapshot.block_hash) == (100, HASH)
+    assert snapshot.order_key == "0x" + "33" * 32
+    assert snapshot.reader_timestamp_layout == "order_numbers_12_without_ui_fee_factor"
     assert snapshot.position_key == position_key(ADDRESS, ROUTER, ADDRESS, True)
     assert snapshot.position["sizeInUsd"] == 0
     with pytest.raises(ValueError, match="preflight request"):
         reader(FakeRpc()).read_order_position(
-            block=100, expected_hash=HASH, order_key="0x" + "33" * 32,
-            expected_request={**order, "sizeDeltaUsd": 101},
-            reader_address=ROUTER, reader_code_hash=CODE_HASH)
+            expected_request={**order, "sizeDeltaUsd": 101}, **kwargs)
+    # A block hash that moves between the two pins invalidates the structs.
+    with pytest.raises(ValueError, match="changed"):
+        reader(FakeRpc(reorg=True)).read_order_position(expected_request=order, **kwargs)
+    # An empty position must be empty in every economic field, not just size.
+    monkeypatch.setattr(module, "_decode_position",
+                        lambda _: {**empty, "collateralAmount": 1})
+    with pytest.raises(ValueError, match="nonzero economic fields"):
+        reader(FakeRpc()).read_order_position(expected_request=order, **kwargs)
+    monkeypatch.setattr(module, "_decode_position", lambda _: empty)
     order["orderType"] = 4
     with pytest.raises(ValueError, match="decrease position absent"):
-        reader(FakeRpc()).read_order_position(
-            block=100, expected_hash=HASH, order_key="0x" + "33" * 32,
-            expected_request=order, reader_address=ROUTER, reader_code_hash=CODE_HASH)
+        reader(FakeRpc()).read_order_position(expected_request=order, **kwargs)
 
 
 def test_combined_fixed_increase_reads_virtual_and_rejects_late_reorg(monkeypatch):
@@ -213,7 +246,9 @@ def test_combined_fixed_increase_reads_virtual_and_rejects_late_reorg(monkeypatc
         def request(self, method, params):
             if method == "eth_getBlockByNumber" and self.late_reorg and self.calls >= 7:
                 return {"result": {"number": "0x64", "hash": "0x" + "bb" * 32}}
-            if method == "eth_call" and params[0]["to"] == ROUTER:
+            if method == "eth_call":
+                self.check_eth_call(params)
+            if method == "eth_call" and params[0]["to"] == READER:
                 return {"result": "0x" + "00" * 32}
             if method == "eth_call" and params[0]["to"] == ADDRESS:
                 storage_key = "0x" + params[0]["data"][-64:]
@@ -228,7 +263,7 @@ def test_combined_fixed_increase_reads_virtual_and_rejects_late_reorg(monkeypatc
             return super().request(method, params)
 
     kwargs = dict(block=100, expected_hash=HASH, order_key="0x" + "77" * 32,
-                  expected_request=order, reader_address=ROUTER,
+                  expected_request=order, reader_address=READER,
                   reader_code_hash=CODE_HASH, index_token=eth,
                   long_token=eth, short_token=usdc)
     result = reader(CombinedRpc()).read_fixed_increase_subset(**kwargs)

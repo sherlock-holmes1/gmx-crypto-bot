@@ -8,7 +8,9 @@ import json
 import os
 from pathlib import Path
 
-from gmx_crypto_bot_v2.application.router_check import HttpRpc
+from gmx_crypto_bot_v2.application.router_check import HttpRpc, _load_recorded_oracle_evidence
+from gmx_crypto_bot_v2.crosscheck.boundary_pin import (
+    pin_candidate_at_prestate_boundary, verified_boundary_proof)
 from gmx_crypto_bot_v2.crosscheck.deployment_prep import prepare_deployment
 from gmx_crypto_bot_v2.crosscheck.router_candidates import select_router_candidates
 from gmx_crypto_bot_v2.crosscheck.router_preflight import _hex_bytes
@@ -25,7 +27,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--referral-storage",
                         help="explicit ReferralStorage address; checked against pinned OrderHandler pointer")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--oracle-evidence", type=Path,
+                        help="recorded observed-execution oracle evidence naming the execution")
+    parser.add_argument("--prestate-proof", type=Path,
+                        help="saved ArbOS system-transaction prestate proof")
+    parser.add_argument("--pin-at-prestate-boundary", action="store_true",
+                        help="observe the deployment at the block the prestate proof "
+                             "established, instead of the order's creation block")
     args = parser.parse_args(argv)
+    if args.pin_at_prestate_boundary and not (args.prestate_proof and args.oracle_evidence):
+        parser.error("--pin-at-prestate-boundary requires a prestate proof and oracle evidence")
     try:
         url = os.environ.get("GMX_ARCHIVE_RPC_URL")
         if not url:
@@ -50,8 +61,17 @@ def main(argv: list[str] | None = None) -> int:
         if spec["deployment"]["market_token_address"].lower() != \
                 metadata["market"]["market_token_address"].lower():
             raise ValueError("spec and recording market differ")
+        candidate = candidates[0]
+        if args.pin_at_prestate_boundary:
+            _, evidence = _load_recorded_oracle_evidence(args.oracle_evidence, args.recording)
+            proof = verified_boundary_proof(args.prestate_proof, evidence,
+                                            spec["deployment"]["chain_id"])
+            candidate = pin_candidate_at_prestate_boundary(
+                candidates, proof, evidence["order_key"])
+            print(f"Deployment pin: block {candidate['proposed_pin_block']} "
+                  f"({candidate['pin_source']})")
         result = prepare_deployment(
-            HttpRpc(url), candidates[0], chain_id=spec["deployment"]["chain_id"],
+            HttpRpc(url), candidate, chain_id=spec["deployment"]["chain_id"],
             datastore=recorded["data_store"], reader=spec_contracts["reader"],
             order_handler=recorded["order_handler"], router=args.simulation_router,
             referral_storage=args.referral_storage)
@@ -60,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
             "spec_sha256": "0x" + hashlib.sha256(spec_bytes).hexdigest(),
             "recording_metadata_path": str(metadata_path),
             "recording_metadata_sha256": "0x" + hashlib.sha256(metadata_bytes).hexdigest(),
+            "pin_source": candidate.get("pin_source", "recorded_creation_block"),
             "simulation_router_address_source": "explicit_cli_parameter",
             "referral_storage_address_source": (
                 "explicit_cli_parameter" if args.referral_storage else None),

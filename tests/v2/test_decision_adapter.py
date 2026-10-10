@@ -2,23 +2,74 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from gmx_crypto_bot_v2.crosscheck.decision_adapter import SelectedIncreaseDecisionAdapter
+from gmx_crypto_bot_v2.crosscheck import decision_adapter as decision_adapter_module
+from gmx_crypto_bot_v2.crosscheck.decision_adapter import (
+    MARKET_INCREASE_RULES, SelectedIncreaseDecisionAdapter)
+from prestate_helper import MockRpc, capture
 
 
 ROOT = Path(__file__).resolve().parents[2] / "evidence/step4-1"
+PRESTATE = ROOT / "pinned-system-transaction-prestate.json"
+PRE_EXECUTION_PIN = 507206357
+PRE_EXECUTION_PIN_HASH = (
+    "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5")
+
+# The coded inventory the current pinned evidence can actually prove. Patching
+# the adapter's inventory to this set exercises the full-comparison mechanism;
+# it is not a claim that the missing GMX rules are proved.
+PROVABLE_RULE_SUBSET = MARKET_INCREASE_RULES[:4] + (
+    ("order_valid_from_and_expiration", "request_expiration_config"),
+    ("market_and_collateral_token_valid", "market_config"),
+    ("swap_path_and_min_output", "swap_state"),
+    ("max_open_interest", "max_open_interest_config"),
+    ("reserve_and_open_interest_reserve", "reserve_config"),
+)
 
 
 class DecisionAdapterTests(unittest.TestCase):
     def adapter(self, oracle="selected-order-creation-oracle.json", config=None, risk=None,
                 balance=None, fee_clocks=None, borrowing_skip=None,
-                funding_selector=None):
+                funding_selector=None, prestate=None):
         return SelectedIncreaseDecisionAdapter(
             ROOT / "long-increase-archive-sidecar.json", ROOT / "sourcify-source-proof.json",
             ROOT / "historical-source-manifest.json", ROOT / oracle,
             ROOT / "pinned-increase-executor.json", ROOT / "sourcify-v2/increase_executor.json",
             ROOT / "pinned-swap-handler.json", ROOT / "sourcify-v2/swap_handler.json",
-            config, risk, balance, fee_clocks, borrowing_skip, funding_selector)
+            config, risk, balance, fee_clocks, borrowing_skip, funding_selector, prestate)
+
+    def saved_proof(self, record):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "prestate.json"
+        path.write_text(json.dumps(record, indent=2, sort_keys=True))
+        return path
+
+    def observed_adapter(self, prestate=PRESTATE):
+        """Full pinned evidence set joined with the observed-execution oracle."""
+        return self.adapter("selected-order-execution-oracle.json",
+                            config=ROOT / "pinned-decision-config.json",
+                            risk=ROOT / "pinned-risk-cells.json",
+                            balance=ROOT / "pinned-balance-inputs.json",
+                            fee_clocks=ROOT / "pinned-fee-clocks.json",
+                            borrowing_skip=ROOT / "pinned-borrowing-skip.json",
+                            funding_selector=ROOT / "pinned-funding-selector.json",
+                            prestate=prestate)
+
+    def repinned_observed_adapter(self):
+        """Mechanism fixture: move the in-memory pin to the proved pre-execution block.
+
+        The real sidecar is pinned at the order's creation block, so no captured
+        archive evidence exists at block 507206357. Rewriting the loaded pin
+        exercises the comparison mechanism only; it proves nothing about GMX.
+        """
+        adapter = self.observed_adapter()
+        adapter.sidecar["pin"]["number"] = PRE_EXECUTION_PIN
+        adapter.sidecar["pin"]["recorded_hash"] = PRE_EXECUTION_PIN_HASH
+        adapter.proof["pin_block"] = PRE_EXECUTION_PIN
+        adapter.proof["pin_hash"] = PRE_EXECUTION_PIN_HASH
+        return adapter
 
     def configured_adapter(self):
         return self.adapter(config=ROOT / "pinned-decision-config.json")
@@ -388,6 +439,137 @@ class DecisionAdapterTests(unittest.TestCase):
         adapter = self.adapter("selected-order-execution-oracle.json")
         decision = adapter.evaluate(self.preflight(adapter))
         self.assertEqual(decision["reason"], "execution_oracle_and_creation_pin_not_equivalent")
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertIsNone(decision["prestate_proof_sha256"])
+        self.assertEqual(decision["comparison_scope"],
+                         "observed_execution_prices_without_equivalent_prestate")
+
+    def test_real_prestate_proof_separates_the_creation_pin_from_the_execution_pin(self):
+        """Real captured evidence: the proof passes, but the sidecar is pinned too early."""
+        adapter = self.observed_adapter()
+        self.assertTrue(adapter.prestate["prestate_equivalent_to_block_boundary"])
+        decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"], "sidecar_pin_is_not_pre_execution_pin")
+        self.assertEqual(decision["prestate_equivalent_pin_block"], PRE_EXECUTION_PIN)
+        self.assertEqual(decision["prestate_equivalent_pin_block_hash"], PRE_EXECUTION_PIN_HASH)
+        self.assertEqual(decision["sidecar_pin_block"], 507206345)
+        self.assertEqual(decision["sidecar_pin_block_hash"],
+                         adapter.sidecar["pin"]["recorded_hash"])
+        self.assertIsNotNone(decision["prestate_proof_sha256"])
+        self.assertNotIn("observed_execution_prestate_equivalent_to_pre_execution_pin",
+                         decision["proved_branches"])
+
+    def test_failed_prestate_capture_is_refused_with_its_own_exact_reason(self):
+        failed = capture(MockRpc(receipts={}))
+        self.assertFalse(failed["prestate_equivalent_to_block_boundary"])
+        adapter = self.observed_adapter(self.saved_proof(failed))
+        decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"], "observed_execution_prestate_proof_not_verified")
+        self.assertEqual(decision["prestate_proof_reason"], "preceding_receipt_unavailable")
+
+    def test_prestate_proof_requires_observed_execution_oracle_evidence(self):
+        with self.assertRaisesRegex(ValueError, "observed-execution oracle evidence"):
+            self.adapter(prestate=PRESTATE)
+
+    def test_prestate_proof_for_another_block_is_rejected(self):
+        wrong = capture(MockRpc(), index=0, expected_transaction_hash=None)
+        with self.assertRaisesRegex(ValueError, "identity mismatch"):
+            self.observed_adapter(self.saved_proof(wrong))
+
+    def test_equivalent_pin_still_reports_missing_rule_coverage(self):
+        adapter = self.repinned_observed_adapter()
+        decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"],
+                         "independent_market_increase_rule_coverage_incomplete")
+        self.assertEqual(decision["comparison_scope"],
+                         "observed_execution_pre_execution_block_boundary")
+        self.assertIn("observed_execution_prestate_equivalent_to_pre_execution_pin",
+                      decision["proved_branches"])
+        for rule in ("execution_price_and_acceptable_price",
+                     "position_fees_and_collateral_sufficiency", "market_token_balances",
+                     "gas_and_keeper_checks"):
+            self.assertIn(rule, decision["missing_rule_evidence"])
+
+    def test_mechanism_only_agreement_with_patched_complete_rule_inventory(self):
+        """Mechanism test: the rule set is complete only because it is patched.
+
+        Real evidence cannot prove execution price, net fees, position validity,
+        market balances, or the keeper gas context, so this exercises the code
+        path that would emit an agreement, not an agreement about GMX.
+        """
+        adapter = self.repinned_observed_adapter()
+        with mock.patch.object(decision_adapter_module, "MARKET_INCREASE_RULES",
+                               PROVABLE_RULE_SUBSET):
+            decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "agreement")
+        self.assertEqual(decision["model_result"], "accept")
+        self.assertEqual(decision["gmx_result"], "passed_preflight")
+        self.assertEqual(decision["missing_rule_evidence"], [])
+        self.assertEqual(decision["comparison_scope"],
+                         "observed_execution_pre_execution_block_boundary")
+
+    def test_mechanism_only_disagreement_when_gmx_rejects_an_accepted_order(self):
+        """Mechanism test: patched inventory, GMX validation error, model accepts."""
+        adapter = self.repinned_observed_adapter()
+        preflight = {**self.preflight(adapter), "outcome": "validation_error"}
+        with mock.patch.object(decision_adapter_module, "MARKET_INCREASE_RULES",
+                               PROVABLE_RULE_SUBSET):
+            decision = adapter.evaluate(preflight)
+        self.assertEqual(decision["status"], "disagreement")
+        self.assertEqual(decision["model_result"], "accept")
+        self.assertEqual(decision["gmx_result"], "validation_error")
+
+    def test_sidecar_pin_hash_must_match_the_derived_pre_execution_block_hash(self):
+        """A matching block number is not enough: the hash carries the claim."""
+        adapter = self.observed_adapter()
+        adapter.sidecar["pin"]["number"] = PRE_EXECUTION_PIN
+        adapter.proof["pin_block"] = PRE_EXECUTION_PIN
+        decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"],
+                         "sidecar_pin_hash_is_not_pre_execution_block_hash")
+        self.assertNotIn("observed_execution_prestate_equivalent_to_pre_execution_pin",
+                         decision["proved_branches"])
+
+    def test_model_rejection_at_equivalent_state_is_a_disagreement(self):
+        adapter = self.repinned_observed_adapter()
+        adapter.risk_cells["values"]["max_open_interest_long"] = 0
+        decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "disagreement")
+        self.assertEqual(decision["model_result"], "reject")
+        self.assertEqual(decision["model_rule"], "max_open_interest")
+        self.assertEqual(decision["reason"], "independent_max_open_interest_failed")
+        # A reject-side disagreement does not need the complete inventory, but it
+        # must disclose that the inventory is incomplete.
+        self.assertIn("execution_price_and_acceptable_price",
+                      decision["missing_rule_evidence"])
+        self.assertEqual(decision["unproved_rule_count"],
+                         len(decision["missing_rule_evidence"]))
+        self.assertEqual(decision["proved_rule_count"] + decision["unproved_rule_count"],
+                         len(decision["rule_inventory"]))
+
+    def test_model_rejection_against_a_gmx_validation_error_stays_preflight_only(self):
+        adapter = self.repinned_observed_adapter()
+        adapter.risk_cells["values"]["max_open_interest_long"] = 0
+        decision = adapter.evaluate({**self.preflight(adapter), "outcome": "validation_error"})
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"], "independent_max_open_interest_failed")
+
+    def test_counterfactual_creation_prices_can_never_reach_agreement(self):
+        adapter = self.adapter(config=ROOT / "pinned-decision-config.json",
+                               risk=ROOT / "pinned-risk-cells.json",
+                               balance=ROOT / "pinned-balance-inputs.json")
+        with mock.patch.object(decision_adapter_module, "MARKET_INCREASE_RULES",
+                               PROVABLE_RULE_SUBSET):
+            decision = adapter.evaluate(self.preflight(adapter))
+        self.assertEqual(decision["status"], "gmx_preflight_only")
+        self.assertEqual(decision["reason"],
+                         "independent_decision_state_equivalence_unproved")
+        self.assertEqual(decision["missing_rule_evidence"], [])
+        self.assertEqual(decision["comparison_scope"], "counterfactual_creation_block_prices")
 
     def test_pin_mismatch_and_digest_tamper_rejected(self):
         adapter = self.adapter()

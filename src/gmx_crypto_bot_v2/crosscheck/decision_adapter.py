@@ -15,6 +15,21 @@ from gmx_crypto_bot_v2.domain.keys import keccak256
 from gmx_crypto_bot_v2.domain.configuration import ConfigKey
 from gmx_crypto_bot_v2.domain.keys import config_market_data
 from gmx_crypto_bot_v2.domain.swap_keys import key as storage_key
+from gmx_crypto_bot_v2.crosscheck.boundary_pin import verified_boundary_proof
+from gmx_crypto_bot_v2.crosscheck.sidecar_replay import verify_sidecar_transcript_values
+
+
+OBSERVED_EXECUTION_RELATIONSHIP = (
+    "observed_execution_transaction_prices_preceding_order_executed")
+
+# Rules settled by the identity and provenance checks that run before any
+# economics. Named rather than sliced, so reordering the inventory below cannot
+# silently reclassify a rule as already proved.
+IDENTITY_RULE_ORDER: tuple[str, ...] = (
+    "pending_latest_request", "order_field_identity",
+    "execute_order_feature_enabled", "oracle_price_source_and_age",
+)
+IDENTITY_RULES = frozenset(IDENTITY_RULE_ORDER)
 
 
 MARKET_INCREASE_RULES: tuple[tuple[str, str], ...] = (
@@ -707,7 +722,8 @@ class SelectedIncreaseDecisionAdapter:
                  balance_inputs_path: Path | None = None,
                  fee_clocks_path: Path | None = None,
                  borrowing_skip_path: Path | None = None,
-                 funding_selector_path: Path | None = None):
+                 funding_selector_path: Path | None = None,
+                 prestate_proof_path: Path | None = None):
         self.paths = (sidecar_path, source_proof_path, source_manifest_path,
                       oracle_evidence_path)
         self.sidecar, self.proof, self.manifest, self.oracle = (
@@ -717,6 +733,11 @@ class SelectedIncreaseDecisionAdapter:
                 self.manifest.get("schema") != "GmxStep41HistoricalSourceManifest" or \
                 self.oracle.get("schema") != "GmxStep41RecordedOracleEvidence":
             raise ValueError("selected increase evidence schema mismatch")
+        # Every other pinned artifact is replayed from its own raw transcript.
+        # The sidecar must be too: its market identity and position feed
+        # reject-side rules, and a reject-side disagreement is a claim about
+        # GMX. Fail closed rather than trust a summary field.
+        self.sidecar_replay = verify_sidecar_transcript_values(self.sidecar)
         if self.proof.get("sidecar_sha256") != _digest(sidecar_path) or \
                 self.proof.get("input_manifest_sha256") != _digest(source_manifest_path) or \
                 self.manifest.get("sidecar_sha256") != _digest(sidecar_path) or \
@@ -768,6 +789,9 @@ class SelectedIncreaseDecisionAdapter:
                                                                  executor_source_path, self.sidecar)
                                  if funding_selector_path is not None else None)
         self.funding_selector_sha256 = _digest(funding_selector_path) if self.funding_selector else None
+        self.prestate = (self._load_prestate_proof(prestate_proof_path)
+                         if prestate_proof_path is not None else None)
+        self.prestate_sha256 = _digest(prestate_proof_path) if self.prestate else None
         for dependency_path in (executor_proof_path, swap_proof_path):
             if dependency_path is None:
                 continue
@@ -780,15 +804,28 @@ class SelectedIncreaseDecisionAdapter:
                     dependency.get("order_handler", "").lower() != deployment["order_handler"].lower():
                 raise ValueError("delegated contract proof differs from selected sidecar pin")
 
+    def _load_prestate_proof(self, path: Path) -> dict[str, Any]:
+        """Bind an intra-block prestate proof to this order's observed execution.
+
+        The proof itself knows only a block coordinate. Its link to the selected
+        order comes from the recorded oracle evidence, whose coordinates name the
+        observed `OrderExecuted` transaction and are digest-bound to the key.
+        """
+        return verified_boundary_proof(path, self.oracle,
+                                      self.sidecar["deployment"]["chain_id"])
+
     def evaluate(self, preflight: dict[str, Any]) -> dict[str, Any]:
-        only = lambda reason: {"status": "gmx_preflight_only", "reason": reason,
-                               "rule_inventory": [name for name, _ in MARKET_INCREASE_RULES],
-                               "decision_config_sha256": self.decision_config_sha256,
-                               "risk_cells_sha256": self.risk_cells_sha256,
-                               "balance_inputs_sha256": self.balance_inputs_sha256,
-                               "fee_clocks_sha256": self.fee_clocks_sha256,
-                               "borrowing_skip_sha256": self.borrowing_skip_sha256,
-                               "funding_selector_sha256": self.funding_selector_sha256}
+        base = {"rule_inventory": [name for name, _ in MARKET_INCREASE_RULES],
+                "sidecar_transcript_sha256": self.sidecar_replay["rpc_transcript_sha256"],
+                "sidecar_values_rederived_from_raw_transcript": True,
+                "decision_config_sha256": self.decision_config_sha256,
+                "risk_cells_sha256": self.risk_cells_sha256,
+                "balance_inputs_sha256": self.balance_inputs_sha256,
+                "fee_clocks_sha256": self.fee_clocks_sha256,
+                "borrowing_skip_sha256": self.borrowing_skip_sha256,
+                "funding_selector_sha256": self.funding_selector_sha256,
+                "prestate_proof_sha256": self.prestate_sha256}
+        only = lambda reason: {"status": "gmx_preflight_only", "reason": reason, **base}
         if preflight.get("outcome") not in {"passed_preflight", "validation_error"}:
             return only("no_decoded_gmx_decision")
         pin = self.sidecar["pin"]
@@ -819,16 +856,60 @@ class SelectedIncreaseDecisionAdapter:
             return only("router_oracle_not_equal_to_evidence")
         order = self.sidecar["pinned_order"]
         market = self.sidecar["fixed_values"]["market"]
-        proved = ["pending_latest_request", "order_field_identity",
-                  "execute_order_feature_enabled", "oracle_price_source_and_age"]
+        proved = list(IDENTITY_RULE_ORDER)
+        # A router call observes a block boundary. Comparing it with the observed
+        # execution needs a proof that nothing ran between that boundary and the
+        # keeper transaction, and a sidecar pinned at exactly that boundary by
+        # number *and* hash.
+        observed = self.oracle["relationship"] == OBSERVED_EXECUTION_RELATIONSHIP
+        equivalent, prestate_reason = False, None
+        if observed:
+            if self.prestate is None:
+                prestate_reason = "execution_oracle_and_creation_pin_not_equivalent"
+            elif self.prestate["prestate_equivalent_to_block_boundary"] is not True:
+                prestate_reason = "observed_execution_prestate_proof_not_verified"
+            elif pin["number"] != self.prestate["equivalent_pin_block"]:
+                prestate_reason = "sidecar_pin_is_not_pre_execution_pin"
+            elif str(pin["recorded_hash"]).lower() != \
+                    self.prestate["equivalent_pin_block_hash"]:
+                prestate_reason = "sidecar_pin_hash_is_not_pre_execution_block_hash"
+            else:
+                equivalent = True
+                proved.append("observed_execution_prestate_equivalent_to_pre_execution_pin")
+        scope = ("observed_execution_pre_execution_block_boundary" if equivalent else
+                 "observed_execution_prices_without_equivalent_prestate" if observed else
+                 "counterfactual_creation_block_prices")
+
+        def coverage() -> dict[str, Any]:
+            """Disclose the coded rule inventory's state at the point of return."""
+            missing = [name for name, _ in MARKET_INCREASE_RULES
+                       if name not in IDENTITY_RULES and name not in proved]
+            return {"missing_rule_evidence": missing,
+                    "proved_rule_count": len(MARKET_INCREASE_RULES) - len(missing),
+                    "unproved_rule_count": len(missing)}
+
+        def reject(reason: str, rule: str) -> dict[str, Any]:
+            """Report a model rejection; only equivalent state may call it a disagreement.
+
+            A reject-side disagreement does not need the complete inventory: GMX
+            passing its whole preflight means it also passed the rule we reject,
+            so the rules we cannot evaluate cannot explain the conflict. The
+            coverage is reported anyway so the claim stays auditable.
+            """
+            detail = {"model_rule": rule, "model_result": "reject",
+                      "proved_branches": proved, "comparison_scope": scope, **coverage()}
+            if equivalent and preflight.get("outcome") == "passed_preflight":
+                return {"status": "disagreement", "reason": reason, **base, **detail,
+                        "gmx_result": "passed_preflight"}
+            return {**only(reason), **detail}
+
         if order.get("orderType") != 2 or order.get("isLong") is not True:
             return only("unsupported_order_type_or_side")
         if order.get("swapPath") != [] or order.get("minOutputAmount") is None or \
                 order.get("initialCollateralDeltaAmount") is None:
             return only("swap_branch_unproved")
         if order["initialCollateralDeltaAmount"] < order["minOutputAmount"]:
-            return {**only("independent_swap_min_output_failed"),
-                    "model_rule": "swap_path_and_min_output", "model_result": "reject"}
+            return reject("independent_swap_min_output_failed", "swap_path_and_min_output")
         proved.append("zero_swap_path_input_conditions")
         if self.swap_source is not None:
             proved.append("swap_path_and_min_output")
@@ -836,42 +917,41 @@ class SelectedIncreaseDecisionAdapter:
                 market["LONG_TOKEN"].lower(), market["SHORT_TOKEN"].lower()} or \
                 market["INDEX_TOKEN"].lower() == "0x" + "0" * 40 or \
                 market["MARKET_TOKEN"].lower() != order["market"].lower():
-            return {**only("independent_market_or_collateral_failed"),
-                    "model_rule": "market_and_collateral_token_valid", "model_result": "reject"}
+            return reject("independent_market_or_collateral_failed",
+                          "market_and_collateral_token_valid")
         proved.append("collateral_token_membership")
         if self.decision_config is not None:
             if self.decision_config["values"]["is_market_disabled"]:
-                return {**only("independent_market_disabled"),
-                        "model_rule": "market_and_collateral_token_valid", "model_result": "reject"}
+                return reject("independent_market_disabled",
+                              "market_and_collateral_token_valid")
             proved.append("market_enabled")
             proved.append("market_and_collateral_token_valid")
         if self.oracle["min_timestamp"] < order["updatedAtTime"]:
-            return {**only("independent_order_timestamp_failed"),
-                    "model_rule": "order_valid_from_and_expiration", "model_result": "reject"}
+            return reject("independent_order_timestamp_failed",
+                          "order_valid_from_and_expiration")
         if self.decision_config is not None:
             # GMX's validFromTime condition excludes MarketIncrease via isMarketOrder.
             proved.append("market_order_valid_from_exemption")
             if self.oracle["max_timestamp"] > (order["updatedAtTime"] +
                                                  self.decision_config["values"]["request_expiration_time"]):
-                return {**only("independent_request_expired"),
-                        "model_rule": "order_valid_from_and_expiration", "model_result": "reject"}
+                return reject("independent_request_expired",
+                              "order_valid_from_and_expiration")
             proved.append("order_valid_from_and_expiration")
         next_size_usd = self.sidecar["position"]["value"]["sizeInUsd"] + order["sizeDeltaUsd"]
         if next_size_usd == 0 or next_size_usd >= 2**256:
-            return {**only("independent_invalid_next_position_size_usd"),
-                    "model_rule": "post_update_position_validity", "model_result": "reject"}
+            return reject("independent_invalid_next_position_size_usd",
+                          "post_update_position_validity")
         proved.append("nonzero_next_position_size_usd")
         if self.risk_cells is not None:
             risk = self.risk_cells["values"]
             if next_size_usd < risk["min_position_size_usd"]:
-                return {**only("independent_min_position_size_failed"),
-                        "model_rule": "minimum_position_and_collateral", "model_result": "reject"}
+                return reject("independent_min_position_size_failed",
+                              "minimum_position_and_collateral")
             proved.append("minimum_position_size_usd")
             next_oi_usd = (risk["long_oi_usd_weth_collateral"] +
                            risk["long_oi_usd_usdc_collateral"] + order["sizeDeltaUsd"])
             if next_oi_usd > risk["max_open_interest_long"]:
-                return {**only("independent_max_open_interest_failed"),
-                        "model_rule": "max_open_interest", "model_result": "reject"}
+                return reject("independent_max_open_interest_failed", "max_open_interest")
             proved.append("max_open_interest")
             # This selected two-token long uses USDC collateral. Fees change the
             # USDC pool; pending position impact does not change the WETH pool.
@@ -898,8 +978,7 @@ class SelectedIncreaseDecisionAdapter:
                         ("open_interest_reserve_factor_long", "independent_oi_reserve_failed")):
                     max_reserved_usd = pool_usd * risk[factor_name] // 10**30
                     if reserved_usd > max_reserved_usd:
-                        return {**only(reason), "model_rule": "reserve_and_open_interest_reserve",
-                                "model_result": "reject"}
+                        return reject(reason, "reserve_and_open_interest_reserve")
                 proved.append("reserve_and_open_interest_reserve")
         price_upper_bound = (_market_increase_price_upper_bound(
             self.sidecar, self.oracle, self.balance_inputs, self.risk_cells)
@@ -940,14 +1019,28 @@ class SelectedIncreaseDecisionAdapter:
         if self.sidecar.get("referral", {}).get("code") == "0x" + "0" * 64 and \
                 self.sidecar.get("referral", {}).get("pro_trader_tier") == 0:
             proved.append("zero_referral_branch")
-        if self.oracle["relationship"] == "observed_execution_transaction_prices_preceding_order_executed":
-            return {**only("execution_oracle_and_creation_pin_not_equivalent"),
-                    "proved_branches": proved}
-        return {**only("independent_market_increase_rule_coverage_incomplete"),
-                "proved_branches": proved,
-                "execution_price_upper_bound": (
-                    price_upper_bound if "acceptable_price_upper_bound" in proved else None),
-                "fee_diagnostics": fee_diagnostics,
-                "missing_rule_evidence": [name for name, _ in MARKET_INCREASE_RULES[4:]
-                                          if name not in proved],
-                "comparison_scope": "counterfactual_creation_block_prices"}
+        rules = coverage()
+        missing = rules["missing_rule_evidence"]
+        detail = {"proved_branches": proved,
+                  "execution_price_upper_bound": (
+                      price_upper_bound if "acceptable_price_upper_bound" in proved else None),
+                  "fee_diagnostics": fee_diagnostics,
+                  "comparison_scope": scope, **rules}
+        if prestate_reason is not None:
+            return {**only(prestate_reason), **detail,
+                    "prestate_proof_reason": self.prestate["reason"] if self.prestate else None,
+                    "prestate_equivalent_pin_block": (
+                        self.prestate["equivalent_pin_block"] if self.prestate else None),
+                    "prestate_equivalent_pin_block_hash": (
+                        self.prestate["equivalent_pin_block_hash"] if self.prestate else None),
+                    "sidecar_pin_block": pin["number"],
+                    "sidecar_pin_block_hash": pin["recorded_hash"]}
+        if missing:
+            return {**only("independent_market_increase_rule_coverage_incomplete"), **detail}
+        if not equivalent:
+            # Every coded rule is proved, but these prices never priced this block.
+            return {**only("independent_decision_state_equivalence_unproved"), **detail}
+        return {"status": "agreement" if preflight["outcome"] == "passed_preflight"
+                else "disagreement",
+                "reason": "all_coded_market_increase_rules_proved_at_equivalent_state",
+                "model_result": "accept", "gmx_result": preflight["outcome"], **base, **detail}

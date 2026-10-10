@@ -1,0 +1,67 @@
+{
+  "chain_id": 42161,
+  "contracts": {
+    "datastore": {
+      "address": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8",
+      "compiler_version": "0.8.18",
+      "ipfs_cid_v0": "QmWUuG3imdBgcbf7BvYDuTorqQKzibzTMdWUegDPGa96yB",
+      "metadata_length": 51,
+      "metadata_uri": "ipfs://QmWUuG3imdBgcbf7BvYDuTorqQKzibzTMdWUegDPGa96yB",
+      "runtime_code_bytes": 10443,
+      "runtime_code_hash": "0x3e7aea6e62b75671681b0d3006b146c7f02681a65fd5cc663909104de9d5088e",
+      "runtime_code_sha256": "0x0524e4f2a73947f6e74c2a3e33bc399c56db0d5a6d428ab5c013957a0964f77b",
+      "source_status": "metadata_reference_only_not_fetched"
+    },
+    "order_handler": {
+      "address": "0xa5d2d45228ee2e3a18ab122b2ce84997d008f4eb",
+      "compiler_version": "0.8.29",
+      "ipfs_cid_v0": "QmRokDkevZQUN3XfrfZGvpXKaDax9a1Z1dBKbBXp8qKmSx",
+      "metadata_length": 51,
+      "metadata_uri": "ipfs://QmRokDkevZQUN3XfrfZGvpXKaDax9a1Z1dBKbBXp8qKmSx",
+      "runtime_code_bytes": 24525,
+      "runtime_code_hash": "0xc35bbb9387b097e5b397a4901fa60cdbf4255d5c2bf71f942f938d9ddd989452",
+      "runtime_code_sha256": "0x2113ebc4aa3bd22b80e44e075eea137aabdfb67438883b9e3ee14e5cb6f5e06e",
+      "source_status": "metadata_reference_only_not_fetched"
+    },
+    "reader": {
+      "address": "0xfa26cbb46e2614609406de08ca1dc7f70a684184",
+      "compiler_version": "0.8.29",
+      "ipfs_cid_v0": "QmdZfR8A2dcJX5m1HjpHjWHJPF98YUFvGgZkPG2RdZmhLz",
+      "metadata_length": 51,
+      "metadata_uri": "ipfs://QmdZfR8A2dcJX5m1HjpHjWHJPF98YUFvGgZkPG2RdZmhLz",
+      "runtime_code_bytes": 23870,
+      "runtime_code_hash": "0x49ed1cb374dfbcea8c73fb50821b5e0bb3fbbe83f4324d954ef07c38758ac04a",
+      "runtime_code_sha256": "0xa8ac6f41c73e92794168cda29d75d90831e433f865e666cb72136eddd4ba5fc7",
+      "source_status": "metadata_reference_only_not_fetched"
+    },
+    "referral_storage": {
+      "address": "0xe6fab3f0c7199b0d34d7fbe83394fc0e0d06e99d",
+      "compiler_version": "0.6.12",
+      "ipfs_cid_v0": "QmVncpnkRRaP7zHE1oHiWDPtybAXhr1ZRKrTkiG4UJy8dp",
+      "metadata_length": 51,
+      "metadata_uri": "ipfs://QmVncpnkRRaP7zHE1oHiWDPtybAXhr1ZRKrTkiG4UJy8dp",
+      "runtime_code_bytes": 3417,
+      "runtime_code_hash": "0x0e60e91775403938a7515d6c66da35ae8dca225bf2e73e1f7e29b6942a26b4dd",
+      "runtime_code_sha256": "0xe13012b27e9bc818e80bfa4fd6b8cdbece1018ee5f0e6342bcaaab2684b9649f",
+      "source_status": "metadata_reference_only_not_fetched"
+    },
+    "router": {
+      "address": "0xad3051cb1ae3a86b335f12a9a41bd4d995a137ea",
+      "compiler_version": "0.8.29",
+      "ipfs_cid_v0": "Qmagbt6zVAwQRydca8sSVAdHnM1D7LdfkdGRz32MywVvu6",
+      "metadata_length": 51,
+      "metadata_uri": "ipfs://Qmagbt6zVAwQRydca8sSVAdHnM1D7LdfkdGRz32MywVvu6",
+      "runtime_code_bytes": 6994,
+      "runtime_code_hash": "0x23082b1ffffe17945c3292af62f4b410c5a11e2e2f74489ec7239669dcf9235a",
+      "runtime_code_sha256": "0xff09bf6a840bc854949cb03f7604488a6fcac20576e65850940fec11d7ba82d4",
+      "source_status": "metadata_reference_only_not_fetched"
+    }
+  },
+  "historical_source_abi_key_layout_proved": false,
+  "next_proof": "fetch each content-addressed metadata and source, verify hashes and compiler output against pinned runtime code",
+  "pin_block": 507206357,
+  "pin_hash": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+  "schema": "GmxStep41HistoricalSourceManifest",
+  "sidecar_sha256": "0x1e00f269744f5a904374d3b5717a19f49d4e8eabbf8931cbc6a505bd67e6907b",
+  "version": 1
+}

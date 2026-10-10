@@ -1,0 +1,3835 @@
+{
+  "candidates": [
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x1e8e290a06d6513973f82b7d6e39247f467581e7dc900ace4f0143c8f4eb74fb",
+        "block_number": 507205341,
+        "event_name": "OrderCreated",
+        "log_index": 15,
+        "transaction_hash": "0x6f97f0a989129fa9045ae0e61131a70b2adf7f8198b373270cd5eb4ed00e0a2c",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x40974329dc481a5f37104a26262c1578db7e78097b88ef88fbb26ba6915c9c1c",
+      "preflight": {
+        "order_key": "0x40974329dc481a5f37104a26262c1578db7e78097b88ef88fbb26ba6915c9c1c",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507205341,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xd5ff9f79a7d13194a018e8bc8d1426b3fe57bfe1ab88fa0e32908e30afe564fd",
+        "block_number": 507205378,
+        "event_name": "OrderExecuted",
+        "log_index": 24,
+        "transaction_hash": "0x984c15a1db1fcda45b72b09c2b27be4c91c5c18ef5f845d00c363036b7f3e6f6",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x4ff9efca38f72e640c8363a644da61b9d246c3b0dce36810dd2799e3b00da239",
+        "block_number": 507206127,
+        "event_name": "OrderCreated",
+        "log_index": 33,
+        "transaction_hash": "0x96df0efc9941479a6fa52ceacc59a88327e727ad603bb1522c45e4bd24c618ab",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x530708ab7655f54f6c1d0c3df9d4c1335518afb689d4b3b38fa78c841d9e5952",
+      "preflight": {
+        "order_key": "0x530708ab7655f54f6c1d0c3df9d4c1335518afb689d4b3b38fa78c841d9e5952",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507206127,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x07e478be37e169c11939056974c7e4ed016cd499f241c676a5dfa8b87eac0e73",
+        "block_number": 507206150,
+        "event_name": "OrderExecuted",
+        "log_index": 24,
+        "transaction_hash": "0x4d5452dead06485cdd032685b6508d64bdab3d5f33a7a8be021a177e5d4bad36",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "balance_inputs_sha256": "0x19a193c70ce812f00c2c1f97a33a780266cf23a57e6355324b878436aada2d82",
+        "borrowing_skip_sha256": "0x640445095b0ff994c469669b02f3cbb252804c01901e9f37aa17f169a1142aa8",
+        "comparison_scope": "observed_execution_pre_execution_block_boundary",
+        "decision_config_sha256": "0x1ec00df44048f8afe491a4757d013ecfddc420f6c3ec0afa3a0bc531d50c8684",
+        "execution_price_upper_bound": 2631796557018883,
+        "fee_clocks_sha256": "0x7077c918f08dfc08b8ee8bedc528fac0a7ee4344be7ba7f9a6577d1dab4c7b5e",
+        "fee_diagnostics": {
+          "borrowing_elapsed_seconds_long": 54,
+          "borrowing_fee_amount": 0,
+          "borrowing_fee_usd": 0,
+          "funding_elapsed_seconds": 54,
+          "funding_mode": "adaptive_unreconstructed",
+          "gross_position_fee_amount_before_discounts": 79679,
+          "ui_fee_amount": 0
+        },
+        "funding_selector_sha256": "0x07903daf9cda91fd49d7bc10cdf4089e7242cce89d8be033fee7c85baff95980",
+        "missing_rule_evidence": [
+          "execution_price_and_acceptable_price",
+          "position_fees_and_collateral_sufficiency",
+          "minimum_position_and_collateral",
+          "post_update_position_validity",
+          "market_token_balances",
+          "gas_and_keeper_checks"
+        ],
+        "prestate_proof_sha256": "0x974bc81259e1cd5e65779e87847e19d09c8861b14d058f9b6ba2a92f463ab016",
+        "proved_branches": [
+          "pending_latest_request",
+          "order_field_identity",
+          "execute_order_feature_enabled",
+          "oracle_price_source_and_age",
+          "observed_execution_prestate_equivalent_to_pre_execution_pin",
+          "zero_swap_path_input_conditions",
+          "swap_path_and_min_output",
+          "collateral_token_membership",
+          "market_enabled",
+          "market_and_collateral_token_valid",
+          "market_order_valid_from_exemption",
+          "order_valid_from_and_expiration",
+          "nonzero_next_position_size_usd",
+          "minimum_position_size_usd",
+          "max_open_interest",
+          "reserve_and_open_interest_reserve",
+          "acceptable_price_upper_bound",
+          "zero_long_borrowing_fee",
+          "zero_ui_fee_amount",
+          "gross_position_fee_before_discounts",
+          "zero_referral_branch"
+        ],
+        "proved_rule_count": 9,
+        "reason": "independent_market_increase_rule_coverage_incomplete",
+        "risk_cells_sha256": "0x6ccd5893e7fb1513f61bcb1b38f228c86d54c5cb27b94111d8b8aee26d4789f1",
+        "rule_inventory": [
+          "pending_latest_request",
+          "order_field_identity",
+          "execute_order_feature_enabled",
+          "oracle_price_source_and_age",
+          "order_valid_from_and_expiration",
+          "market_and_collateral_token_valid",
+          "swap_path_and_min_output",
+          "execution_price_and_acceptable_price",
+          "position_fees_and_collateral_sufficiency",
+          "max_open_interest",
+          "reserve_and_open_interest_reserve",
+          "minimum_position_and_collateral",
+          "post_update_position_validity",
+          "market_token_balances",
+          "gas_and_keeper_checks"
+        ],
+        "sidecar_transcript_sha256": "0xccf862e2fef7a997fff278f4d0705f6474a5c3d5d3d746d4a1673edc28c08a55",
+        "sidecar_values_rederived_from_raw_transcript": true,
+        "status": "gmx_preflight_only",
+        "unproved_rule_count": 6
+      },
+      "creation": {
+        "block_hash": "0x3641e2a0ddbf4e620a1cd6b7323e8cbed3aad6e39602ee8779c2f6604be3856f",
+        "block_number": 507206345,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0xac5153f889493d4da056a3f569eb3d0d26f75bb80e757aa6dd05284675b067c0",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xfd65a4c31638d78c68c9986e0bb21c002790d0a897aaa31d4109b9cd2f0bff90",
+      "preflight": {
+        "archive_only_request_fields": [
+          "swapPath",
+          "isFrozen",
+          "dataList"
+        ],
+        "calldata": "0x983fa3920000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000006ab034b4000000000000000000000000000000000000000000000000000000006ab034b4000000000000000000000000000000000000000000000000000000000000000200000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e583100000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000009599ae2e6f7030000000000000000000000000000000000000000000000000009599ae2e6f70300000000000000000000000000000000000000000000d3bd654ade97fedd4f8000000000000000000000000000000000000000000000d3bd654ade97fedd4f80",
+        "derived_latest_key": "0xfd65a4c31638d78c68c9986e0bb21c002790d0a897aaa31d4109b9cd2f0bff90",
+        "error_arguments": [],
+        "error_signature": "EndOfOracleSimulation()",
+        "latest": true,
+        "nonce": 7727799,
+        "on_chain_request": {
+          "acceptablePrice": 2641514664515446,
+          "account": "0xad8c5f877453ab2079cc89ead80978083b64098c",
+          "autoCancel": false,
+          "callbackContract": "0x0000000000000000000000000000000000000000",
+          "callbackGasLimit": 0,
+          "cancellationReceiver": "0x0000000000000000000000000000000000000000",
+          "dataList": [
+            "0x676d786f3a313a303a303030303a30303a303a31000000000000000000000000"
+          ],
+          "decreasePositionSwapType": 0,
+          "executionFee": 169418054694000,
+          "initialCollateralDeltaAmount": 20000000,
+          "initialCollateralToken": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+          "isFrozen": false,
+          "isLong": true,
+          "market": "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
+          "minOutputAmount": 0,
+          "orderType": 2,
+          "receiver": "0xad8c5f877453ab2079cc89ead80978083b64098c",
+          "shouldUnwrapNativeToken": false,
+          "sizeDeltaUsd": 199181621808000000000000000000000,
+          "srcChainId": 0,
+          "swapPath": [],
+          "triggerPrice": 0,
+          "uiFeeFactor": 0,
+          "uiFeeReceiver": "0xff00000000000000000000000000000000000001",
+          "updatedAtTime": 1789932722,
+          "validFromTime": 0
+        },
+        "oracle": {
+          "max_timestamp": 1789932724,
+          "min_timestamp": 1789932724,
+          "prices": [
+            [
+              2631796557018883,
+              2631796557018883
+            ],
+            [
+              999913061406316750000000,
+              999913061406316750000000
+            ]
+          ],
+          "provenance": "recorded_OraclePriceUpdate_events",
+          "scale_proof": "historical_Oracle_primary_price_raw_integer",
+          "tokens": [
+            "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+            "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+          ]
+        },
+        "order_key": "0xfd65a4c31638d78c68c9986e0bb21c002790d0a897aaa31d4109b9cd2f0bff90",
+        "outcome": "passed_preflight",
+        "pending": true,
+        "pin_block": 507206357,
+        "pin_block_hash": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+        "pin_block_hash_after": "0x6624873b47717258e06e038aa89bf86c2bd9b34542b5b3f72b5b04badc8b4af5",
+        "raw_revert": "0x4e48dcda",
+        "router": "0xaD3051cB1aE3a86b335f12A9a41BD4d995a137ea",
+        "rpc_error": {
+          "code": 3,
+          "data": "0x4e48dcda",
+          "message": "execution reverted"
+        },
+        "selector": "0x4e48dcda"
+      },
+      "proposed_pin_block": 507206357,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xddd659c204cc34e968cb82fd78338dbc8a9716e0cba8100d416bc4fd6b4016bf",
+        "block_number": 507206358,
+        "event_name": "OrderExecuted",
+        "log_index": 24,
+        "transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x5f2098474147ffa7fce02bc5af06b8a20cf537dcdcd0829d8708f3ff19d1d0ad",
+        "block_number": 507206579,
+        "event_name": "OrderCreated",
+        "log_index": 17,
+        "transaction_hash": "0xc27ec9e11170a8fceeb25f29d576db1bf70a23e30c362f0a0e79a3e623345b1a",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xba2ac20c374605ca5402fef05d9d37139c831cf6f2731800bf16405034e1fc99",
+      "preflight": {
+        "order_key": "0xba2ac20c374605ca5402fef05d9d37139c831cf6f2731800bf16405034e1fc99",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507206579,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x6a36ca212138aa0b238e3b1f5e8c4c0cdbb32b9ba62ca3b6542a1d1d2a0de254",
+        "block_number": 507206590,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x6b9060009f12c96e8f84b05e12d7cb1dd438317ccba00ed03763965270a79127",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x9043ba3bbc3959dc5e76d356b4fceb612935595284048fa3d1573b1364520768",
+        "block_number": 507206669,
+        "event_name": "OrderCreated",
+        "log_index": 19,
+        "transaction_hash": "0x0f5a7abd15239180280d97e6f36ed00d6fecef64c311150f6274bfbacd4dac75",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd98db854d583eb7ca61c3a49587a598ab29851fd98d4cfed7ad404d530e5c8cb",
+      "preflight": {
+        "order_key": "0xd98db854d583eb7ca61c3a49587a598ab29851fd98d4cfed7ad404d530e5c8cb",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507206669,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xe6f319ee5d2af078bc1b7c127a0ca2761111a26272f31810b1cff2e6cc386c50",
+        "block_number": 507206681,
+        "event_name": "OrderExecuted",
+        "log_index": 28,
+        "transaction_hash": "0x490cc8e9ec33ee8f6e6413cceedfd3b5965f0b42408e70b4ff3a6bc007ae8f59",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xd8b2488c8e1807f5c67ffc3bddcf7658fcf62992cf66c6aefc9ee5b4e14fa9ae",
+        "block_number": 507208861,
+        "event_name": "OrderCreated",
+        "log_index": 73,
+        "transaction_hash": "0xf23172470e811ae4f0ebea81906458e9edf2719fda448794e3d71471a399b3e6",
+        "transaction_index": 5
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xfaac1e9da68f28666803f1c55969b25a4604a7d7a698139fe10cfe96a9efb6b3",
+      "preflight": {
+        "order_key": "0xfaac1e9da68f28666803f1c55969b25a4604a7d7a698139fe10cfe96a9efb6b3",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507208861,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x4d92548a7eff81c6f08abb4f68ef0df512d8dd1532c4247a16c4f2abd0c429b7",
+        "block_number": 507208878,
+        "event_name": "OrderExecuted",
+        "log_index": 55,
+        "transaction_hash": "0x61a6f0e139634ffd9586d8b936c45bb04293f9864e341a21b4d2462c808b7c32",
+        "transaction_index": 4
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x84b1f8c4f1ccd2966ed85c510e6200c177318e66949e75b57bac7eb2509a5f24",
+        "block_number": 507209105,
+        "event_name": "OrderCreated",
+        "log_index": 14,
+        "transaction_hash": "0x3926ec09c5ab6ba06c1604565a261e0de73348ec8eb5949a5c2914413d7467e1",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8649dbb2f763c9d0b07b9176f0e9840f5888338020f7190fdf574e15ac404793",
+      "preflight": {
+        "order_key": "0x8649dbb2f763c9d0b07b9176f0e9840f5888338020f7190fdf574e15ac404793",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507209105,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xc765ec2cfd8ff4e18227196a76cb095ccaa74d6e0004ac3ff73bbf0baf856720",
+        "block_number": 507270638,
+        "event_name": "OrderExecuted",
+        "log_index": 38,
+        "transaction_hash": "0x0cbc86d467729cf0e157c3496b29e0951b80c0c943f26b2bcc81af523a14a8bc",
+        "transaction_index": 4
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa597ddf5693cfa2c1ca7029861f17a42456fedc2e0ebadf40d107c81f9b8ca44",
+        "block_number": 507209825,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0xb2178df911cbcd965b2846e1188e85d39c5a3997e1ff061abc4887e8db9ca7db",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x106a488a7ae20a224ff1e8b1392f36d02e08ed6d5816d1a92eb19db453b8ee89",
+      "preflight": {
+        "order_key": "0x106a488a7ae20a224ff1e8b1392f36d02e08ed6d5816d1a92eb19db453b8ee89",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507209825,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xa674dba7f4bf1c03d5f7fd6b75008522d27e120dd71b58353ca5aaebfdc381d2",
+        "block_number": 507209837,
+        "event_name": "OrderExecuted",
+        "log_index": 27,
+        "transaction_hash": "0x9d439e3b3581031c927a8ab41222a7d9a26628d36eb0c6e5f83cfb653dcb1551",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa597ddf5693cfa2c1ca7029861f17a42456fedc2e0ebadf40d107c81f9b8ca44",
+        "block_number": 507209825,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0xb2178df911cbcd965b2846e1188e85d39c5a3997e1ff061abc4887e8db9ca7db",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x99cc1773426188d1d9bc186dec99d0405ff2af89c710aa7d2f3c0d2c0a338782",
+      "preflight": {
+        "order_key": "0x99cc1773426188d1d9bc186dec99d0405ff2af89c710aa7d2f3c0d2c0a338782",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507209825,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x4322e3b547762e714f0bf5e714e40ce1e9ecf646ccf72300a81aa46d171aba78",
+        "block_number": 507243390,
+        "event_name": "OrderCancelled",
+        "log_index": 38,
+        "transaction_hash": "0xd2a93c46f386d963d66bb06b2c4d71b92ece674c192715827aef9d5e3e1df518",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x6646ff3c5cd6874cdc66a4af80350fdc16be66e5d445f95156b1069b4e9c77f6",
+        "block_number": 507210115,
+        "event_name": "OrderCreated",
+        "log_index": 5,
+        "transaction_hash": "0xc1cbb941e2fe22419061dece37abe60739ac98162d6dc9d8dc3169f96bb16545",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xb11a3ddadda0fee4e0f2a23ef90d310f34b78e17020ea37242e3284d8f702ae4",
+      "preflight": {
+        "order_key": "0xb11a3ddadda0fee4e0f2a23ef90d310f34b78e17020ea37242e3284d8f702ae4",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507210115,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x27bccce91334aec1ce07810f32fadde8be2c6c34c2cde01351a0a1ab3d65f328",
+        "block_number": 507227570,
+        "event_name": "OrderExecuted",
+        "log_index": 35,
+        "transaction_hash": "0x61ccc6dd8fb39e7e0f4304d6a312b070a7a2d366003cfcbc2431c560d93dca1c",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x806e085c4f2e0891f1ac451963252c92c118f09551b47b60aa9e66c07569011b",
+        "block_number": 507210175,
+        "event_name": "OrderCreated",
+        "log_index": 22,
+        "transaction_hash": "0x4e5baf5d782c28e430e27ba4aad36f767a57232e46107f01b3e94ccff1334789",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8503929dabbb6b6cf14a220c016cde7c5e9fa4a7ce55caf8b59772c1ac8b58b9",
+      "preflight": {
+        "order_key": "0x8503929dabbb6b6cf14a220c016cde7c5e9fa4a7ce55caf8b59772c1ac8b58b9",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507210175,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x8d28aca31c96620133e76c0e82ced47a49ce9f6edc18fc1e6ce754aa0689cacf",
+        "block_number": 507212242,
+        "event_name": "OrderExecuted",
+        "log_index": 39,
+        "transaction_hash": "0x1c7de227125a5be6121160baf027485e3c3e7d3050a11a9d89466106c2fbfbbb",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x1bac655f6cd52753c1f80aca2249534791560d891410f6c9f7aa3a3b5defe52a",
+        "block_number": 507213518,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0xbe54a68246e9b87fba37ea77106fe5e9ef4f967174cba1cf6f3a07d2e7675424",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8bd3852cd4cf5e74c21ede93ff67c73b00c8794a830b62752e459da9c11ea47a",
+      "preflight": {
+        "order_key": "0x8bd3852cd4cf5e74c21ede93ff67c73b00c8794a830b62752e459da9c11ea47a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507213518,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x90b5cb2078333b581f078ab83ecc5bc0f7381ee2d2571ea9386c563dcaae064c",
+        "block_number": 507213530,
+        "event_name": "OrderExecuted",
+        "log_index": 37,
+        "transaction_hash": "0xd993c03a8b781d13de4938201858b238eaa423054d72de85d92f1c9133f527d6",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x4841faf67ac30c17d12858c6b2805dc87c6a8c5699d221f83caaf030f541ae62",
+        "block_number": 507215702,
+        "event_name": "OrderCreated",
+        "log_index": 24,
+        "transaction_hash": "0x3b2d1216f75d8d830c8469689d40b3fd82262f03f8e6d1de25213e1bb8711bbe",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x2389b3bd6ba94632495134a4649e53462e0d6af06bdb4538f2bf362695ddc39a",
+      "preflight": {
+        "order_key": "0x2389b3bd6ba94632495134a4649e53462e0d6af06bdb4538f2bf362695ddc39a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507215702,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x2bb9c0ce78e820ce1ea281ee7a4b0b6db1990f6a6bd368a582a756c66e0f2212",
+        "block_number": 507215715,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0x035ce0b276d7230761f5ce8bbb02d37f22a6bfcbad634565be594822a11f8d16",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xb3cbc88a9db63a189d63ed6991ae98ddea986a9752dee44ec6c59c69a21cc78b",
+        "block_number": 507215746,
+        "event_name": "OrderCreated",
+        "log_index": 15,
+        "transaction_hash": "0x60a9a02b91268529538d3a4a358a2d83f8ed0e88e6dcbdd239aa2c344bb1f53f",
+        "transaction_index": 6
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc93de333c5e5798d51078aacced7ef2905b167b413f6200d38b44383b1078448",
+      "preflight": {
+        "order_key": "0xc93de333c5e5798d51078aacced7ef2905b167b413f6200d38b44383b1078448",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507215746,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xdb9b4c4f88c737be4b07965115ab3c00cc86c9a07f4a454ed453c84f42ef09ea",
+        "block_number": 507215759,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0x5a12c390111ff5b711502fa83ad4da2478cca6cef60b6e5ae3cee0e4a132236e",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xe910a2d7c70357dc74e21efaf04bcb5c21c7557b3df94c55ec1a1e93d39dc9b6",
+        "block_number": 507217452,
+        "event_name": "OrderCreated",
+        "log_index": 2,
+        "transaction_hash": "0xd14a3811b6fe895fac000c0224e6964be629f5b1bdec7da972c59dfd4dde3da6",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x997351e81e65984ec0b769ff45cda77ba601be6ad1bbafd63e2b9fe395db3597",
+      "preflight": {
+        "order_key": "0x997351e81e65984ec0b769ff45cda77ba601be6ad1bbafd63e2b9fe395db3597",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507217452,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x861094fdb0deab23dc119288fc9d2aee8efff4646a2caadc604c71cee67646c8",
+        "block_number": 507217467,
+        "event_name": "OrderExecuted",
+        "log_index": 39,
+        "transaction_hash": "0x89e120b12169eff0dc4151c58975b4e5fb48e091405e5648c4c740a0a7ff3198",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x9b3cc7dcbbb04eb2f8b4a08d40c863009cf6f9c6e3bc84c291f25f8269579085",
+        "block_number": 507217592,
+        "event_name": "OrderCreated",
+        "log_index": 12,
+        "transaction_hash": "0x07c2b877ab0c70ba3ea0b7bd34d42cbe6dca2bb824a8b400fbd2cf432ae0cb01",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xce41e6a555fe37de3e6f839705c3c2946f1f7bfa99148950e8d9be309b4b1d27",
+      "preflight": {
+        "order_key": "0xce41e6a555fe37de3e6f839705c3c2946f1f7bfa99148950e8d9be309b4b1d27",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507217592,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x12387af69f718ed4b4546a5e8db00ac10da2aa017d939577696ab696d76f6ba0",
+        "block_number": 507217602,
+        "event_name": "OrderExecuted",
+        "log_index": 23,
+        "transaction_hash": "0xd13ad0f250bf818822938e41ae6fc04334cf020753e87fe16fb22bf5c73f5cc0",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x1b29ce8184aa4a10321d65e560d5f719610c3cf18cb9e087ee10e2a9e36fd833",
+        "block_number": 507217693,
+        "event_name": "OrderCreated",
+        "log_index": 14,
+        "transaction_hash": "0xd116fbdf5471710fc04daaf2283559f6107ea89d499b9ecdefb14353428adf9d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x23f9fd9fff64558426e5a8791df97beb62ffc1f934f1a0ab85d215f804cad7e4",
+      "preflight": {
+        "order_key": "0x23f9fd9fff64558426e5a8791df97beb62ffc1f934f1a0ab85d215f804cad7e4",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507217693,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb66f825df5e6dff234c67ddbb2fed69e963f09dfec3a1ed91e12a4a8ae8d0178",
+        "block_number": 507217707,
+        "event_name": "OrderExecuted",
+        "log_index": 42,
+        "transaction_hash": "0x0373d287dbe4014bb22f9698d1a7cc69db7265f9b9b40a6e23c4afa15d37bbc4",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x1def1835731f21955318ef7c63265113332e056eb747d729076eeb3d5ee97d88",
+        "block_number": 507218357,
+        "event_name": "OrderCreated",
+        "log_index": 14,
+        "transaction_hash": "0x981342449b282b40ec81aa8476f820401d9be01718768c76473db9f77ccba503",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x3f87a7f1197baf527a2f260054a0d21f52c1a84f3c64c227eafabb7a14711061",
+      "preflight": {
+        "order_key": "0x3f87a7f1197baf527a2f260054a0d21f52c1a84f3c64c227eafabb7a14711061",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507218357,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x47c2a88b7ade8aaa5e540c1b0278736c22efa0004699d0523df97216940cc1dc",
+        "block_number": 507218371,
+        "event_name": "OrderExecuted",
+        "log_index": 23,
+        "transaction_hash": "0xd0028e0c8d2cc1eb559fe6902e4a947d9ac0246a98eccdf8434cc9e9f9befec1",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x2c25633952dd21dfd0e0a2a71e501db8fb542df431676832f793851e0a2abade",
+        "block_number": 507218765,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0x61d6afe8f9e862ef70a77847bde05f5601ed554b9fb9f1f5a649086e039b0100",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x6f73d7f930f0601b826ae0f963394fce65881f491dbb11d21e364b57c7b65f9a",
+      "preflight": {
+        "order_key": "0x6f73d7f930f0601b826ae0f963394fce65881f491dbb11d21e364b57c7b65f9a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507218765,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x6c2b68ceaf29314664ba5cb187e1974a9e636d04506965c12dfbe4b5f73010b2",
+        "block_number": 507218777,
+        "event_name": "OrderExecuted",
+        "log_index": 24,
+        "transaction_hash": "0x365ac904472feae8bcce9a69100367c35909a4bad3b2792d5de8671581b1f31c",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x561e83c370b2e9c505e0db480c0fda32b761a9970749340b9e74e507e51d7e30",
+        "block_number": 507220016,
+        "event_name": "OrderCreated",
+        "log_index": 9,
+        "transaction_hash": "0xe77f8ba6ab4928b87f4994c8617c8b80f573b455923f2874a1637093e9eba5d6",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x74a25e26417ca71593fc272c0aedb8823780082bf638308235c9d9af032fa622",
+      "preflight": {
+        "order_key": "0x74a25e26417ca71593fc272c0aedb8823780082bf638308235c9d9af032fa622",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507220016,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf65077d8c372d51063118aecf72679622279210c7ada8712a4be3b13dec60f29",
+        "block_number": 507220026,
+        "event_name": "OrderExecuted",
+        "log_index": 28,
+        "transaction_hash": "0xd82bba984ec2804c9f3d3a9b90fb8861b91670edb886e2634428766d89fea7f8",
+        "transaction_index": 6
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x65b4e4bc9e43a60e40eca95062b4e46ecffdf81b8095d054d773dd7c672f71cb",
+        "block_number": 507220086,
+        "event_name": "OrderCreated",
+        "log_index": 14,
+        "transaction_hash": "0x21fc64794ed93d4734f818d6ed8010dfdbd1510ac071b0fd91eeebe2d91da0c7",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc556791419aacdee32acf259f71ba18db6fb2b79eef5309f3966c79f0e8341cc",
+      "preflight": {
+        "order_key": "0xc556791419aacdee32acf259f71ba18db6fb2b79eef5309f3966c79f0e8341cc",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507220086,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x1503dc7f9c943dca07ae9d5048a92d491b68f6f886d7f4b94a715be536faed87",
+        "block_number": 507220097,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0x24734f8352c9b1ddc751e7b7b4e47b1953a8c0a0807601305a7572fea86601a1",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x423443e5c2ac4eacc13f486350cf29403ef05410f1141cb3dbc5c10e65f72b1f",
+        "block_number": 507220435,
+        "event_name": "OrderCreated",
+        "log_index": 19,
+        "transaction_hash": "0x4fe9e4f1c024c349fc361bed904efe258757f28046e714acc5db6f195683dd91",
+        "transaction_index": 5
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd2cac2457ca253d256d27eff4d4c6f040aaa378b212ebbaee2afd69e8f6c3cdf",
+      "preflight": {
+        "order_key": "0xd2cac2457ca253d256d27eff4d4c6f040aaa378b212ebbaee2afd69e8f6c3cdf",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507220435,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x8589fdb235043c40c91ea18cbc60d545264d143a8da3e888a4608eb906d59be9",
+        "block_number": 507220451,
+        "event_name": "OrderExecuted",
+        "log_index": 26,
+        "transaction_hash": "0xbe73eb1ec43cbbb3b1ef7d85e547f330ee94a4e8fa09930addb24f22a5bc8181",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x7ed6f9b32a374fe81e61f994727bbdc8bf9b342455e6423c0f6f8d1fe852803b",
+        "block_number": 507223058,
+        "event_name": "OrderCreated",
+        "log_index": 26,
+        "transaction_hash": "0x681f18b7c7b8f63aeb885d34cdf50351b2dd513bb9f643aa79cbdcfcec0f6ef4",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x043bcaa3766d560073b6e720c74ff6b37bf2334702640a6bd0ad843dc7a1bdf0",
+      "preflight": {
+        "order_key": "0x043bcaa3766d560073b6e720c74ff6b37bf2334702640a6bd0ad843dc7a1bdf0",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507223058,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xd3b591cb525949c6ded9f7f059ed78a96f56b066b7e7ecd3c0f24bba75050a57",
+        "block_number": 507223073,
+        "event_name": "OrderExecuted",
+        "log_index": 30,
+        "transaction_hash": "0xe81169a83df35bc48d63e68536247aa9aaa13f05021e816bbccc815290f1eeb5",
+        "transaction_index": 4
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xe6f238ee12f8f7d1519fd0d70870b8369fd7810fa95184d2b8388e6e7732d576",
+        "block_number": 507223110,
+        "event_name": "OrderCreated",
+        "log_index": 7,
+        "transaction_hash": "0x826cb2a24619462813f9bdc25239d9c73a06e31d411fc9f842625fd5768f1490",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x143f096ab397ae285e478dc376582f77bc6342f70dad8ef81e1a3f7a208eedbf",
+      "preflight": {
+        "order_key": "0x143f096ab397ae285e478dc376582f77bc6342f70dad8ef81e1a3f7a208eedbf",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507223110,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xfb587c1a94492fd932766c30f568c91be7dd9cd59953b9518e9bdb34a9c2c935",
+        "block_number": 507223124,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0xc2a7569d2d4f5061b0ba9624981de6d78e98c071154a6d570e8527498d916dd9",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xb7d980ecf95d6ee89797ae291628d89ca8010a87cfd75a6ca769705c6cde43e6",
+        "block_number": 507223389,
+        "event_name": "OrderCreated",
+        "log_index": 31,
+        "transaction_hash": "0x65e4ad1b02a26db3659af3ebe052c4abe4e08473a944a36be2cb7e5af1dfcb3c",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x6856f2745fae1bbf28a5b350b3c908565ef064c17f221ae161d9045e9d42df4e",
+      "preflight": {
+        "order_key": "0x6856f2745fae1bbf28a5b350b3c908565ef064c17f221ae161d9045e9d42df4e",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507223389,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xed314edb94eb5d29b3a1914308be77fe55de8f615f2d61eb75951365d2a5abd0",
+        "block_number": 507223402,
+        "event_name": "OrderExecuted",
+        "log_index": 27,
+        "transaction_hash": "0xeecd978f9f26f9f86ed4edaf37333da96e1ec21e015d280ee289ce6cfdc93c2a",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xb6e604bc7e43ca299476f3635b3ae30587c3dad99b61b9f4ca0411b4411238d6",
+        "block_number": 507223572,
+        "event_name": "OrderCreated",
+        "log_index": 17,
+        "transaction_hash": "0xa13457b52f80a7d55f9b67bfedb1a65ceb5e80f3251f3970503ea0691c9ba5ce",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x661d42391347c9d91d7f5de7f0f4279c6f076de74bf13fe800de4bbe38f08e1a",
+      "preflight": {
+        "order_key": "0x661d42391347c9d91d7f5de7f0f4279c6f076de74bf13fe800de4bbe38f08e1a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507223572,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x75113c5ab57b9b53f666da95ebfd7a4b27ef1f8e5d817054a2316fc38c0d86fa",
+        "block_number": 507223583,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0x26c6fdc486ad3e7ba0667103ffb012932159c2a9303c796808fc2ea876113c90",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xb6e604bc7e43ca299476f3635b3ae30587c3dad99b61b9f4ca0411b4411238d6",
+        "block_number": 507223572,
+        "event_name": "OrderCreated",
+        "log_index": 19,
+        "transaction_hash": "0xa13457b52f80a7d55f9b67bfedb1a65ceb5e80f3251f3970503ea0691c9ba5ce",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x25e70f8c58ff6ba1b787f1b32a5f30bdc8b32fb43114a63e6dec6f61b7a8fec3",
+      "preflight": {
+        "order_key": "0x25e70f8c58ff6ba1b787f1b32a5f30bdc8b32fb43114a63e6dec6f61b7a8fec3",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507223572,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xda1e007f966134dc48093e1bb933ac911748e5476d9df872303a98a12694aea9",
+        "block_number": 507224038,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0xae308f8038c9df3f9d37e7f6ef86d40404d020f652eb2ab2ee98e7f7b0a10f3c",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xf40e775944ca4d8f9990fed1653180ef90cf62226b5a8db769fda0e301ba777d",
+        "block_number": 507224008,
+        "event_name": "OrderCreated",
+        "log_index": 5,
+        "transaction_hash": "0xea00bcb7eb225885ebb0cf4ab2619d95ec28363d5088ead2943e8c1cf16557f8",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf1bbc9621268a9e62f729f275c3a52e974d5adba122bc5ecac0d240353d352a2",
+      "preflight": {
+        "order_key": "0xf1bbc9621268a9e62f729f275c3a52e974d5adba122bc5ecac0d240353d352a2",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507224008,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xc2e64ffafd52b9b1aaf3f7502844b79b8556fd2ce82301e0d8504097df75178a",
+        "block_number": 507224022,
+        "event_name": "OrderExecuted",
+        "log_index": 78,
+        "transaction_hash": "0x1041d0c1353d926d63dd70e4f7b516de768c88f47aa7cd25053e63794d945b8b",
+        "transaction_index": 21
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xae5b3843566ab47d43ed954a6f012b9e99db08c99fec4d6eea6898e9627b8d2f",
+        "block_number": 507224166,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0x87422c2dc1ae57a204c9dbf9406f6d8375cc74a237a2b4534dc2c9cc52f30cef",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x9d4fc9fd03fcc4fbde17bd473dac23e0c9302929dbe250c4963f6dadf9bf7403",
+      "preflight": {
+        "order_key": "0x9d4fc9fd03fcc4fbde17bd473dac23e0c9302929dbe250c4963f6dadf9bf7403",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507224166,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xe9e5659dfe6e734f4357b7c3e82af6936791679f9fb40d9b571860aafc640760",
+        "block_number": 507224179,
+        "event_name": "OrderExecuted",
+        "log_index": 37,
+        "transaction_hash": "0xc17ad444403a7e202fadc040c2dea2ec5b7f316877b34e5e9dc1d5578b98c856",
+        "transaction_index": 4
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x93ee91543bcd860f0bb5c24e7de0fde8b4f278cad7118fc6b57887ed73c8cd70",
+        "block_number": 507224457,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0x5f13272811f6a48c5ff1d1c6b63c1f7921829967dd6647ac5bc4a2b0275086e1",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd268ce475869c7ca53790828120f49e3c4aece438adec96d89cac0f5bfd53c5d",
+      "preflight": {
+        "order_key": "0xd268ce475869c7ca53790828120f49e3c4aece438adec96d89cac0f5bfd53c5d",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507224457,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x1684b7c61fcf81ef5369ca11f22058941cfefb23414e7c549aaf5b1b1228781b",
+        "block_number": 507224467,
+        "event_name": "OrderExecuted",
+        "log_index": 98,
+        "transaction_hash": "0xb84da616b4090b2ce25487299ae3c6ff8e0d9fe02e694913cde945a87aacad67",
+        "transaction_index": 32
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x93ee91543bcd860f0bb5c24e7de0fde8b4f278cad7118fc6b57887ed73c8cd70",
+        "block_number": 507224457,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0x5f13272811f6a48c5ff1d1c6b63c1f7921829967dd6647ac5bc4a2b0275086e1",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xe21b1d797d9063512da6da92d432b785afef3263d040511f4d12bd580ac47ab1",
+      "preflight": {
+        "order_key": "0xe21b1d797d9063512da6da92d432b785afef3263d040511f4d12bd580ac47ab1",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507224457,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x813187dc17c6528f14ae41787d5ba71982b9ae85504485802d402d9aa054ee09",
+        "block_number": 507224954,
+        "event_name": "OrderCancelled",
+        "log_index": 36,
+        "transaction_hash": "0x51788fa2040f4379e7fd9e3fb98b4405725a750c97de740ebb6e10e12fe733f9",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x8873eb603538f5fe2a4142809b2be8f4e96d1510ef8a751ae209794d69aec11a",
+        "block_number": 507224941,
+        "event_name": "OrderCreated",
+        "log_index": 11,
+        "transaction_hash": "0x39d4ab69792d6abdcc58d20f0613d897d3da4fb2d4e47ac4048c4a92a880d3f4",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x94b082d75f725549697fcec910e5818ff6bcd329a6f5a978ce8d342c16043277",
+      "preflight": {
+        "order_key": "0x94b082d75f725549697fcec910e5818ff6bcd329a6f5a978ce8d342c16043277",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507224941,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x813187dc17c6528f14ae41787d5ba71982b9ae85504485802d402d9aa054ee09",
+        "block_number": 507224954,
+        "event_name": "OrderExecuted",
+        "log_index": 30,
+        "transaction_hash": "0x51788fa2040f4379e7fd9e3fb98b4405725a750c97de740ebb6e10e12fe733f9",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xb0c23e95a75ce6216aeb69f36c342a6bcfc4aff0281b945089b7113b722f68d7",
+        "block_number": 507225300,
+        "event_name": "OrderCreated",
+        "log_index": 10,
+        "transaction_hash": "0x4d2cbc723723420afe74aae69bbc39702ebddd888da5bb7efe314c1e5d5aac86",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc3f0c7923b155d2df9df1736c7519ff7a71bb5fe34c787c114361ab1aadd6b56",
+      "preflight": {
+        "order_key": "0xc3f0c7923b155d2df9df1736c7519ff7a71bb5fe34c787c114361ab1aadd6b56",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507225300,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x8a0b726367d8dc3ddb6f754e532fce86ef7217ec7c7a461412e63c4bf8825d04",
+        "block_number": 507225316,
+        "event_name": "OrderExecuted",
+        "log_index": 52,
+        "transaction_hash": "0x9cf4bbccbc507dc947ade6147fdfa8e2d1d17a32b0a416326f54460a3b5c256b",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x2caa216e2bcbfff17e7243384acc9447bef08b353e137d15bf472a85e0ef64e1",
+        "block_number": 507225367,
+        "event_name": "OrderCreated",
+        "log_index": 15,
+        "transaction_hash": "0x0d7e84ca7d7b62f3584d4c6457814e729920603fec578dc9ae030ff4eef3879f",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8c2d44f584389d32400cfea3e56244b8c25f44d5b60af814dfdcc1b8aefb068f",
+      "preflight": {
+        "order_key": "0x8c2d44f584389d32400cfea3e56244b8c25f44d5b60af814dfdcc1b8aefb068f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507225367,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf06f6547f687fbfe0456a9465fd002ead94c98c81233c73ba32e5e23780175c3",
+        "block_number": 507225382,
+        "event_name": "OrderExecuted",
+        "log_index": 47,
+        "transaction_hash": "0x08d3686686b76a48fd652a5ca945dbd542472e3771da0c0d9c8e98c1ca897189",
+        "transaction_index": 5
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xc8a813465cd95c2ec8c1dae712fe6e6b4b59e83fe748458a119071cc02477e34",
+        "block_number": 507225672,
+        "event_name": "OrderCreated",
+        "log_index": 2,
+        "transaction_hash": "0xec67848902ae72afb6a214f2ca79f45390f37feb6dedb7b592d7300a7f358709",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc04bf6c5e5591aa2c89e7fbfe7fa12dd6eacca4fd1225345198fa6cd80d05445",
+      "preflight": {
+        "order_key": "0xc04bf6c5e5591aa2c89e7fbfe7fa12dd6eacca4fd1225345198fa6cd80d05445",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507225672,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf7b68fc3d57c4e3420a6d65d78d5d53c0a780c015688504929d849d62589c940",
+        "block_number": 507225692,
+        "event_name": "OrderExecuted",
+        "log_index": 41,
+        "transaction_hash": "0x8416e725cdf34d3e926fa4e95fdab205d7975ac771a18fc78db4425920f0670a",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x37341ac47d062755f004f1ba52967b10b17b23d417796ec902e310940afbc919",
+        "block_number": 507225984,
+        "event_name": "OrderCreated",
+        "log_index": 2,
+        "transaction_hash": "0x87071fa04864e4d61fa7d430b902a5c14d32c05e4f84ad3722978676591de992",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x090e33a2bfbc5cdb35250bf464d5662f9cb66b04bfff48af95c2aa369680b3d2",
+      "preflight": {
+        "order_key": "0x090e33a2bfbc5cdb35250bf464d5662f9cb66b04bfff48af95c2aa369680b3d2",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507225984,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf54f2319a0dfe56a0f0507c88a6b49e3bebd364b9277adb2843c224edc5c6cf2",
+        "block_number": 507226006,
+        "event_name": "OrderExecuted",
+        "log_index": 41,
+        "transaction_hash": "0x45fdb3baaa4555fc0b9b60a67fc86576a27642124cfe68d2d215a610d177cc0f",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x14a7b15d298e32da1bb602766684ca9d6e418f16bad77057f4751714a8b8e208",
+        "block_number": 507226286,
+        "event_name": "OrderCreated",
+        "log_index": 22,
+        "transaction_hash": "0x0aeebb78841f67e7f994fe97e7359a9392ffa7c9bf6351daf0fde4f124b88d19",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8f2773d3f0a260c7d0d12e0bdf1090be24c4b45fd9f1b21a7647bc58563815eb",
+      "preflight": {
+        "order_key": "0x8f2773d3f0a260c7d0d12e0bdf1090be24c4b45fd9f1b21a7647bc58563815eb",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507226286,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xbfa4322dd609c3b307c91b0bb5f3df83a52916568a964cc35659529f578b7507",
+        "block_number": 507226307,
+        "event_name": "OrderExecuted",
+        "log_index": 27,
+        "transaction_hash": "0xe8d68661dae16a8df0ad688a2458b5d921b0deeca2306e665914d3ab1232da3a",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x4524043c74208e87a2542d3d3bf886b323d17473f928814688e6c258625f92c8",
+        "block_number": 507226708,
+        "event_name": "OrderCreated",
+        "log_index": 19,
+        "transaction_hash": "0x007b5844ed88f97ee2e64fb86fb831744da51174d16009b0702b3903129d9a51",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x285e7cb84f274c539419e92a07d814362f959389d276f0721c7e364abbf9c628",
+      "preflight": {
+        "order_key": "0x285e7cb84f274c539419e92a07d814362f959389d276f0721c7e364abbf9c628",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507226708,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x4b6874083e9abd4ef5b59de931282a4bd00e20f64e0b26e0135a7c09c9ae4ae9",
+        "block_number": 507226719,
+        "event_name": "OrderExecuted",
+        "log_index": 34,
+        "transaction_hash": "0x34c2b98c6ff29574b023a7c202347f2e34f420dd912a2d990886c7434c064599",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x62efe5f67128fce68178f97f2226ef0952613a044f8d019d268d3366dea00f77",
+        "block_number": 507227080,
+        "event_name": "OrderCreated",
+        "log_index": 9,
+        "transaction_hash": "0x2927beb1ccc0f7ee2dad30ba1d0c71fbc35009844b6b727380eb53412135ff4f",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x66c1f89d8b50d996b3a162383c56411d4ffc127211f402e0978e012659205095",
+      "preflight": {
+        "order_key": "0x66c1f89d8b50d996b3a162383c56411d4ffc127211f402e0978e012659205095",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507227080,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x494c7ce7d1b081b461b7a0179593905ba7f49cf33244fe71dc83195456989ee3",
+        "block_number": 507227095,
+        "event_name": "OrderExecuted",
+        "log_index": 48,
+        "transaction_hash": "0xe220a39b11a873e740f57602098a8216adf7db7d6a166f1b0e142574c5ba21e4",
+        "transaction_index": 4
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xe902e696a5977f254c5fa3de4d5c3dc0d76de6dc1c32cff059a8f485f50ac829",
+        "block_number": 507227606,
+        "event_name": "OrderCreated",
+        "log_index": 31,
+        "transaction_hash": "0xb8de5cb938a666dafa46dfba30c605d2ee17c3a50d4a303a4cfd014632dfb3bb",
+        "transaction_index": 4
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x482d63d54294a2a2fe92d052e04991f4782c3759f485d3a838a3e5973afb89fe",
+      "preflight": {
+        "order_key": "0x482d63d54294a2a2fe92d052e04991f4782c3759f485d3a838a3e5973afb89fe",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507227606,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x2cbe9a10cb0bc521a56ab0689175552b65ed5948f8ff11489b21cd85776408a2",
+        "block_number": 507227620,
+        "event_name": "OrderExecuted",
+        "log_index": 62,
+        "transaction_hash": "0x14375e8c6b27d4adaab9aa6de5163d60a953b8e976f2ac7b4a45dfdb1fb5db5d",
+        "transaction_index": 14
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x7b2fb60127ef88edd0b6f6fea34ed859761c8e8a10a4b8b863ea1dbd0f107430",
+        "block_number": 507227627,
+        "event_name": "OrderCreated",
+        "log_index": 2,
+        "transaction_hash": "0x8273010c92935642d454f9acfe808d23eb75ddd65985304de4c8d3db05cc1aae",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xb201e02a25285c5febd6e7dca2dc199fbb2c3f95592d63c9195504cde48e5eee",
+      "preflight": {
+        "order_key": "0xb201e02a25285c5febd6e7dca2dc199fbb2c3f95592d63c9195504cde48e5eee",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507227627,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xe3ebeaac24b4b71a4252bb5eaf680137fa72e443e776bfafd45fceead01ade31",
+        "block_number": 507227649,
+        "event_name": "OrderExecuted",
+        "log_index": 38,
+        "transaction_hash": "0x73deb4b54f88c9bf6aefbe207433068d1b8d222999fddad290703e93257f15c9",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x8c86db9a60c44ca5b7cdf40ef47eb49a94cb0e6f1f9f2184dc862f061b82486e",
+        "block_number": 507227685,
+        "event_name": "OrderCreated",
+        "log_index": 15,
+        "transaction_hash": "0x06aa48f7cb0a1931f59b0c1107cd40ee05b580f37be7134afd5b0bf5e86dda39",
+        "transaction_index": 8
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf2a6e20a55a936953c68b4e5e1089f6914616804d2f0b9e72cc294c4786807c8",
+      "preflight": {
+        "order_key": "0xf2a6e20a55a936953c68b4e5e1089f6914616804d2f0b9e72cc294c4786807c8",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507227685,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x8de7b6bf4dffe00fad9991967af07cacd10bf39c4a0a56500ba7859e4aeff73c",
+        "block_number": 507230233,
+        "event_name": "OrderCancelled",
+        "log_index": 38,
+        "transaction_hash": "0xb4dba6d91dabc7a9f0160e7363ec4fcad0e70a3ac2a74d5b63a7025b2a8a8239",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x67aae39968bccd68e8fd911c1e5bf0556b619d4a7758482a7f98da6d43ba8951",
+        "block_number": 507228781,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0xb208029d0fef49cf9db8e86fb3c2b8f7f57a0effdc2ea161dd88df9a0a2a30be",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x093a8debbf1bac1f52adc1865efd0038ecd9d85eaf92f68e333408598e023257",
+      "preflight": {
+        "order_key": "0x093a8debbf1bac1f52adc1865efd0038ecd9d85eaf92f68e333408598e023257",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507228781,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x9b95158aed6a5237a40612cf5442f85fa9cac60394ffce50c81fa93d6f20f418",
+        "block_number": 507228793,
+        "event_name": "OrderExecuted",
+        "log_index": 26,
+        "transaction_hash": "0x83aa0cd62490e9221d6c5744d6706dd73a7dfa9285329c3b152d9a46953a679b",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xf13f2d4bd7aedf170df65be0106ee668db648908ec72de70573476974e6f674a",
+        "block_number": 507229179,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0x351ead1c03e34b736bb2586b84a6ad73c4170bcf000541c78287c2ee74ea22b6",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x12303fe1e5ed03f8ea48a776bf4082214c07a1d93815c5c995613faeb2942b49",
+      "preflight": {
+        "order_key": "0x12303fe1e5ed03f8ea48a776bf4082214c07a1d93815c5c995613faeb2942b49",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507229179,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xd8983b5b31a69bdf519fd69fa8134d57b4f488b34fc6d7df7dbfc287f6f56488",
+        "block_number": 507229196,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x2afb78ce01d50e76f1b11afac98b3f75a6d86dc850460ee7a091537b907f7041",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xdc5515fb18f7dcb040b9408dd4834b34fad35bf14caa21eb865b45704e5a4c9e",
+        "block_number": 507229948,
+        "event_name": "OrderCreated",
+        "log_index": 26,
+        "transaction_hash": "0x85169abc31fdb8244a33e48c1832752b4fd9801a33d72dc0994362c590e3f6de",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf56ac7eb1463f4cddcc2f360a33e00c35f233822fd55095928e978af691aecfa",
+      "preflight": {
+        "order_key": "0xf56ac7eb1463f4cddcc2f360a33e00c35f233822fd55095928e978af691aecfa",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507229948,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x2c83be5d8594d9b3a7b95c033efeab38bec2c522cd37ae7fcb246ce68ac7525f",
+        "block_number": 507229964,
+        "event_name": "OrderExecuted",
+        "log_index": 38,
+        "transaction_hash": "0x78c11ceecfd5466f68abf3f518c9781516dada3ac1a43b4e88c8a7016f1fcd64",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xf6dbf356e9c6632ec06fce59c93db9f7369d8074c50e78ff44539f55b58f8467",
+        "block_number": 507230010,
+        "event_name": "OrderCreated",
+        "log_index": 5,
+        "transaction_hash": "0xbfdf006ed5c8e12171d1507dc542ae867d4c11a1c0e79ca8272003213186b6ea",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xdbaef376a66afd8fd93eaf0ea0ae96f84a684dc8fc22b98b4f5c1dba05112445",
+      "preflight": {
+        "order_key": "0xdbaef376a66afd8fd93eaf0ea0ae96f84a684dc8fc22b98b4f5c1dba05112445",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507230010,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xecabe02c3dba005fbe9b51398f43cc7f8919300250416bf5f6ec1953405f881c",
+        "block_number": 507230023,
+        "event_name": "OrderExecuted",
+        "log_index": 24,
+        "transaction_hash": "0x4519f551aa890951c0cdf062159378a0983d32a9ab873bd5ee00e5133e6cbd8c",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xdf730c68a1fc661964ae513daa78ed1696c982421731a5151ff9dc77cd134675",
+        "block_number": 507230218,
+        "event_name": "OrderCreated",
+        "log_index": 54,
+        "transaction_hash": "0x4935cdc0cf5d7ffb47a2e5dc90f7146f55f9f38d825deb39a0086cf79cc6ca8e",
+        "transaction_index": 5
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xaa32cc5e4e2c27751331bac48c1dccdb9643acef62095eb7f09ba46ad4be5cb0",
+      "preflight": {
+        "order_key": "0xaa32cc5e4e2c27751331bac48c1dccdb9643acef62095eb7f09ba46ad4be5cb0",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507230218,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x8de7b6bf4dffe00fad9991967af07cacd10bf39c4a0a56500ba7859e4aeff73c",
+        "block_number": 507230233,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0xb4dba6d91dabc7a9f0160e7363ec4fcad0e70a3ac2a74d5b63a7025b2a8a8239",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x4942867b6810c02512ab0212961ba4bd54a6965f143ac7c93e3c4bd2d068cd02",
+        "block_number": 507231274,
+        "event_name": "OrderCreated",
+        "log_index": 6,
+        "transaction_hash": "0xbd5ecc27af7f7c3a498a666d33cef5805c4632757506541999216db47b105f78",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x1f3ca73b6b6c25fa8d765f0cdc367e27ad3fca2fb584d8d30f68079e3b085d40",
+      "preflight": {
+        "order_key": "0x1f3ca73b6b6c25fa8d765f0cdc367e27ad3fca2fb584d8d30f68079e3b085d40",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507231274,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x58a306f05f77b0677deae660a7ec119bcf49ac64256ee4e6dc73fc6be7b4d308",
+        "block_number": 507231287,
+        "event_name": "OrderExecuted",
+        "log_index": 63,
+        "transaction_hash": "0xe0a5984e9fff4bb7fdfb9084db17253334e698c53180626cd2ea79763e782f32",
+        "transaction_index": 5
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x2ab2fa3757ae259c68f3f86dd50d2e68a54f591c4316090b929945ef06371c23",
+        "block_number": 507231545,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0x39fc889b2e0370e97912517bd91c3dbd24c508fedcedd349d5a4f554fff0031a",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x06f654670c46ab5ad8618fcf13d8dbfe0687e283236e9da0f60096eb8eade4c9",
+      "preflight": {
+        "order_key": "0x06f654670c46ab5ad8618fcf13d8dbfe0687e283236e9da0f60096eb8eade4c9",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507231545,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf20d69b69487b600a60c25faded3bf58b14b1005842e40361dd065e476186ba6",
+        "block_number": 507231628,
+        "event_name": "OrderCancelled",
+        "log_index": 128,
+        "transaction_hash": "0xc84adb54ec632cf18262c488802023b5a30296739708c5f398a3818f4a403e66",
+        "transaction_index": 26
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa50c5565f9acaf8cb0b530954ecf828e087a158ccf030126fd20ae39e35fd731",
+        "block_number": 507231582,
+        "event_name": "OrderCreated",
+        "log_index": 99,
+        "transaction_hash": "0x1ba2dfd30a4182bcec227a91955b7dd5c9577642a4c8fbaddbabd5ac293431dc",
+        "transaction_index": 5
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf977bac56ff46fb69653ac01a90e5b60b7777fc502f53e735808c61e03773b1c",
+      "preflight": {
+        "order_key": "0xf977bac56ff46fb69653ac01a90e5b60b7777fc502f53e735808c61e03773b1c",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507231582,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x30094170a242a9c43cfe4f67f39dadbb7182baf667786b8c928894a25bb25926",
+        "block_number": 507231596,
+        "event_name": "OrderExecuted",
+        "log_index": 64,
+        "transaction_hash": "0x7acee2aaf6ca7c5737d2b9a71573865b8542d5434c55e94869e7f92b84c10c5c",
+        "transaction_index": 11
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x674cf08d71efe198a064e88114b9ef7bb242d9faba71b7346cdaf37d50ce5ceb",
+        "block_number": 507232785,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0x0745fdd1e4c601e81ffb5c6779846a54fe8a6263e90734f0875be2e235b300c9",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xcb725959b9624b11457c74e6a3463bd720c8bf3b82a868398167bd95c9651ccc",
+      "preflight": {
+        "order_key": "0xcb725959b9624b11457c74e6a3463bd720c8bf3b82a868398167bd95c9651ccc",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507232785,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb76bd264b23d2bcf1d5075336ea58d9946ebb07f88277a6dc4b981cde2c18171",
+        "block_number": 507232797,
+        "event_name": "OrderExecuted",
+        "log_index": 27,
+        "transaction_hash": "0x92e2102045c1a64977c73dd98d8f02ba8c2fe93b9c572d6c0029772ae0ef8799",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x28b1a99b4bc0d46ea939554f8b364abfc94ebfa8ee106273f86bff40e298ecdb",
+        "block_number": 507234681,
+        "event_name": "OrderCreated",
+        "log_index": 23,
+        "transaction_hash": "0x29ba45918ae5caf422936f0aa1aff3fd8b947b89fd152bc3aea3890156ad0495",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x453f437179c96ddba268f901c1daa8243d1a490d9ce163ac25b02b94243464e8",
+      "preflight": {
+        "order_key": "0x453f437179c96ddba268f901c1daa8243d1a490d9ce163ac25b02b94243464e8",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507234681,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x1dc17c317720cdead05525df2304c7e74e8b3f154f7883e39a615b997745b8ff",
+        "block_number": 507234694,
+        "event_name": "OrderExecuted",
+        "log_index": 33,
+        "transaction_hash": "0x9a652c48232e3ade6dbb47f45228d7f4eb77e670fde1589fd241744c13096b89",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x0f749068fa64b69077a7d50e4592b13b1420dbe5a6fea24336738f0ad3f1c973",
+        "block_number": 507238673,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0x317ef58dee03afec4e1d55b9423dea02136b14b8fe48dec1b9264ea463f5dc66",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc61f808ab945fab60d259681dc50482dafd19da11989c0ee655226b0f2b6870a",
+      "preflight": {
+        "order_key": "0xc61f808ab945fab60d259681dc50482dafd19da11989c0ee655226b0f2b6870a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507238673,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x9cfbd58f1a6b1c24f8a94a4645fa159f4f8daecfa5a484d69e4f9f76c6fc411f",
+        "block_number": 508171610,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0xe8b2f7e57cd73667af46bfdcc58d8bd5c3c82b21312b0531013c759f236205a4",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x81c1dc0b172d4708829dd8210e0b04bc167d698f4c0d719edc2fcadfa9e6f381",
+        "block_number": 507241374,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0xe7c638e120ea1854b97af527f6dd50b1d992c595cbf0a67c8f72fe9dafccdfea",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd4c87749a13af1a74bab1b236191202f783d5b5a75f72fb14092bad8b8709146",
+      "preflight": {
+        "order_key": "0xd4c87749a13af1a74bab1b236191202f783d5b5a75f72fb14092bad8b8709146",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507241374,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb96c771beacbd8e1631bd2a8241301a2b7e22bf8ebc3ebc86749e52fd2d659d6",
+        "block_number": 507241706,
+        "event_name": "OrderExecuted",
+        "log_index": 33,
+        "transaction_hash": "0x8c1911ba6ce760aeb95c119bcc449eda15704d2ee3fa9e59dcdbf9d5a6e4ee05",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xea8022eb3c53ce1d5290c609996906efec8b645be1e0a7c26835eb9b0ea16e30",
+        "block_number": 507242468,
+        "event_name": "OrderCreated",
+        "log_index": 35,
+        "transaction_hash": "0x9d11dc340c350df9b9fbf26001f9a8a3aa2a65e3bbac50cd238fef6fb0157f49",
+        "transaction_index": 12
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x4e97b1bcd1282a679e18af45b817e9ae82e8801526a311bee5598eadd91a32b5",
+      "preflight": {
+        "order_key": "0x4e97b1bcd1282a679e18af45b817e9ae82e8801526a311bee5598eadd91a32b5",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242468,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x165839b5b8ce47a5d8e8ce91bbafa81ca77306a6f783c56b288dca8772d71008",
+        "block_number": 507242479,
+        "event_name": "OrderExecuted",
+        "log_index": 64,
+        "transaction_hash": "0x7941dbc00a82bae520802a62ac18281799102475bffd1fd5d038c8db926890ac",
+        "transaction_index": 6
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x149c2eebbd9d64f39713b7114b7ca9e87131f2105938cad927beaca0122b6b94",
+        "block_number": 507242590,
+        "event_name": "OrderCreated",
+        "log_index": 4,
+        "transaction_hash": "0x11b63bcbf4109831bac8cb91f5677cf495d3949c73aedef824ed6ea8534f1044",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xbc02b4eb3de55d8e2c17eb6c1f503f7b1841004bfd941fbe47e9d98e6f6190f9",
+      "preflight": {
+        "order_key": "0xbc02b4eb3de55d8e2c17eb6c1f503f7b1841004bfd941fbe47e9d98e6f6190f9",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242590,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb005a4d983a76ed7eb75932454ec5632a0318a8ecb062997af54142a5ad722a0",
+        "block_number": 507242602,
+        "event_name": "OrderExecuted",
+        "log_index": 23,
+        "transaction_hash": "0x9cc12e891a49dee47ddb2d1b728423beb711c6f3685020b1efd4b297f1ccd807",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x097238941116ba036caef01d0a399f053047128b9bab6b0e487dc64963a36d06",
+        "block_number": 507242714,
+        "event_name": "OrderCreated",
+        "log_index": 20,
+        "transaction_hash": "0x42fd71a42fd4128bcec6d2236d69afbe168717766a3d2c1b01581293efe85821",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x78409cb2fb36578aa86860a56cfafe3c474bac4c2b611b5fbf7b2d50b0abdd6f",
+      "preflight": {
+        "order_key": "0x78409cb2fb36578aa86860a56cfafe3c474bac4c2b611b5fbf7b2d50b0abdd6f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242714,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xea27d255218b67e620eed71913c59a42dbaeaf964ed04c6a7ec2e2a9c005f8b0",
+        "block_number": 507242731,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0x6c3ec241024fc86dd050d8d8c5b592dac306357a1ae36c923490346fe8015251",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x45df7ba0ae1315af9a3abe602d779d050f2f37bb5f87c7507743a799ffef0c35",
+        "block_number": 507242851,
+        "event_name": "OrderCreated",
+        "log_index": 44,
+        "transaction_hash": "0x87ef9ad5478cdd85277d330fda8b591c3cc1a244d65b6beea5fc896a3aedaa90",
+        "transaction_index": 9
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x772fc30f9d19aa9fa61d186cd54756492578c3f9955cb85210a0b43866025d92",
+      "preflight": {
+        "order_key": "0x772fc30f9d19aa9fa61d186cd54756492578c3f9955cb85210a0b43866025d92",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242851,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x6c2bfc9aeaf467b93ed8c71bb68e25f76215f66be4df75b8f5e2546fea53538b",
+        "block_number": 507242862,
+        "event_name": "OrderExecuted",
+        "log_index": 38,
+        "transaction_hash": "0xda19a504e21228c3722bb664b963eb6e0752b3bd93d665fb21d4327b6996afd8",
+        "transaction_index": 5
+      }
+    },
+    {
+      "category": "long_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x45df7ba0ae1315af9a3abe602d779d050f2f37bb5f87c7507743a799ffef0c35",
+        "block_number": 507242851,
+        "event_name": "OrderCreated",
+        "log_index": 46,
+        "transaction_hash": "0x87ef9ad5478cdd85277d330fda8b591c3cc1a244d65b6beea5fc896a3aedaa90",
+        "transaction_index": 9
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x9161c9659f4efc87fb1811765476aca797d20018011cc2e63e9377f9f7f72390",
+      "preflight": {
+        "order_key": "0x9161c9659f4efc87fb1811765476aca797d20018011cc2e63e9377f9f7f72390",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242851,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xc6fd299a83aa147574d278438fb70f97f9a4d93c33acb1c755cd4009c08b7270",
+        "block_number": 507244183,
+        "event_name": "OrderExecuted",
+        "log_index": 48,
+        "transaction_hash": "0xba0e17a35dd8557f691fc076758a9794c594318db7b3b6ecc0bad9a2e7cc3672",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xcf2d07fe44b79db0f2e239c9d786ffa0c0c401f239b849cd92a5b0e3940fb83d",
+        "block_number": 507242857,
+        "event_name": "OrderCreated",
+        "log_index": 19,
+        "transaction_hash": "0xe468fc7eaece933e0f4113388b28809ff4fd918eee746ab9a43a0fc92bfcc38d",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xa6c1757db9a7426137d8c71bb3e091736a6e1583fc142a9527801e7aca654900",
+      "preflight": {
+        "order_key": "0xa6c1757db9a7426137d8c71bb3e091736a6e1583fc142a9527801e7aca654900",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242857,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x7d1de48ce050afbd7175061dc4f14ee54dc7463a1a879c5a5b86cb2a94c47def",
+        "block_number": 507242870,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0xfc57c6348ded44f62ebc3326f31507cc5f602bc3310665127295643a80d24df1",
+        "transaction_index": 10
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xaa639f7c46a24a37199d6628119e5a49c1acb225cf50ecc06499a67341ea66ef",
+        "block_number": 507242879,
+        "event_name": "OrderCreated",
+        "log_index": 6,
+        "transaction_hash": "0x5eab859e36cd3849f25fbc59914864245d45be54ed1f6fe7f2b251e9aa0a9a87",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf0155a64256edd48d41230b850a5418aa3c121b0012d1b1aa34d9809d366e7bd",
+      "preflight": {
+        "order_key": "0xf0155a64256edd48d41230b850a5418aa3c121b0012d1b1aa34d9809d366e7bd",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507242879,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x05fbccc61ca59c22bf6fcc81ba7a80482f6f692d62285cecdf5af4dc2a26187d",
+        "block_number": 507245927,
+        "event_name": "OrderCancelled",
+        "log_index": 4,
+        "transaction_hash": "0x6b0037fee30f02a77e252d8db2bb359f48838c2b5fc9a03f7d405bf009fa0a7a",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x1a0a73ffa3cdbe333c4505d2ac9ad8e83eab0231718be73d427f96856ac66d5c",
+        "block_number": 507243080,
+        "event_name": "OrderCreated",
+        "log_index": 5,
+        "transaction_hash": "0xa7c6ffea8f3cb5939c7a74b1f792fc9d00fce69957e5ddae9953fc756b1cb76a",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xa34cb0e923334a7fcbb1b28b0b30057388594fd353c60d812a461dcc2f90b284",
+      "preflight": {
+        "order_key": "0xa34cb0e923334a7fcbb1b28b0b30057388594fd353c60d812a461dcc2f90b284",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243080,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x87bde94f74cdf26b05a5827b82995faaef1abb676f9c9344c9fb09994dd68803",
+        "block_number": 507243093,
+        "event_name": "OrderExecuted",
+        "log_index": 34,
+        "transaction_hash": "0x94525a0e1690e7bd4f725200c6b0e6625dd5e4ca5a662ed0f36e727a889fa91b",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xceae5c06252f8fa24aff9a05e93ebcb815e107d77948fbadf4754e1a35f7970a",
+        "block_number": 507243339,
+        "event_name": "OrderCreated",
+        "log_index": 34,
+        "transaction_hash": "0x6068696e6a9932010edc05f2eecd336c5e2d597deb81b51b2e5aa97bd8c65c61",
+        "transaction_index": 7
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x0e8b33d73a9fccd14ee95c837d2f644a3a48ed86286854922552eb17412304a7",
+      "preflight": {
+        "order_key": "0x0e8b33d73a9fccd14ee95c837d2f644a3a48ed86286854922552eb17412304a7",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243339,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf7806677cd4a653dc23b503b1f69a9cb5f64729591023405ae7fc57e76f956fa",
+        "block_number": 507246717,
+        "event_name": "OrderCancelled",
+        "log_index": 47,
+        "transaction_hash": "0xe11bc5af28e67265ab8ad435a2c187f0bf29aa56ce0386a8c3f0c863e94161ff",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x5c1136cefd8cc5d3be143b2b4e5a194d6ac36b81e027c4db4d957b6c7c3539a6",
+        "block_number": 507243377,
+        "event_name": "OrderCreated",
+        "log_index": 7,
+        "transaction_hash": "0xb628f7078b5e121ecdec10b18795da02cfafb49357da7b07cfcfeb85424eeeba",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x93928b6a5ee78501a5e9ae13a909fe9827dda2babc9e4d91cc7b43aa78e5e012",
+      "preflight": {
+        "order_key": "0x93928b6a5ee78501a5e9ae13a909fe9827dda2babc9e4d91cc7b43aa78e5e012",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243377,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x4322e3b547762e714f0bf5e714e40ce1e9ecf646ccf72300a81aa46d171aba78",
+        "block_number": 507243390,
+        "event_name": "OrderExecuted",
+        "log_index": 32,
+        "transaction_hash": "0xd2a93c46f386d963d66bb06b2c4d71b92ece674c192715827aef9d5e3e1df518",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa0d5dcd21ff19b51db96b1c92d4c6bc150aacd44fc036f2c47f80f85f9315f29",
+        "block_number": 507243794,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0x6f5a7d5d86f6d6986cf3de84b1684eb24c095cf78e00f2e6240a37bcbeff8c7d",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd83b7306cd15816450432d4bbcbdebbd9dc9705f4b6908ba4125a80a13eb8020",
+      "preflight": {
+        "order_key": "0xd83b7306cd15816450432d4bbcbdebbd9dc9705f4b6908ba4125a80a13eb8020",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243794,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xd61b54ee1e4e8b60793ead136a54365047bc26f8b50484d8febc6dea00a12fa9",
+        "block_number": 507243807,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0xbe71ecc41af971886dcf49214eb41d6757d22496d0686608b8143da9d99912a3",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa0d5dcd21ff19b51db96b1c92d4c6bc150aacd44fc036f2c47f80f85f9315f29",
+        "block_number": 507243794,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0x6f5a7d5d86f6d6986cf3de84b1684eb24c095cf78e00f2e6240a37bcbeff8c7d",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x0f5a3a284fac0c49a95e2f51474bad7757f63cea9f878adfadeb7be2074ee78f",
+      "preflight": {
+        "order_key": "0x0f5a3a284fac0c49a95e2f51474bad7757f63cea9f878adfadeb7be2074ee78f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243794,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x2035cbf27098f222e22cc98e5da568169181d927082961d26b0afca49a9de954",
+        "block_number": 507247430,
+        "event_name": "OrderCancelled",
+        "log_index": 57,
+        "transaction_hash": "0xc8b6fa89eed4cd612e0273bdb652b0b502a6788b3f9b28e21943ce9cb79cae5b",
+        "transaction_index": 6
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x2a54d0fa6c2affd84936b90558ceb6ec42b7bd5a6eb6916622e22ee66357e45e",
+        "block_number": 507243814,
+        "event_name": "OrderCreated",
+        "log_index": 15,
+        "transaction_hash": "0xf148547a2ce6b3c44fb2a6a6f4d090262ab772f76333f8df687b90dae36f9aee",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x9721bd369da9137eabd97d8c3aaecb750259d777ba265758d7b8ea8cabc24c2a",
+      "preflight": {
+        "order_key": "0x9721bd369da9137eabd97d8c3aaecb750259d777ba265758d7b8ea8cabc24c2a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507243814,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x04ecf1f59e258ad08918eebc41a3ae94ed4ab62bddd651d2b5e0409f7dd8334f",
+        "block_number": 507243828,
+        "event_name": "OrderExecuted",
+        "log_index": 35,
+        "transaction_hash": "0x5c7d7f56445ec8ba6c1734383655017c5739a911f9f48b0609ff903c999ac131",
+        "transaction_index": 5
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xe97ce162645ab76880092f81a9b7d2afa9a3f21d40c979db0bee150dfb69d122",
+        "block_number": 507244260,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0xb6d1a28f32e4565d52f0a198ad87e5b034c8f16a3a61fa6713788d3990a7883b",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xf5631deb219361e87e512f8a0fa6a8ccf8225f642caf250ffe3914fc4ddb5b39",
+      "preflight": {
+        "order_key": "0xf5631deb219361e87e512f8a0fa6a8ccf8225f642caf250ffe3914fc4ddb5b39",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244260,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x518f11fee901a8f28bf531b35f5e266d950e749c5d8e01901819a71a1130efbd",
+        "block_number": 507244274,
+        "event_name": "OrderExecuted",
+        "log_index": 46,
+        "transaction_hash": "0x4c2c7ebab7ede225fadbd26262f92e7372c962cb79ead76bd8256ada7b95388a",
+        "transaction_index": 8
+      }
+    },
+    {
+      "category": "short_decrease",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x849e908e9ec523d4dbef0761af44978cb99989c05f68d3f570238c5a502f2c73",
+        "block_number": 507244570,
+        "event_name": "OrderCreated",
+        "log_index": 16,
+        "transaction_hash": "0x3b2676bec1e61b752f70cbcbdac77e571663fe06a688dc82729334fafeec4ee0",
+        "transaction_index": 3
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd10690f5c3581d44ece84a566a839dba7eed0269c68c501b509516712e922772",
+      "preflight": {
+        "order_key": "0xd10690f5c3581d44ece84a566a839dba7eed0269c68c501b509516712e922772",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244570,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x20aa73b44e4f544b95b7341fa1ba7398535d24ce1692b954664fb0528acd866f",
+        "block_number": 507244584,
+        "event_name": "OrderExecuted",
+        "log_index": 38,
+        "transaction_hash": "0x56a2587831e8ee692a25d65de8116b7c9597f1c6c2c1b594b17835d15743dbc8",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa9c55f0b7b171c193d4f659c30423b261f20e6421bbc662914f7378ebeedcf35",
+        "block_number": 507244617,
+        "event_name": "OrderCreated",
+        "log_index": 23,
+        "transaction_hash": "0xdd8808e7b0ed0ac459865b4cd730db933d50809b67211665aa891568d9980b7e",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8ebb170a501a58f7a761ba377dbd78b436e79c1d876458da8e7dc1e301e1f43d",
+      "preflight": {
+        "order_key": "0x8ebb170a501a58f7a761ba377dbd78b436e79c1d876458da8e7dc1e301e1f43d",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244617,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xe81f2323ea344fa8633f35d8604b5c90533e3c929045c9b64fe849b9d82c9735",
+        "block_number": 507244623,
+        "event_name": "OrderExecuted",
+        "log_index": 25,
+        "transaction_hash": "0xd5cb3be2fb5cb42b5b59cd052381cac3e0498ae11ac7b3cc730f88b310498a6b",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0x6bbd1a5ec768f232a486bac0dae5a2ce2925f026b52e6da64362284369c14946",
+        "block_number": 507244651,
+        "event_name": "OrderCreated",
+        "log_index": 18,
+        "transaction_hash": "0x9babb1c5017b616f1dd6c1b106d99187a2270272c3e8c4accbe1cb0a91a91553",
+        "transaction_index": 2
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x46b2c17cfecbc74a2c24bea60297f82ed927beceb2b9cffab8e3b44048664557",
+      "preflight": {
+        "order_key": "0x46b2c17cfecbc74a2c24bea60297f82ed927beceb2b9cffab8e3b44048664557",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244651,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x245e680a40d06ea447bfbca17b1492b49f361cba4d59f172ded20a9a1b1cd8dc",
+        "block_number": 507244661,
+        "event_name": "OrderExecuted",
+        "log_index": 27,
+        "transaction_hash": "0x9afbbd704d4c35f9a0b6dd6bb2a58d02db4acc0b9364ec7487e7d69b2d074962",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "short_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xc0733c06b9a90faafa37291f9f0cbd48d9fd6ed544a2eb22129d3907cc45a765",
+        "block_number": 507244668,
+        "event_name": "OrderCreated",
+        "log_index": 54,
+        "transaction_hash": "0x97c290feaa35d2a004cf1d169a859c50635497d508e0dc44ea0d575288042050",
+        "transaction_index": 17
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x9fa33ba1e59e48f1b53fa98da318089153073d73755c22b6e5d47506be2a09af",
+      "preflight": {
+        "order_key": "0x9fa33ba1e59e48f1b53fa98da318089153073d73755c22b6e5d47506be2a09af",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244668,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xf83e04f22f9731126ff85fcf70cff3092fcc5455237c2a4851089d577f66670a",
+        "block_number": 507244681,
+        "event_name": "OrderExecuted",
+        "log_index": 35,
+        "transaction_hash": "0xb66094d64c6a9fd4a9f862720ab89417c5ad3ae6d3cc3e1fa482b3548019e648",
+        "transaction_index": 8
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 2,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x1d6f89bbaeb32ac74215d7ca9e764720ae678cb5bdee6394c132d0cee1386a83",
+      "preflight": {
+        "order_key": "0x1d6f89bbaeb32ac74215d7ca9e764720ae678cb5bdee6394c132d0cee1386a83",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x816ded0e41a03579ce32c60ba092298afdd43e90236a22130e47af19ebfed6d5",
+        "block_number": 507244807,
+        "event_name": "OrderExecuted",
+        "log_index": 39,
+        "transaction_hash": "0x642b7b76181029735d64607b220511297c314aa33b72e50aad3bb4fd72cec287",
+        "transaction_index": 5
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 5,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x412b32639ff237c0def47c5394ee857c5296984ea10366d8edd91dbb473ac73f",
+      "preflight": {
+        "order_key": "0x412b32639ff237c0def47c5394ee857c5296984ea10366d8edd91dbb473ac73f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xdd84d444628b749ec02d51c58723bc6a76018bbe8795795d50a4cdefa1108975",
+        "block_number": 507255972,
+        "event_name": "OrderExecuted",
+        "log_index": 39,
+        "transaction_hash": "0xffe1dca3280529c1598201586960d16fa8843ffa937de9698285c94d399fc383",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 8,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x4c47249128430c585082b3bf0bc24665d5a258d6b62c135802c066c3bc25301b",
+      "preflight": {
+        "order_key": "0x4c47249128430c585082b3bf0bc24665d5a258d6b62c135802c066c3bc25301b",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x10e541364f20d55e4f2c6f92f90e9134583e05463235e6f30c5bc347f78f8972",
+        "block_number": 507266965,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x00d5b34c11f76a28ccc5e654374b771eb48097131f64fd42a7df65be7d800bc7",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 11,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xe68ef7513f42e932bedbf527db4ff45b1ec175855c4b32b3ef4fd974b26fc10f",
+      "preflight": {
+        "order_key": "0xe68ef7513f42e932bedbf527db4ff45b1ec175855c4b32b3ef4fd974b26fc10f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x9944c8143bd11a9983990783b992109d8086f748f81d87057ae109064b6aa836",
+        "block_number": 507278676,
+        "event_name": "OrderExecuted",
+        "log_index": 51,
+        "transaction_hash": "0x6fa70fbd83616a8aa5d7170d0e7fb4dc57a742cafdc3fb55fb796a7b1d84283e",
+        "transaction_index": 8
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 14,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xb3b4a68c8e83cf74bde8c0e37d7c2895a54876eb790fc94cd587297ee22a46df",
+      "preflight": {
+        "order_key": "0xb3b4a68c8e83cf74bde8c0e37d7c2895a54876eb790fc94cd587297ee22a46df",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x2a926729df92ad9059bcc5a297424edcd6aa4abec82e1f6fa80349690ccda392",
+        "block_number": 507290252,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x46b5318faecea9e04381b80edd5ab270dc91f3df9c7685e7fcb3102d20142f67",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 17,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xcd455f218cf0eb568f27c8e7801907221cad7c909bd6419bd6eb996964e2395e",
+      "preflight": {
+        "order_key": "0xcd455f218cf0eb568f27c8e7801907221cad7c909bd6419bd6eb996964e2395e",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x700e33a6e12de6fde2d4d49fb419da6f92bb5029c9294e5cb00a5deec6d901bb",
+        "block_number": 507301665,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x0987b3d641f1090dcdd0247459b53dd5d901100fb64f5b7bc1cd56082a489396",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 20,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x74265e84608aa07f2333a0ef988bb7e82f471829466d2bf1344bcbd90be1224d",
+      "preflight": {
+        "order_key": "0x74265e84608aa07f2333a0ef988bb7e82f471829466d2bf1344bcbd90be1224d",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x64bc4b6b161013411fa8e848f7c4eae82eaa3f38d54499555d106e8c5dc7973c",
+        "block_number": 507313094,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0xa36c425aee6a12d451917c6f0df072b91eb513a98b55b420e3088e35ea3c9057",
+        "transaction_index": 2
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 23,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xfc7f75f0f6e2fb61883b59b73209ac5262d06bb708e3a76d43a07bf58cf721c2",
+      "preflight": {
+        "order_key": "0xfc7f75f0f6e2fb61883b59b73209ac5262d06bb708e3a76d43a07bf58cf721c2",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xeb7bf5e645b673d4774435751e29faaf004ef1b27c74b17af012c622e817a4d1",
+        "block_number": 507324190,
+        "event_name": "OrderExecuted",
+        "log_index": 36,
+        "transaction_hash": "0x932b374f8a11a30baee0f70694a5531e271dc0436d565ad6eab0e7bd4a7d3fb3",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 26,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x190e7a5f9540adf8ce897e097e9b5bed1dbb5b8c776134eb3325ec624a3a2929",
+      "preflight": {
+        "order_key": "0x190e7a5f9540adf8ce897e097e9b5bed1dbb5b8c776134eb3325ec624a3a2929",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x299826ed475c4a3f85fddfc86b3300388dbdb149deced197f8a91c6c10edd430",
+        "block_number": 507335139,
+        "event_name": "OrderExecuted",
+        "log_index": 42,
+        "transaction_hash": "0x3c14e6f6f19d5a35ab6cf08ebc9dd15848e5670d36eb83fd6bb7538ed7315d46",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 29,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8aa027d66ce9048a5bff4d16cb7bd5fd31d60e8195230cf7c96fca9151dba554",
+      "preflight": {
+        "order_key": "0x8aa027d66ce9048a5bff4d16cb7bd5fd31d60e8195230cf7c96fca9151dba554",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x78fbbcd1a2b1aa22fb46f7cf8ce3ae1d5b17b11b13ae7173407d34c4619b84ef",
+        "block_number": 507346269,
+        "event_name": "OrderExecuted",
+        "log_index": 85,
+        "transaction_hash": "0xdc6fe1770aabe35c906770f5903ac63789c6bc30cb8f76f6fbfe47bcdc1e5ae1",
+        "transaction_index": 22
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 32,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x88d45c63696785cc42920ce7087c9dbebc107ca12073a990f571944b8b77d0db",
+      "preflight": {
+        "order_key": "0x88d45c63696785cc42920ce7087c9dbebc107ca12073a990f571944b8b77d0db",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0x0a8971f3d018121efa67225a1c9fb10a6db2c2a0e12327ff075303ba34707866",
+        "block_number": 507357697,
+        "event_name": "OrderExecuted",
+        "log_index": 87,
+        "transaction_hash": "0xd88738f042dbc355134c01b1114376212a95d7df73bf7b7b9360da6c06345e5b",
+        "transaction_index": 3
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 35,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x7fde77f677b0f54761441be9a3728eb7c3967bfacf9536244abe9c9a428d4b36",
+      "preflight": {
+        "order_key": "0x7fde77f677b0f54761441be9a3728eb7c3967bfacf9536244abe9c9a428d4b36",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 4,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 38,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x70a487abe649d0065ba772be4941d9a308523734207909c666ddc200aa79cc11",
+      "preflight": {
+        "order_key": "0x70a487abe649d0065ba772be4941d9a308523734207909c666ddc200aa79cc11",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 11,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 41,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xacf5c5faf5a9c017be3ba2305710e5107fcd126d0440359f5c5b9877a570a26f",
+      "preflight": {
+        "order_key": "0xacf5c5faf5a9c017be3ba2305710e5107fcd126d0440359f5c5b9877a570a26f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 18,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 44,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xb0f5735381f4fb2cdab09efaddace6b155183e4822935122d70450e3ec30127f",
+      "preflight": {
+        "order_key": "0xb0f5735381f4fb2cdab09efaddace6b155183e4822935122d70450e3ec30127f",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 25,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 47,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc50033df2a8717809eb6263664db913042b64bec1daa264a3a5ac7f664229243",
+      "preflight": {
+        "order_key": "0xc50033df2a8717809eb6263664db913042b64bec1daa264a3a5ac7f664229243",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 32,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 50,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd0c3fe0691ce5c8073c24023c972ef74cf1586b136c1893d259441865003fd3a",
+      "preflight": {
+        "order_key": "0xd0c3fe0691ce5c8073c24023c972ef74cf1586b136c1893d259441865003fd3a",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 39,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 53,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x6c4d7cb051fd9fe33544e73eead2a774fdf41ddf906e5fde32dcb0653a9729c8",
+      "preflight": {
+        "order_key": "0x6c4d7cb051fd9fe33544e73eead2a774fdf41ddf906e5fde32dcb0653a9729c8",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 46,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 56,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x00dcc7cab4fe88910465497c1c73e3a0d2d41cca3b3070fdfe5a4a7b676d244e",
+      "preflight": {
+        "order_key": "0x00dcc7cab4fe88910465497c1c73e3a0d2d41cca3b3070fdfe5a4a7b676d244e",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 53,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 59,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x8682f4822afdf4caa44d0ca807b105f695c0b9aa8f3a68340d6482aa589350ec",
+      "preflight": {
+        "order_key": "0x8682f4822afdf4caa44d0ca807b105f695c0b9aa8f3a68340d6482aa589350ec",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 60,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 62,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x2437f518ba76ea07e956e76ae02aa18622157d615692deb1f7685d9ef6a12664",
+      "preflight": {
+        "order_key": "0x2437f518ba76ea07e956e76ae02aa18622157d615692deb1f7685d9ef6a12664",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 67,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 65,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x03766942d7d69849cd5d9760689db881b9d1af0c3f8c70b6768978fa813195f2",
+      "preflight": {
+        "order_key": "0x03766942d7d69849cd5d9760689db881b9d1af0c3f8c70b6768978fa813195f2",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 74,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 68,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xc648236dec2fd94e55d204510e27acca4d68bc7469cf9f4155182b355d52dcd8",
+      "preflight": {
+        "order_key": "0xc648236dec2fd94e55d204510e27acca4d68bc7469cf9f4155182b355d52dcd8",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 81,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 71,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x1687eed5c8b76a9f36487171d8780d8066ac9811899b8ec774178e96249ed3e6",
+      "preflight": {
+        "order_key": "0x1687eed5c8b76a9f36487171d8780d8066ac9811899b8ec774178e96249ed3e6",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 88,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 74,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0xd156917371e0bbbed7cd08c3836f39c2b9b3cf97beea69b571cbc5a960daefbc",
+      "preflight": {
+        "order_key": "0xd156917371e0bbbed7cd08c3836f39c2b9b3cf97beea69b571cbc5a960daefbc",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 95,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 77,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x6f5a416ba5da2b232487c9b2099356f7735ece926eaf32d8c5263a2e88527db1",
+      "preflight": {
+        "order_key": "0x6f5a416ba5da2b232487c9b2099356f7735ece926eaf32d8c5263a2e88527db1",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 102,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 80,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x56471c14c1c1add275b0f216b7d0cfd4151effe06a14c340cf85e9bcddf4dae1",
+      "preflight": {
+        "order_key": "0x56471c14c1c1add275b0f216b7d0cfd4151effe06a14c340cf85e9bcddf4dae1",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 109,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    },
+    {
+      "category": "long_increase",
+      "comparison": {
+        "reason": "no_decoded_gmx_decision",
+        "status": "gmx_preflight_only"
+      },
+      "creation": {
+        "block_hash": "0xa82d7768f9ad7a449c06e2b184fab3c5a9760c1110356b42a75e78a0c62b2b7b",
+        "block_number": 507244789,
+        "event_name": "OrderCreated",
+        "log_index": 83,
+        "transaction_hash": "0xf57fe6acde9291f328f163ce6332f48575c2e521e62133997bcb05c3c40dc29d",
+        "transaction_index": 1
+      },
+      "oracle_evidence_failure": null,
+      "order_key": "0x1b530c66de18dca5b6cfee36c48deeacce53f39d9e79dba66b38dc2a61ab4532",
+      "preflight": {
+        "order_key": "0x1b530c66de18dca5b6cfee36c48deeacce53f39d9e79dba66b38dc2a61ab4532",
+        "outcome": "evidence_failure",
+        "reason": "verified_oracle_input_missing"
+      },
+      "proposed_pin_block": 507244789,
+      "rule_comparison": {
+        "reason": "pinned_economics_reader_unavailable",
+        "status": "unavailable"
+      },
+      "source": "historical",
+      "terminal": {
+        "block_hash": "0xb0397704b2f23da5ccf883b6661313832071ca81068ad4e1b0abab9799323598",
+        "block_number": 507362093,
+        "event_name": "OrderCancelled",
+        "log_index": 116,
+        "transaction_hash": "0x1e33e16c2aae9173933908c58608da260e8c666db1d7d64eff1a1a61659e96cd",
+        "transaction_index": 1
+      }
+    }
+  ],
+  "completion_gate_met": false,
+  "coverage": {
+    "long_decrease": {
+      "candidates": 12,
+      "comparison_outcomes": {
+        "gmx_preflight_only": 12
+      },
+      "gap": "no_verified_same_order_comparison",
+      "preflight_outcomes": {
+        "evidence_failure": 12
+      }
+    },
+    "long_increase": {
+      "candidates": 42,
+      "comparison_outcomes": {
+        "gmx_preflight_only": 42
+      },
+      "gap": "no_verified_same_order_comparison",
+      "preflight_outcomes": {
+        "evidence_failure": 41,
+        "passed_preflight": 1
+      }
+    },
+    "short_decrease": {
+      "candidates": 22,
+      "comparison_outcomes": {
+        "gmx_preflight_only": 22
+      },
+      "gap": "no_verified_same_order_comparison",
+      "preflight_outcomes": {
+        "evidence_failure": 22
+      }
+    },
+    "short_increase": {
+      "candidates": 24,
+      "comparison_outcomes": {
+        "gmx_preflight_only": 24
+      },
+      "gap": "no_verified_same_order_comparison",
+      "preflight_outcomes": {
+        "evidence_failure": 24
+      }
+    }
+  },
+  "deployment": {
+    "chain_id": 42161,
+    "datastore": "0xfd70de6b91282d8017aa4e741e9ae325cab992d8",
+    "datastore_code_hash": "0x3e7aea6e62b75671681b0d3006b146c7f02681a65fd5cc663909104de9d5088e",
+    "errors": [
+      "EndOfOracleSimulation()"
+    ],
+    "router": "0xaD3051cB1aE3a86b335f12A9a41BD4d995a137ea",
+    "router_code_hash": "0x23082b1ffffe17945c3292af62f4b410c5a11e2e2f74489ec7239669dcf9235a"
+  },
+  "oracle_evidence": {
+    "evidence_sha256": "0xcc9eb8f2925cb283e23d5b7ab9d1dbca81a86994378cfde8fd6d596c372307b0",
+    "observed_execution_comparison_allowed": false,
+    "order_key": "0xfd65a4c31638d78c68c9986e0bb21c002790d0a897aaa31d4109b9cd2f0bff90",
+    "relationship": "observed_execution_transaction_prices_preceding_order_executed",
+    "source_and_scale_verified": true
+  },
+  "prestate_proof": {
+    "equivalent_pin_block": 507206357,
+    "execution_block_hash": "0xddd659c204cc34e968cb82fd78338dbc8a9716e0cba8100d416bc4fd6b4016bf",
+    "execution_block_number": 507206358,
+    "observed_transaction_hash": "0xd7c47b718151b96cc6a25eec97f5f913208d86aa8774c17be4271fb71a27a212",
+    "observed_transaction_index": 1,
+    "prestate_equivalent_to_block_boundary": true,
+    "proof_sha256": "0x974bc81259e1cd5e65779e87847e19d09c8861b14d058f9b6ba2a92f463ab016",
+    "reason": "all_preceding_transactions_are_arbos_internal_start_block_transactions",
+    "schema": "GmxStep41SystemTransactionPrestate"
+  },
+  "recording": "recordings/eth-usdc-v2-sep-20-sep-27",
+  "run": {
+    "abi_identity": "simulateExecuteLatestOrder((address[],(uint256,uint256)[],uint256,uint256))",
+    "chain_id": 42161,
+    "pin_mode": "prestate_proved_pre_execution_boundary",
+    "recording_events_sha256": "0x75ddbc6e66b71bb1d35874e29449b4d725d93df52f8b75863f11ee4bdbe60ef1",
+    "recording_metadata_sha256": "0xb2f7f77bbb34f15158821de1dd58696e4035c92e14a485c12261715d24ab6431",
+    "router_address": "0xaD3051cB1aE3a86b335f12A9a41BD4d995a137ea",
+    "router_code_hash": "0x23082b1ffffe17945c3292af62f4b410c5a11e2e2f74489ec7239669dcf9235a",
+    "rpc_capability": "archive_endpoint_configured_unverified",
+    "spec_sha256": "d6a87c6e25f5542b62845006e0495f27dd4bc8f0438688d6dfecd99f86705263",
+    "utc_run_time": "2026-10-10T01:43:02.095665+00:00",
+    "watch_range": null,
+    "watch_status": null
+  },
+  "schema_version": 1,
+  "source": "historical"
+}

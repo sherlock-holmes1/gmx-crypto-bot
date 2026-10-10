@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from gmx_crypto_bot_v2.crosscheck.block_prestate import capture_system_transaction_prestate
+from gmx_crypto_bot_v2.crosscheck.boundary_pin import pin_candidate_at_prestate_boundary
 from gmx_crypto_bot_v2.crosscheck.router_candidates import select_router_candidates
 from gmx_crypto_bot_v2.crosscheck.oracle_evidence import (
     capture_recorded_oracle, capture_watched_creation_oracle)
@@ -22,20 +24,36 @@ from gmx_crypto_bot_v2.crosscheck.router_report import build_report
 from gmx_crypto_bot_v2.crosscheck.router_watch import watch_order_creations
 
 
+PUBLIC_ARBITRUM_RPC_URL = "https://arb1.arbitrum.io/rpc"
+
+READ_ONLY_METHODS = frozenset({
+    "eth_call", "eth_chainId", "eth_getBlockByNumber", "eth_getCode", "eth_getLogs",
+    "eth_getTransactionByBlockNumberAndIndex", "eth_getTransactionReceipt",
+})
+
+
 class HttpRpc:
     def __init__(self, url: str):
         self.url = url
 
     def request(self, method: str, params: list[Any]) -> dict[str, Any]:
-        if method not in {"eth_call", "eth_chainId", "eth_getBlockByNumber", "eth_getCode", "eth_getLogs"}:
+        if method not in READ_ONLY_METHODS:
             raise ValueError("read-only RPC method required")
         payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
-        request = urllib.request.Request(self.url, data=payload,
-                                         headers={"Content-Type": "application/json"})
+        # Public endpoints reject the default urllib agent; name this read-only client.
+        request = urllib.request.Request(
+            self.url, data=payload,
+            headers={"Content-Type": "application/json",
+                     "User-Agent": "gmx-crypto-bot-v2/1 (read-only)"})
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
-                return json.load(response)
+                body = response.read()
         except (urllib.error.URLError, TimeoutError, OSError) as error:
+            return {"error": {"message": type(error).__name__}}
+        try:
+            return json.loads(body)
+        except (json.JSONDecodeError, UnicodeDecodeError) as error:
+            # A non-JSON provider body is a provider failure, not a decode crash.
             return {"error": {"message": type(error).__name__}}
 
 
@@ -84,6 +102,57 @@ def _load_recorded_oracle_evidence(path: Path, recording: Path) -> tuple[dict[st
     return {key.lower(): oracle}, evidence
 
 
+def _capture_prestate_proof(output: Path, evidence: dict[str, Any], chain_id: int,
+                            url: str) -> dict[str, Any]:
+    """Capture the observed execution's intra-block prestate proof, read-only.
+
+    Block bodies and receipts are not archive state, so the public endpoint is
+    sufficient. This capture never reads historical state and never signs.
+    """
+    coordinates = evidence.get("coordinates")
+    if evidence.get("relationship") != \
+            "observed_execution_transaction_prices_preceding_order_executed" or \
+            not isinstance(coordinates, list) or not coordinates or \
+            any(not isinstance(item, dict) for item in coordinates):
+        raise ValueError("prestate capture requires observed-execution oracle evidence")
+    blocks = {item.get("block_number") for item in coordinates}
+    indexes = {item.get("transaction_index") for item in coordinates}
+    if len(blocks) != 1 or len(indexes) != 1:
+        raise ValueError("observed execution coordinates are not one pinned transaction")
+    record = capture_system_transaction_prestate(
+        HttpRpc(url), chain_id=chain_id, block_number=blocks.pop(),
+        block_hash=evidence["block_hash"], transaction_index=indexes.pop(),
+        endpoint_url=url, expected_transaction_hash=evidence["oracle_transaction_hash"])
+    output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return record
+
+
+def _pin_candidate_at_prestate_boundary(candidates: list[dict[str, Any]],
+                                        adapter: Any) -> dict[str, Any]:
+    """Move the selected candidate's pin to the prestate-proved pre-execution boundary.
+
+    The rule itself lives in `crosscheck.boundary_pin`, so the preflight, the
+    deployment observation and the archive sidecar all repin by the same gate.
+    """
+    return pin_candidate_at_prestate_boundary(
+        candidates, getattr(adapter, "prestate", None), adapter.oracle["order_key"])
+
+
+def _load_deployment(path: Path) -> Deployment:
+    """Accept either a bare deployment object or a saved observed-deployment file.
+
+    The observed-deployment file is what the sidecar and the pinned captures are
+    bound to, so reading it here keeps the preflight on the same pinned code
+    identity instead of a separately maintained copy.
+    """
+    configured = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(configured, dict):
+        raise ValueError("deployment file must be a JSON object")
+    if configured.get("schema") == "GmxStep41ObservedDeployment":
+        configured = configured["deployment"]
+    return Deployment(**configured)
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -126,6 +195,15 @@ def main(argv: list[str] | None = None) -> int:
                         help="pinned smaller-side borrowing switch")
     parser.add_argument("--funding-selector", type=Path,
                         help="pinned adaptive funding branch selector")
+    parser.add_argument("--prestate-proof", type=Path,
+                        help="saved ArbOS system-transaction proof that the observed execution's "
+                             "pre-state equals the preceding block boundary")
+    parser.add_argument("--capture-prestate-proof", type=Path,
+                        help="capture that proof to this path from block bodies and receipts, "
+                             "then use it; needs no archive endpoint")
+    parser.add_argument("--pin-at-prestate-boundary", action="store_true",
+                        help="pin the selected order's preflight at the block the prestate "
+                             "proof established, instead of its creation block")
     parser.add_argument("--watch-oracle-source", type=Path,
                         help="saved Sourcify exact-match Oracle record for watched creation prices")
     parser.add_argument("--watch-oracle-address", help="Oracle deployment address to verify at each watched block")
@@ -158,6 +236,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("borrowing skip requires the independent decision gate and executor source")
     if args.funding_selector and not all(decision_paths):
         parser.error("funding selector requires the independent decision gate and executor source")
+    if args.prestate_proof and args.capture_prestate_proof:
+        parser.error("--prestate-proof and --capture-prestate-proof are mutually exclusive")
+    if (args.prestate_proof or args.capture_prestate_proof) and not all(decision_paths):
+        parser.error("prestate proof requires the independent decision gate and oracle evidence")
+    if args.capture_prestate_proof and not args.deployment:
+        parser.error("prestate capture requires the verified deployment for its chain id")
+    if args.pin_at_prestate_boundary and not (args.prestate_proof or args.capture_prestate_proof):
+        parser.error("--pin-at-prestate-boundary requires a prestate proof")
     if any((args.watch_oracle_source, args.watch_oracle_address, args.watch_oracle_token)) and \
             not (args.watch_oracle_source and args.watch_oracle_address and
                  len(args.watch_oracle_token) == 2 and args.watch_start_block is not None):
@@ -205,15 +291,27 @@ def main(argv: list[str] | None = None) -> int:
         else:
             candidates = select_router_candidates(args.recording)[:args.max_candidates]
             source = "historical"
-        deployment = Deployment(**json.loads(args.deployment.read_text(encoding="utf-8"))) if args.deployment else None
+        deployment = _load_deployment(args.deployment) if args.deployment else None
         preflight = RouterPreflight(HttpRpc(url), deployment) if url and deployment else None
+        prestate_path = args.prestate_proof or args.capture_prestate_proof
+        if args.capture_prestate_proof:
+            captured = _capture_prestate_proof(
+                args.capture_prestate_proof, recorded_oracle_evidence, deployment.chain_id,
+                os.environ.get("GMX_LOGS_RPC_URL") or PUBLIC_ARBITRUM_RPC_URL)
+            print(f"Prestate proof: {args.capture_prestate_proof}; equivalent: "
+                  f"{captured['prestate_equivalent_to_block_boundary']}; "
+                  f"reason: {captured['reason']}", file=sys.stdout)
         decision_adapter = (SelectedIncreaseDecisionAdapter(
             args.archive_sidecar, args.source_proof, args.source_manifest, args.oracle_evidence,
             args.increase_executor_proof, args.increase_executor_source,
             args.swap_handler_proof, args.swap_handler_source, args.decision_config,
             args.risk_cells, args.balance_inputs, args.fee_clocks, args.borrowing_skip,
-            args.funding_selector)
+            args.funding_selector, prestate_path)
                             if all(decision_paths) else None)
+        if args.pin_at_prestate_boundary:
+            pinned = _pin_candidate_at_prestate_boundary(candidates, decision_adapter)
+            print(f"Preflight pin: order {pinned['order_key']} at block "
+                  f"{pinned['proposed_pin_block']} ({pinned['pin_source']})", file=sys.stdout)
         report = build_report(candidates, preflight, oracle, source=source,
                               recording=str(args.recording), decision_adapter=decision_adapter)
         if recorded_oracle_evidence is not None:
@@ -223,6 +321,20 @@ def main(argv: list[str] | None = None) -> int:
                 "source_and_scale_verified": recorded_oracle_evidence["source_and_scale_verified"],
                 "observed_execution_comparison_allowed": False,
                 "evidence_sha256": _sha256(args.oracle_evidence),
+            }
+        if prestate_path is not None and decision_adapter is not None:
+            proof = decision_adapter.prestate
+            report["prestate_proof"] = {
+                "schema": proof["schema"],
+                "execution_block_number": proof["execution_block_number"],
+                "execution_block_hash": proof["execution_block_hash"],
+                "observed_transaction_index": proof["observed_transaction_index"],
+                "observed_transaction_hash": proof["observed_transaction_hash"],
+                "equivalent_pin_block": proof["equivalent_pin_block"],
+                "prestate_equivalent_to_block_boundary":
+                    proof["prestate_equivalent_to_block_boundary"],
+                "reason": proof["reason"],
+                "proof_sha256": _sha256(prestate_path),
             }
         if watched_oracle_evidence:
             report["watched_oracle_evidence"] = watched_oracle_evidence
@@ -248,6 +360,8 @@ def main(argv: list[str] | None = None) -> int:
             "watch_range": ([args.watch_start_block, args.watch_end_block]
                             if args.watch_start_block is not None else None),
             "watch_status": "collected" if args.watch_start_block is not None else None,
+            "pin_mode": ("prestate_proved_pre_execution_boundary"
+                         if args.pin_at_prestate_boundary else "recorded_creation_block"),
         }
         args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     except (OSError, ValueError, KeyError, TypeError) as error:

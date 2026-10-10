@@ -8,7 +8,9 @@ import json
 import os
 from pathlib import Path
 
-from gmx_crypto_bot_v2.application.router_check import HttpRpc
+from gmx_crypto_bot_v2.application.router_check import HttpRpc, _load_recorded_oracle_evidence
+from gmx_crypto_bot_v2.crosscheck.boundary_pin import (
+    pin_candidate_at_prestate_boundary, verified_boundary_proof)
 from gmx_crypto_bot_v2.crosscheck.archive_sidecar import collect_increase_sidecar
 from gmx_crypto_bot_v2.crosscheck.router_candidates import select_router_candidates
 from gmx_crypto_bot_v2.crosscheck.router_preflight import Deployment, _hex_bytes
@@ -22,7 +24,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--deployment", type=Path, required=True,
                         help="verified historical router/DataStore/Reader deployment JSON")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--oracle-evidence", type=Path,
+                        help="recorded observed-execution oracle evidence naming the execution")
+    parser.add_argument("--prestate-proof", type=Path,
+                        help="saved ArbOS system-transaction prestate proof")
+    parser.add_argument("--pin-at-prestate-boundary", action="store_true",
+                        help="pin the sidecar at the block the prestate proof established, "
+                             "instead of the order's creation block")
     args = parser.parse_args(argv)
+    if args.pin_at_prestate_boundary and not (args.prestate_proof and args.oracle_evidence):
+        parser.error("--pin-at-prestate-boundary requires a prestate proof and oracle evidence")
     try:
         url = os.environ.get("GMX_ARCHIVE_RPC_URL")
         if not url:
@@ -39,9 +50,19 @@ def main(argv: list[str] | None = None) -> int:
         _hex_bytes(reader["address"], 20)
         _hex_bytes(reader["code_hash"], 32)
         metadata = json.loads((args.recording / "metadata.json").read_text(encoding="utf-8"))
+        selected = candidates[0]
+        if args.pin_at_prestate_boundary:
+            _, evidence = _load_recorded_oracle_evidence(args.oracle_evidence, args.recording)
+            proof = verified_boundary_proof(args.prestate_proof, evidence,
+                                            deployment.chain_id)
+            selected = pin_candidate_at_prestate_boundary(
+                candidates, proof, evidence["order_key"])
+            if selected["order_key"] != key:
+                raise ValueError("prestate boundary pin selected another order")
+            print(f"Sidecar pin: block {selected['proposed_pin_block']} "
+                  f"({selected['pin_source']})")
         if configured.get("schema") == "GmxStep41ObservedDeployment":
             observed = configured["candidate"]
-            selected = candidates[0]
             if (observed["order_key"].lower() != key or
                     observed["pin_block"] != selected["proposed_pin_block"] or
                     observed["pin_hash"].lower() != selected["proposed_pin_hash"].lower()):
@@ -55,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
         if order_handler and order_handler["address"].lower() != metadata["contracts"]["order_handler"].lower():
             raise ValueError("order handler does not match recording metadata")
         result = collect_increase_sidecar(
-            HttpRpc(url), deployment, candidates[0],
+            HttpRpc(url), deployment, selected,
             reader_address=reader["address"], reader_code_hash=reader["code_hash"],
             index_token=tokens["index"]["address"],
             long_token=tokens["long"]["address"],
