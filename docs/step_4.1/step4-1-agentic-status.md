@@ -26,10 +26,10 @@ test could not run because pytest is not installed.
 
 The three earlier user-authorized additional Stage 3a loops and two later
 source-verification loops are complete. The real
-capture is [long-increase-archive-sidecar.json](../evidence/step4-1/long-increase-archive-sidecar.json).
-Its [source manifest](../evidence/step4-1/historical-source-manifest.json) binds
+capture is [long-increase-archive-sidecar.json](../../evidence/step4-1/long-increase-archive-sidecar.json).
+Its [source manifest](../../evidence/step4-1/historical-source-manifest.json) binds
 five observed runtime code hashes to Solidity metadata CIDs. The
-[Sourcify proof](../evidence/step4-1/sourcify-source-proof.json) binds saved
+[Sourcify proof](../../evidence/step4-1/sourcify-source-proof.json) binds saved
 exact-match source and ABI records to that manifest and sidecar by digest.
 The tester accepted this evidence set for the selected long increase. The raw
 sidecar's historical-source and referral flags predate the separate proof and

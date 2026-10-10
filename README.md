@@ -19,7 +19,7 @@ Fresh collection and interruption recovery have been tested with simulated
 providers; the existing real recording has been validated and replayed offline.
 **A complete fresh collection against a live archive RPC provider has not yet
 been verified.** The Step 4 simulator runs offline and reports missing evidence
-as `unavailable`; see the [integration evidence audit](docs/step4-final-integration-evidence.md).
+as `unavailable`; see the [integration evidence audit](docs/step_4/step4-final-integration-evidence.md).
 
 Learn the protocol through the five-lesson [GMX perpetuals course](docs/gmx-perpetuals-course/README.md),
 including recorded long and short orders and the completed 40-question assessment.
@@ -28,7 +28,7 @@ See [architecture](docs/architecture.md), [V2 operations](docs/v2-operations.md)
 [regression results](docs/v2-validation.md), and the
 [V1 reference](docs/v1-collector-and-validation.md).
 
-Step 4 implementation follows the [developer–tester workflow](docs/step4-agentic-flow.md), driven by the [primary agent's orchestrator skill](.agents/skills/gmx-step4-orchestrator/SKILL.md). The [stage status](docs/step4-agentic-status.md) records handoffs and review returns.
+Step 4 implementation follows the [developer–tester workflow](docs/step_4/step4-agentic-flow.md), driven by the [primary agent's orchestrator skill](.agents/skills/gmx-step4-orchestrator/SKILL.md). The [stage status](docs/step_4/step4-agentic-status.md) records handoffs and review returns.
 
 No wallet, private key, signing, order-submission, or live-capital code belongs
 in this project without a separate explicit decision and runbook.

@@ -27,13 +27,13 @@ same block hash. A caller cannot add cells and thereby mark the result complete.
 | Long and short open interest in tokens | Four pinned collateral buckets | The reader now sums both collateral buckets for each side and rejects a missing bucket. |
 | Equivalent pre-execution state and feature checks | Execution-context evidence | **Missing.** A block-boundary read alone cannot reproduce state inside a block. |
 
-The [Sourcify source proof](../evidence/step4-1/sourcify-source-proof.json) binds exact-match source and ABI records to the pinned runtime hashes for all five contracts. The reviewed historical key formulas agree with the repository's fixed key builders. An independent compiler rebuild remains open. The stage still needs a refreshed sidecar with the corrected order layout, final token delta, and equivalent pre-execution state before any comparison certificate is possible.
+The [Sourcify source proof](../../evidence/step4-1/sourcify-source-proof.json) binds exact-match source and ABI records to the pinned runtime hashes for all five contracts. The reviewed historical key formulas agree with the repository's fixed key builders. An independent compiler rebuild remains open. The stage still needs a refreshed sidecar with the corrected order layout, final token delta, and equivalent pre-execution state before any comparison certificate is possible.
 
 The referral rerun has a zero trader referral code and a zero pro tier at the same pin. Its sidecar still lists `referral_historical_source_and_abi_proof` because that file predates the public source check below. The zero values remove the need to read affiliate and tier branches for this selected account.
 
 ### Historical source proof status
 
-The offline [source manifest](../evidence/step4-1/historical-source-manifest.json) binds each saved `eth_getCode` result to the sidecar's runtime code hash and extracts the Solidity IPFS metadata reference. The pinned code footers report these compiler versions:
+The offline [source manifest](../../evidence/step4-1/historical-source-manifest.json) binds each saved `eth_getCode` result to the sidecar's runtime code hash and extracts the Solidity IPFS metadata reference. The pinned code footers report these compiler versions:
 
 | Contract | Compiler version in pinned code footer | Metadata CID prefix | Source/ABI status |
 |---|---|---|---|
@@ -43,11 +43,11 @@ The offline [source manifest](../evidence/step4-1/historical-source-manifest.jso
 | OrderHandler | 0.8.29 | `QmRokDke` | Exact-match source and ABI saved |
 | ReferralStorage | 0.6.12 | `QmVncpnk` | Exact-match source and ABI saved |
 
-The [saved public Sourcify responses](../evidence/step4-1/sourcify-v2/) report exact runtime matches for all five addresses. The [local proof](../evidence/step4-1/sourcify-source-proof.json) checks their reported on-chain runtime code hashes and SHA-256 values against this manifest, verifies all reported source content hashes, and checks ABI consistency. This binds a historical source set to the pinned runtime through Sourcify's exact-match result and local hashes. Raw compiler metadata CID preimages and an independent compiler rebuild remain unverified. The current GMX `main` source is not used as historical proof.
+The [saved public Sourcify responses](../../evidence/step4-1/sourcify-v2/) report exact runtime matches for all five addresses. The [local proof](../../evidence/step4-1/sourcify-source-proof.json) checks their reported on-chain runtime code hashes and SHA-256 values against this manifest, verifies all reported source content hashes, and checks ABI consistency. This binds a historical source set to the pinned runtime through Sourcify's exact-match result and local hashes. Raw compiler metadata CID preimages and an independent compiler rebuild remain unverified. The current GMX `main` source is not used as historical proof.
 
 The exact-match ReferralStorage record contains the GMX V1 contract source and its 0.6.12 compiler identity. Its getter names match those used by the bounded referral reader. The [GMX V1 contract list](https://docs.gmx.io/docs/archived/contracts-v1/) also identifies the pinned address. The earlier unverified V2 mock source lead is no longer used.
 
-A bounded direct fetch of the Reader metadata from the public `ipfs.io` gateway returned HTTP 403. The [fetch result](../evidence/step4-1/public-source-fetch-attempt.json) records that earlier attempt. Sourcify V2 subsequently supplied an exact-match source record, but its API response does not expose the raw metadata CID preimage. The offline CID verifier remains available if those raw files are obtained.
+A bounded direct fetch of the Reader metadata from the public `ipfs.io` gateway returned HTTP 403. The [fetch result](../../evidence/step4-1/public-source-fetch-attempt.json) records that earlier attempt. Sourcify V2 subsequently supplied an exact-match source record, but its API response does not expose the raw metadata CID preimage. The offline CID verifier remains available if those raw files are obtained.
 
 ### Historical Reader and key layout correction
 

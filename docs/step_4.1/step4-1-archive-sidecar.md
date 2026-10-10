@@ -91,4 +91,4 @@ PYTHONPATH=src .venv/bin/python -m gmx_crypto_bot_v2.application.sourcify_proof 
   --output evidence/step4-1/sourcify-source-proof.json
 ```
 
-The [proof report](../evidence/step4-1/sourcify-source-proof.json) includes the five response digests, match IDs, source hashes, and Reader number-field order. The raw compiler metadata bytes that hash to each embedded CID were not available from this response, and we did not perform an independent compiler rebuild. The report keeps those two checks false.
+The [proof report](../../evidence/step4-1/sourcify-source-proof.json) includes the five response digests, match IDs, source hashes, and Reader number-field order. The raw compiler metadata bytes that hash to each embedded CID were not available from this response, and we did not perform an independent compiler rebuild. The report keeps those two checks false.

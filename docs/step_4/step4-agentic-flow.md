@@ -2,7 +2,7 @@
 
 **Objective:** Complete the read-only position simulator in this repository against the [Step 4 design](/home/vasilii/work/myOS/projects/crypto-yield/context/research/gmx/gmx-step-4-simulator-design.md). The primary agent coordinates two subagents named `developer` and `tester`.
 
-The primary agent uses [the orchestrator skill](../.agents/skills/gmx-step4-orchestrator/SKILL.md), which loads the [developer](../.agents/agents/developer.md) and [tester](../.agents/agents/tester.md) role descriptions. [Stage status](step4-agentic-status.md) persists accepted stages and review return counts across sessions. These files guide subagent calls; they do not launch agents automatically.
+The primary agent uses [the orchestrator skill](../../.agents/skills/gmx-step4-orchestrator/SKILL.md), which loads the [developer](../../.agents/agents/developer.md) and [tester](../../.agents/agents/tester.md) role descriptions. [Stage status](step4-agentic-status.md) persists accepted stages and review return counts across sessions. These files guide subagent calls; they do not launch agents automatically.
 
 ```mermaid
 flowchart TD

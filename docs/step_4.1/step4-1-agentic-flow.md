@@ -1,12 +1,12 @@
 # Step 4.1 agentic flow
 
-**Flow parameter:** `docs/step4-1-agentic-flow.md`
+**Flow parameter:** `docs/step_4.1/step4-1-agentic-flow.md`
 
-**State parameter:** `docs/step4-1-agentic-status.md`
+**State parameter:** `docs/step_4.1/step4-1-agentic-status.md`
 
 **Plan:** [Cross-check plan](step4-1-simulation-router-crosscheck-plan.md)
 
-The primary agent uses the [generic orchestrator skill](../.agents/skills/gmx-step4-orchestrator/SKILL.md). Each stage has a separate implementor and critic. Code stages use the reusable [developer](../.agents/agents/developer.md) and [tester](../.agents/agents/tester.md) roles. Planning and integration stages use implementor and critic agents with the tasks below. The primary agent records handoffs and review results in the state file.
+The primary agent uses the [generic orchestrator skill](../../.agents/skills/gmx-step4-orchestrator/SKILL.md). Each stage has a separate implementor and critic. Code stages use the reusable [developer](../../.agents/agents/developer.md) and [tester](../../.agents/agents/tester.md) roles. Planning and integration stages use implementor and critic agents with the tasks below. The primary agent records handoffs and review results in the state file.
 
 ```mermaid
 flowchart TD

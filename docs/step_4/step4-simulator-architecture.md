@@ -17,7 +17,7 @@ Each position order has an **action** (increase or decrease), a **side** (long o
 | `take_profit` | `LimitDecrease` | Requires independent trigger evidence. The current recording adapter does not supply it, so this request returns `unavailable`. |
 | `stop_loss` | `StopLossDecrease` | Requires independent trigger evidence. The current recording adapter does not supply it, so this request returns `unavailable`. |
 
-The scenario runner does not currently accept `LimitIncrease` or `StopIncrease` as planned request kinds. It also does not model swaps or protocol liquidation as user orders. The [Step 4.1 cross-check plan](step4-1-simulation-router-crosscheck-plan.md#order-types-and-current-support) lists the wider set of recorded GMX order types that its candidate selector can identify. Candidate selection alone does not mean that the Simulator can reconstruct that type.
+The scenario runner does not currently accept `LimitIncrease` or `StopIncrease` as planned request kinds. It also does not model swaps or protocol liquidation as user orders. The [Step 4.1 cross-check plan](../step_4.1/step4-1-simulation-router-crosscheck-plan.md#order-types-and-current-support) lists the wider set of recorded GMX order types that its candidate selector can identify. Candidate selection alone does not mean that the Simulator can reconstruct that type.
 
 ## Data flow
 
@@ -40,13 +40,13 @@ The scenario runner controls this flow. It processes keeper candidates and risk 
 
 | Part | Code | Task |
 |---|---|---|
-| Evidence adapter | [`evidence.py`](../src/gmx_crypto_bot_v2/simulation/evidence.py) | Load and check the recording. Give the state before a selected log. Supply keeper opportunities and required risk coordinates. |
-| Order scheduler | [`orders.py`](../src/gmx_crypto_bot_v2/simulation/orders.py) | Apply request timing, inclusion delay, keeper delay, triggers, and cancellation timing. Select a candidate opportunity. |
-| Economics | [`economics.py`](../src/gmx_crypto_bot_v2/simulation/economics.py) | Calculate execution price, price impact, fees, funding, borrowing, and position settlement. Check the acceptable price. |
-| PnL cap | [`pnl_cap.py`](../src/gmx_crypto_bot_v2/simulation/pnl_cap.py) | Limit positive position PnL with the historical market setting and market state. |
-| Ledgers | [`ledger.py`](../src/gmx_crypto_bot_v2/simulation/ledger.py) | Hold the simulated position and cash. Apply a supported fill to the position and market state. |
-| Risk checks | [`risk.py`](../src/gmx_crypto_bot_v2/simulation/risk.py) | Estimate adverse close value, remaining collateral, leverage, and liquidation state. |
-| Scenario runner | [`scenarios.py`](../src/gmx_crypto_bot_v2/simulation/scenarios.py) | Run the parts in order. Record orders, risk points, reasons, and metrics. |
+| Evidence adapter | [`evidence.py`](../../src/gmx_crypto_bot_v2/simulation/evidence.py) | Load and check the recording. Give the state before a selected log. Supply keeper opportunities and required risk coordinates. |
+| Order scheduler | [`orders.py`](../../src/gmx_crypto_bot_v2/simulation/orders.py) | Apply request timing, inclusion delay, keeper delay, triggers, and cancellation timing. Select a candidate opportunity. |
+| Economics | [`economics.py`](../../src/gmx_crypto_bot_v2/simulation/economics.py) | Calculate execution price, price impact, fees, funding, borrowing, and position settlement. Check the acceptable price. |
+| PnL cap | [`pnl_cap.py`](../../src/gmx_crypto_bot_v2/simulation/pnl_cap.py) | Limit positive position PnL with the historical market setting and market state. |
+| Ledgers | [`ledger.py`](../../src/gmx_crypto_bot_v2/simulation/ledger.py) | Hold the simulated position and cash. Apply a supported fill to the position and market state. |
+| Risk checks | [`risk.py`](../../src/gmx_crypto_bot_v2/simulation/risk.py) | Estimate adverse close value, remaining collateral, leverage, and liquidation state. |
+| Scenario runner | [`scenarios.py`](../../src/gmx_crypto_bot_v2/simulation/scenarios.py) | Run the parts in order. Record orders, risk points, reasons, and metrics. |
 
 ## Historical evidence
 
